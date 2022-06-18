@@ -20,3 +20,15 @@ func TestAddGood(t *testing.T) {
 		t.Fatal("Expected an ok result, but got not ok result")
 	}
 }
+
+func FuzzAddGood(f *testing.F) {
+	f.Fuzz(func(t *testing.T, s string) {
+		// WHEN the program is called with the input
+		ok := spacer.Run(s)
+
+		// THEN the result is expected to be ok.
+		if !ok {
+			t.Fatal("Expected an ok result, but got not ok result")
+		}
+	})
+}
