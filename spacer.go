@@ -1,7 +1,11 @@
 package spacer
 
-import "strings"
+import (
+	"regexp"
+)
+
+var regex = regexp.MustCompile(`.*\[.+\].*`)
 
 func Run(s string) bool {
-	return strings.Contains(s, "[")
+	return regex.MatchString(s)
 }
