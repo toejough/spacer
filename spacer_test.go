@@ -1,8 +1,8 @@
 package spacer_test
 
 import (
+	"regexp"
 	"spacer"
-	"strings"
 	"testing"
 
 	"pgregory.net/rapid"
@@ -79,10 +79,12 @@ func TestPropertyAddBad(t *testing.T) {
 	// Allow parallel testing
 	t.Parallel()
 
+	regex := regexp.MustCompile(`.*\[.+\].*`)
+
 	// Perform the property check
 	rapid.Check(t, func(rtest *rapid.T) {
 		// GIVEN bad input
-		gen := rapid.String().Filter(func(s string) bool { return !strings.Contains(s, "[") })
+		gen := rapid.String().Filter(func(s string) bool { return !regex.MatchString(s) })
 		badInput, typeOK := gen.Draw(rtest, "badInput").(string)
 
 		if !typeOK {
