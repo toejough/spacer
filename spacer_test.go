@@ -58,3 +58,19 @@ func TestPropertyAddGood(t *testing.T) {
 		}
 	})
 }
+
+func TestAddBad(t *testing.T) {
+	// Allow parallel testing
+	t.Parallel()
+
+	// GIVEN bad input
+	badInput := "add ABCDEFG"
+
+	// WHEN the program is called with it
+	ok := spacer.Run(badInput)
+
+	// THEN the result is not ok
+	if ok {
+		t.Fatal("Expected result to not be ok, but it was ok")
+	}
+}
