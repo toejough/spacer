@@ -23,15 +23,14 @@ func TestAddGood(t *testing.T) {
 	}
 }
 
-func FuzzAddGood(f *testing.F) {
+func FuzzAdd(f *testing.F) {
+	f.Add("ABCD[E]FG") // ok example
+	f.Add("ABCDEFG")   // not ok example
 	f.Fuzz(func(t *testing.T, s string) {
 		// WHEN the program is called with the input
-		ok := spacer.Run(s)
+		_ = spacer.Run(s)
 
-		// THEN the result is expected to be ok.
-		if !ok {
-			t.Fatal("Expected an ok result, but got not ok result")
-		}
+		// THEN the run is expected to return just fine.
 	})
 }
 
