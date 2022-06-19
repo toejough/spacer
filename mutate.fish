@@ -5,6 +5,7 @@
 # * https://github.com/zimmski/go-mutesting
 #
 # Would eventually like to replace with a go program with its own testing
+# Would like to be able to say "replace bool returns with their opposites"
 
 # true -> false
 set search_text true
@@ -41,3 +42,9 @@ for file in $files
         end
     end
 end
+
+if test -z $files
+    echo no files were found with candidates for mutation
+end
+
+return 0
