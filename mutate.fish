@@ -6,6 +6,7 @@
 #
 # Would eventually like to replace with a go program with its own testing
 # Would like to be able to say "replace bool returns with their opposites"
+# Would like to cache candidates and results
 
 # true -> false
 set search_text true
