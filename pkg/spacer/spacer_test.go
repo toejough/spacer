@@ -2,7 +2,7 @@ package spacer_test
 
 import (
 	"regexp"
-	"spacer"
+	"spacer/pkg/spacer"
 	"testing"
 
 	"pgregory.net/rapid"

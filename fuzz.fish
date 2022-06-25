@@ -10,6 +10,6 @@ for file in $files
     set funcs (ag -o '^func \KFuzz.*(?=\()' $file)
     for func in $funcs
         echo Fuzzing $func
-        go test (dirname $file) -fuzz $func -fuzztime 1000x
+        go test ./(dirname $file) -fuzz $func -fuzztime 1000x
     end
 end
