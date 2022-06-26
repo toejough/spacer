@@ -1,0 +1,9 @@
+[linters]
+enable-all = true
+disable = [
+    "gci", # doesn't play nicely with goimports
+    "ifshort", # I'd rather be explicit about exec-ing commands and responding to them
+]
+
+[issues]
+fix = true
