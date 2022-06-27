@@ -39,6 +39,7 @@ install-if-missing awk
 install-if-missing ag
 install-if-missing go
 install-if-missing golangci-lint
+install-if-missing mage
 
 echo "updating reflex..."
 go install github.com/cespare/reflex@latest
