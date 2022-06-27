@@ -25,6 +25,7 @@ func globs(dir string, ext []string) ([]string, error) {
 		for _, each := range ext {
 			if filepath.Ext(path) == each {
 				files = append(files, path)
+                return nil
 			}
 		}
 		return nil
@@ -64,7 +65,11 @@ func Monitor() error {
 
 		if changeDetected {
 			fmt.Println("Change detected...")
-			Check()
+			err = Check()
+            if err != nil {
+                fmt.Printf("continuing to monitor after check failure: %s", err)
+            }
+
 			lastFinishedTime = time.Now()
 		}
 	}
@@ -82,16 +87,16 @@ func Check() error {
 	return nil
 }
 
-// Tidy up go.mod
+// Tidy tidies up go.mod
 func Tidy() error {
 	fmt.Println("Tidying go.mod...")
 	return sh.RunV("go", "mod", "tidy")
 }
 
-// Lint the codebase
+// Lint lints the codebase
 func Lint() error {
 	fmt.Println("Linting...")
-	_, err := sh.Exec(nil, os.Stdout, nil, "golangci-lint", "run", "-c", "config/golangci.toml")
+	_, err := sh.Exec(nil, os.Stdout, nil, "golangci-lint", "run", "-c", "dev/golangci.toml")
 	return err
 }
 
@@ -104,19 +109,19 @@ func Test() error {
 // Run the fuzz tests
 func Fuzz() error {
 	fmt.Println("Running fuzz tests...")
-	return sh.RunV("./fuzz.fish")
+	return sh.RunV("./dev/fuzz.fish")
 }
 
 // Run the mutation tests
 func Mutate() error {
 	fmt.Println("Running mutation tests...")
-	return sh.RunV("./mutate.fish")
+	return sh.RunV("./dev/mutate.fish")
 }
 
 // Install development tooling
 func InstallTools() error {
 	fmt.Println("Installing development tools...")
-	return sh.RunV("./dev-install.sh")
+	return sh.RunV("./dev/dev-install.sh")
 }
 
 // Clean up the dev env

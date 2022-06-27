@@ -14,7 +14,7 @@ set replacement false
 
 set files (ag $search_text -G '.*/.go$' -l)
 set command 'go mod tidy &&
-  golangci-lint run -c ./config/golangci.toml --fix 2> /dev/null &&
+  golangci-lint run -c ./dev/golangci.toml --fix 2> /dev/null &&
   go test -rapid.nofailfile -failfast &&
   ./fuzz.fish'
 

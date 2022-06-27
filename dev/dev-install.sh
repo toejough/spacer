@@ -32,4 +32,4 @@ echo "...found"
 # from https://stackoverflow.com/a/246128
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-$SCRIPT_DIR/dev/dev-install.fish
+$SCRIPT_DIR/dev-install.fish
