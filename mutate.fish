@@ -3,7 +3,7 @@
 # Mutate. Based loosely on:
 # * https://mutmut.readthedocs.io/en/latest/
 # * https://github.com/zimmski/go-mutesting
-#
+
 # Would eventually like to replace with a go program with its own testing
 # Would like to be able to say "replace bool returns with their opposites"
 # Would like to cache candidates and results
@@ -12,9 +12,9 @@
 set search_text true
 set replacement false
 
-set files (ag $search_text -G '.*.go' -l)
+set files (ag $search_text -G '.*/.go$' -l)
 set command 'go mod tidy &&
-  golangci-lint run --enable-all --disable gci,ifshort --fix 2> /dev/null &&
+  golangci-lint run -c ./config/golangci.toml --fix 2> /dev/null &&
   go test -rapid.nofailfile -failfast &&
   ./fuzz.fish'
 
