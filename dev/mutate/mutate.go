@@ -3,6 +3,9 @@ package main
 
 import (
 	"fmt"
+	"io/fs"
+	"io/ioutil"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -38,19 +41,16 @@ func main() {
 			//   replace the pattern
 			numParts := 3
 			parts := strings.SplitN(candidate, ":", numParts)
-			line := parts[0]
+			line, _ := strconv.Atoi(parts[0])
 			column, _ := strconv.Atoi(parts[1])
 			match := parts[2]
 			column--
 			regex, _ := regexp.Compile(fmt.Sprintf(`(.{%d})%s`, column, searchText))
 			mutant := regex.ReplaceAllString(match, fmt.Sprintf("${1}%s", replacementText))
 
-			fmt.Printf(`mutating %s:%s:%d "%s" '->' "%s"`, file, line, column+1, match, mutant)
+			fmt.Printf(`mutating %s:%d:%d "%s" '->' "%s"`, file, line, column+1, match, mutant)
 
-			_ = sh.Run("fish", "-c", fmt.Sprintf(
-				`sed -i "" -E %s's/(.{%d})%s/\1%s/' %s`,
-				line, column, searchText, replacementText, file,
-			))
+			_ = replaceText(line, column, searchText, replacementText, file)
 			//   retest
 			err := sh.RunV("fish", "-c", command)
 			//   mark pass/failed
@@ -62,12 +62,9 @@ func main() {
 				fmt.Printf("caught the mutant")
 			}
 			//   restore the pattern
-			fmt.Printf(`echo restoring mutant %s:%s:%d "%s" '->' "%s"`, file, line, column+1, mutant, match)
+			fmt.Printf(`restoring mutant %s:%d:%d "%s" '->' "%s"`, file, line, column+1, mutant, match)
 
-			_ = sh.Run("fish", "-c", fmt.Sprintf(
-				`sed -i "" -E %s's/(.{%d})%s/\1%s/' %s`,
-				line, column, replacementText, searchText, file,
-			))
+			_ = replaceText(line, column, replacementText, searchText, file)
 			//   if failed, exit
 			if !caught {
 				return
@@ -76,4 +73,29 @@ func main() {
 			continue
 		}
 	}
+}
+
+func replaceText(line int, column int, searchText string, replacementText string, file string) error {
+	input, err := ioutil.ReadFile(file)
+	if err != nil {
+		return fmt.Errorf("unable to replace text: unable to read file: %w", err)
+	}
+
+	lines := strings.Split(string(input), "\n")
+
+	targetLine := lines[line-1]
+	targetPart := targetLine[column:]
+	targetPart = strings.Replace(targetPart, searchText, replacementText, 1)
+	targetLine = targetLine[:column] + targetPart
+	lines[line-1] = targetLine
+	output := strings.Join(lines, "\n")
+
+	ownerReadWrite := 0o600
+
+	err = os.WriteFile(file, []byte(output), fs.FileMode(ownerReadWrite))
+	if err != nil {
+		return fmt.Errorf("unable to replace text: unable to write file: %w", err)
+	}
+
+	return nil
 }
