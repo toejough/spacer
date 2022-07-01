@@ -44,10 +44,9 @@ func main() {
 			column--
 			regex, _ := regexp.Compile(fmt.Sprintf(`(.{%d})%s`, column, searchText))
 			mutant := regex.ReplaceAllString(match, fmt.Sprintf("${1}%s", replacementText))
-			_ = sh.RunV("fish", "-c", fmt.Sprintf(
-				`echo mutating %s:%s:(math %d+1) "%s" '->' "%s"`,
-				file, line, column, match, mutant,
-			))
+
+			fmt.Printf(`mutating %s:%s:%d "%s" '->' "%s"`, file, line, column+1, match, mutant)
+
 			_ = sh.Run("fish", "-c", fmt.Sprintf(
 				`sed -i "" -E %s's/(.{%d})%s/\1%s/' %s`,
 				line, column, searchText, replacementText, file,
@@ -56,16 +55,15 @@ func main() {
 			err := sh.RunV("fish", "-c", command)
 			//   mark pass/failed
 			if err == nil {
-				_ = sh.RunV("fish", "-c", `echo failed to catch the mutant`)
+				fmt.Printf("failed to catch the mutant")
+
 				caught = false
 			} else {
-				_ = sh.RunV("fish", "-c", `echo caught the mutant`)
+				fmt.Printf("caught the mutant")
 			}
 			//   restore the pattern
-			_ = sh.RunV("fish", "-c", fmt.Sprintf(
-				`echo restoring mutant %s:%s:(math %d+1) "%s" '->' "%s"`,
-				file, line, column, mutant, match,
-			))
+			fmt.Printf(`echo restoring mutant %s:%s:%d "%s" '->' "%s"`, file, line, column+1, mutant, match)
+
 			_ = sh.Run("fish", "-c", fmt.Sprintf(
 				`sed -i "" -E %s's/(.{%d})%s/\1%s/' %s`,
 				line, column, replacementText, searchText, file,
