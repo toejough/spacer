@@ -48,21 +48,21 @@ func main() {
 			regex, _ := regexp.Compile(fmt.Sprintf(`(.{%d})%s`, column, searchText))
 			mutant := regex.ReplaceAllString(match, fmt.Sprintf("${1}%s", replacementText))
 
-			fmt.Printf(`mutating %s:%d:%d "%s" '->' "%s"`, file, line, column+1, match, mutant)
+			fmt.Printf("mutating %s:%d:%d '%s' -> '%s'\n", file, line, column+1, match, mutant)
 
 			_ = replaceText(line, column, searchText, replacementText, file)
 			//   retest
 			err := sh.RunV("fish", "-c", command)
 			//   mark pass/failed
 			if err == nil {
-				fmt.Printf("failed to catch the mutant")
+				fmt.Printf("failed to catch the mutant\n")
 
 				caught = false
 			} else {
-				fmt.Printf("caught the mutant")
+				fmt.Printf("caught the mutant\n")
 			}
 			//   restore the pattern
-			fmt.Printf(`restoring mutant %s:%d:%d "%s" '->' "%s"`, file, line, column+1, mutant, match)
+			fmt.Printf("restoring mutant %s:%d:%d '%s' -> '%s'\n", file, line, column+1, mutant, match)
 
 			_ = replaceText(line, column, replacementText, searchText, file)
 			//   if failed, exit
