@@ -6,8 +6,8 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/magefile/mage/sh"
@@ -21,7 +21,6 @@ import (
 // Would like to cache candidates and results
 
 func main() {
-	// Load the kinds of mutations to test
 	searchText := "true"
 	replacementText := "false"
 	// get the command
@@ -30,48 +29,39 @@ func main() {
   go test -rapid.nofailfile -failfast &&
   ./fuzz.fish`
 	// Search the go files for mutation patterns
-	files, _ := sh.Output("ag", searchText, "-G", `.*\.go$`, "-l")
+	matches, err := searchFiles(searchText)
+	if err != nil {
+		panic(fmt.Errorf("unable to mutate: %w", err))
+	}
+
 	caught := true
 	// For each file found
-	for _, file := range strings.Split(files, "\n") {
-		fmt.Printf("mutatable '%s' found in %s\n", searchText, file)
-		candidates, _ := sh.Output("ag", "--column", searchText, file)
-		// For each specific candidate found
-		for _, candidate := range strings.Split(candidates, "\n") {
-			//   replace the pattern
-			numParts := 3
-			parts := strings.SplitN(candidate, ":", numParts)
-			line, _ := strconv.Atoi(parts[0])
-			column, _ := strconv.Atoi(parts[1])
-			match := parts[2]
-			column--
-			regex, _ := regexp.Compile(fmt.Sprintf(`(.{%d})%s`, column, searchText))
-			mutant := regex.ReplaceAllString(match, fmt.Sprintf("${1}%s", replacementText))
+	for _, match := range matches {
+		fmt.Printf("mutatable '%s' found at %d:%d(%s)\n", searchText, match.line, match.column, match.path)
+		//   replace the pattern
+		line := match.line
+		column := match.column
+		path := match.path
+		column--
+		_ = replaceText(line, column, searchText, replacementText, path)
+		//   retest
+		err := sh.RunV("fish", "-c", command)
+		//   mark pass/failed
+		if err == nil {
+			fmt.Printf("failed to catch the mutant\n")
 
-			fmt.Printf("mutating %s:%d:%d '%s' -> '%s'\n", file, line, column+1, match, mutant)
-
-			_ = replaceText(line, column, searchText, replacementText, file)
-			//   retest
-			err := sh.RunV("fish", "-c", command)
-			//   mark pass/failed
-			if err == nil {
-				fmt.Printf("failed to catch the mutant\n")
-
-				caught = false
-			} else {
-				fmt.Printf("caught the mutant\n")
-			}
-			//   restore the pattern
-			fmt.Printf("restoring mutant %s:%d:%d '%s' -> '%s'\n", file, line, column+1, mutant, match)
-
-			_ = replaceText(line, column, replacementText, searchText, file)
-			//   if failed, exit
-			if !caught {
-				return
-			}
-			//   continue
-			continue
+			caught = false
+		} else {
+			fmt.Printf("caught the mutant\n")
 		}
+		//   restore the pattern
+		_ = replaceText(line, column, replacementText, searchText, path)
+		//   if failed, exit
+		if !caught {
+			return
+		}
+		//   continue
+		continue
 	}
 }
 
@@ -83,11 +73,11 @@ func replaceText(line int, column int, searchText string, replacementText string
 
 	lines := strings.Split(string(input), "\n")
 
-	targetLine := lines[line-1]
+	targetLine := lines[line]
 	targetPart := targetLine[column:]
 	targetPart = strings.Replace(targetPart, searchText, replacementText, 1)
 	targetLine = targetLine[:column] + targetPart
-	lines[line-1] = targetLine
+	lines[line] = targetLine
 	output := strings.Join(lines, "\n")
 
 	ownerReadWrite := 0o600
@@ -98,4 +88,58 @@ func replaceText(line int, column int, searchText string, replacementText string
 	}
 
 	return nil
+}
+
+type match struct {
+	line   int
+	column int
+	path   string
+}
+
+func searchFile(searchText string, file string) ([]match, error) {
+	input, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, fmt.Errorf("unable to replace text: unable to read file: %w", err)
+	}
+
+	lines := strings.Split(string(input), "\n")
+	matches := []match{}
+
+	for i, l := range lines {
+		indices := regexp.MustCompile(searchText).FindAllStringIndex(l, -1)
+		for _, pair := range indices {
+			matches = append(matches, match{line: i, column: pair[0], path: file})
+		}
+	}
+
+	return matches, nil
+}
+
+func searchFiles(searchText string) ([]match, error) {
+	workingDirectory, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("unable to search files: %w", err)
+	}
+
+	matches := []match{}
+
+	err = fs.WalkDir(os.DirFS(workingDirectory), ".", func(path string, _ fs.DirEntry, err error) error {
+		if err != nil {
+			fmt.Printf("error: %s\n", err)
+
+			return fs.SkipDir
+		}
+		if filepath.Ext(path) == ".go" {
+			m, _ := searchFile(searchText, path)
+			matches = append(matches, m...)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("unable to search files: %w", err)
+	}
+
+	return matches, nil
 }
