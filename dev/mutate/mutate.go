@@ -2,15 +2,15 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
-
-	"github.com/magefile/mage/sh"
 )
 
 // Mutate. Based loosely on:
@@ -24,10 +24,10 @@ func main() {
 	searchText := "true"
 	replacementText := "false"
 	// get the command
-	command := `go mod tidy &&
-  golangci-lint run -c ./dev/golangci.toml --fix 2> /dev/null &&
-  go test -rapid.nofailfile -failfast &&
-  ./fuzz.fish`
+	commandPtr := flag.String("command", "go test ./...", "the command to run to attempt to catch the mutants.")
+	flag.Parse()
+
+	command := *commandPtr
 	// Search the go files for mutation patterns
 	matches, err := searchFiles(searchText)
 	if err != nil {
@@ -45,7 +45,9 @@ func main() {
 		column--
 		_ = replaceText(line, column, searchText, replacementText, path)
 		//   retest
-		err := sh.RunV("fish", "-c", command)
+		cp := strings.Fields(command)
+		out, err := exec.Command(cp[0], cp[1:]...).CombinedOutput() //nolint:gosec // I know I'm running user input.
+		fmt.Println(string(out))
 		//   mark pass/failed
 		if err == nil {
 			fmt.Printf("failed to catch the mutant\n")
@@ -58,11 +60,15 @@ func main() {
 		_ = replaceText(line, column, replacementText, searchText, path)
 		//   if failed, exit
 		if !caught {
+			fmt.Println("Exiting early due to uncaught mutant")
+
 			return
 		}
 		//   continue
 		continue
 	}
+
+	fmt.Println("All mutants caught!")
 }
 
 func replaceText(line int, column int, searchText string, replacementText string, file string) error {

@@ -87,6 +87,18 @@ func Check() error {
 	return nil
 }
 
+// Run all checks on the code for determining whether any fail
+func CheckForFail() error {
+	fmt.Println("Checking...")
+	for _, cmd := range []func() error{LintForFail, TestForFail, Fuzz} {
+		err := cmd()
+		if err != nil {
+			return fmt.Errorf("unable to finish checking: %w", err)
+		}
+	}
+	return nil
+}
+
 // Tidy tidies up go.mod
 func Tidy() error {
 	fmt.Println("Tidying go.mod...")
@@ -100,10 +112,30 @@ func Lint() error {
 	return err
 }
 
+// LintForFail lints the codebase purely to find out whether anything fails
+func LintForFail() error {
+	fmt.Println("Linting to check for overall pass/fail...")
+	_, err := sh.Exec(
+        nil, os.Stdout, nil,
+        "golangci-lint", "run",
+        "-c", "dev/golangci.toml",
+        "--fix=false",
+        "--max-issues-per-linter=1",
+        "--max-same-issues=1",
+    )
+	return err
+}
+
 // Run the unit tests
 func Test() error {
 	fmt.Println("Running unit tests...")
 	return sh.RunV("go", "test", "./...")
+}
+
+// Run the unit tests purely to find out whether any fail
+func TestForFail() error {
+	fmt.Println("Running unit tests for overall pass/fail...")
+	return sh.RunV("go", "test", "./...", "-rapid.nofailfile", "-failfast")
 }
 
 // Run the fuzz tests
@@ -115,7 +147,7 @@ func Fuzz() error {
 // Run the mutation tests
 func Mutate() error {
 	fmt.Println("Running mutation tests...")
-	return sh.RunV("go", "run", "./dev/mutate/mutate.go")
+	return sh.RunV("go", "run", "./dev/mutate/mutate.go", "--command", "mage checkForFail")
 }
 
 // Install development tooling
