@@ -25,7 +25,7 @@ func globs(dir string, ext []string) ([]string, error) {
 		for _, each := range ext {
 			if filepath.Ext(path) == each {
 				files = append(files, path)
-                return nil
+				return nil
 			}
 		}
 		return nil
@@ -66,9 +66,9 @@ func Monitor() error {
 		if changeDetected {
 			fmt.Println("Change detected...")
 			err = Check()
-            if err != nil {
-                fmt.Printf("continuing to monitor after check failure: %s", err)
-            }
+			if err != nil {
+				fmt.Printf("continuing to monitor after check failure: %s", err)
+			}
 
 			lastFinishedTime = time.Now()
 		}
@@ -116,13 +116,13 @@ func Lint() error {
 func LintForFail() error {
 	fmt.Println("Linting to check for overall pass/fail...")
 	_, err := sh.Exec(
-        nil, os.Stdout, nil,
-        "golangci-lint", "run",
-        "-c", "dev/golangci.toml",
-        "--fix=false",
-        "--max-issues-per-linter=1",
-        "--max-same-issues=1",
-    )
+		nil, os.Stdout, nil,
+		"golangci-lint", "run",
+		"-c", "dev/golangci.toml",
+		"--fix=false",
+		"--max-issues-per-linter=1",
+		"--max-same-issues=1",
+	)
 	return err
 }
 
@@ -135,7 +135,13 @@ func Test() error {
 // Run the unit tests purely to find out whether any fail
 func TestForFail() error {
 	fmt.Println("Running unit tests for overall pass/fail...")
-	return sh.RunV("go", "test", "./...", "-rapid.nofailfile", "-failfast")
+
+	err := sh.RunV("go", "test", "./pkg/...", "-rapid.nofailfile", "-failfast")
+	if err != nil {
+		return err
+	}
+
+	return sh.RunV("go", "test", "./dev/...", "-failfast")
 }
 
 // Run the fuzz tests
