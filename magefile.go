@@ -40,7 +40,7 @@ func Monitor() error {
 
 	err := Check()
 	if err != nil {
-		fmt.Printf("continuing to monitor after check failure: %s", err)
+		fmt.Printf("continuing to monitor after check failure: %s\n", err)
 	}
 
 	lastFinishedTime := time.Now()

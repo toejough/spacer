@@ -20,6 +20,18 @@ import (
 // Would like to be able to say "replace bool returns with their opposites"
 // Would like to cache candidates and results
 
+type (
+	MutateFunc    func() bool
+	ReportingFunc func(bool)
+	ExitFunc      func(bool)
+)
+
+func run(m MutateFunc, r ReportingFunc, e ExitFunc) {
+	m()
+	r(true)
+	e(true)
+}
+
 func main() {
 	searchText := "true"
 	replacementText := "false"
