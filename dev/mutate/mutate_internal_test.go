@@ -81,31 +81,64 @@ func (m *MockArgs) Func(args bool) {
 	m.argsChan <- args
 }
 
+type FUT struct {
+	CallsChan chan string
+	T         *testing.T
+}
+
+func NewFUT(t *testing.T) *FUT {
+	t.Helper()
+
+	return &FUT{T: t, CallsChan: make(chan string)}
+}
+
+func (f *FUT) ExpectDone() {
+	f.T.Helper()
+	select {
+	case call := <-f.CallsChan:
+		if call != "" {
+			f.T.Fatalf("Expected run to be done, but it called '%s' instead.\n", call)
+		}
+	case <-time.After(time.Second):
+		f.T.Fatalf("Expected run to be done, but it didn't end.\n")
+	}
+}
+
+func (f *FUT) Call(ff func()) {
+	go func() {
+		ff()
+		close(f.CallsChan)
+	}()
+}
+
 func TestMainGetsCommand(t *testing.T) {
 	t.Parallel()
 
-	callsChan := make(chan string)
+	fut := NewFUT(t)
 
 	// Given a mutation func
-	mutateMock := NewMock(t, callsChan, "mutate")
+	// TODO make the new mocks functions of fut, to further hide the call channel
+	mutateMock := NewMock(t, fut.CallsChan, "mutate")
 	mutate := func() bool {
 		return mutateMock.Func()
 	}
 
 	// Given a reporting func
-	reportMock := NewMockArgs(t, callsChan, "report")
+	reportMock := NewMockArgs(t, fut.CallsChan, "report")
 	report := func(r bool) {
 		reportMock.Func(r)
 	}
 
 	// Given an exit func
-	exitMock := NewMockArgs(t, callsChan, "exit")
+	exitMock := NewMockArgs(t, fut.CallsChan, "exit")
 	exit := func(r bool) {
 		exitMock.Func(r)
 	}
 
 	// When run is called
-	go run(mutate, report, exit)
+	fut.Call(func() {
+		run(mutate, report, exit)
+	})
 
 	// Then we run the mutations and return the results
 	mutateMock.ExpectCall().Return(true)
@@ -115,6 +148,9 @@ func TestMainGetsCommand(t *testing.T) {
 
 	// Then we exit with the result of the mutations
 	exitMock.ExpectCall(true)
+
+	// Then we expect run to be done
+	fut.ExpectDone()
 }
 
 func waitForCall(t *testing.T, callsChan chan string, call string) {
