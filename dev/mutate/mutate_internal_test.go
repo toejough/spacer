@@ -47,13 +47,13 @@ func (m *MockNoArgs) Func() bool {
 	return <-m.resultChan
 }
 
-type MockNoReturn[A Eq[A]] struct {
+type MockNoReturn[A any] struct {
 	callsChan chan string
 	argsChan  chan A
 	name      string
 }
 
-func NewMockNoReturn[A Eq[A]](f *FUT, name string) *MockNoReturn[A] {
+func NewMockNoReturn[A any](f *FUT, name string) *MockNoReturn[A] {
 	return &MockNoReturn[A]{
 		callsChan: f.CallsChan,
 		argsChan:  make(chan A),
@@ -70,7 +70,7 @@ func (mock *MockNoReturn[A]) ExpectCall() (*A, error) {
 	return waitForArgs(mock.argsChan, mock.name)
 }
 
-func (mock *MockNoReturn[A]) ExpectCallFatal(t *testing.T, expected A) {
+func (mock *MockNoReturn[A]) ExpectCallFatal(t *testing.T, expected Eq[A]) {
 	t.Helper()
 
 	args, err := mock.ExpectCall()
@@ -82,7 +82,7 @@ func (mock *MockNoReturn[A]) ExpectCallFatal(t *testing.T, expected A) {
 		t.Fatalf("args were unexpectedly nil. expected: %v", expected)
 	}
 
-	if !(*args).Equals(expected) {
+	if !expected.Equals(*args) {
 		t.Fatalf(
 			"Expected 'report' to be called with arguments of '%v', but got arguments of '%v' instead\n",
 			expected, *args,
