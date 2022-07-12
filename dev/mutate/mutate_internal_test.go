@@ -5,19 +5,19 @@ import (
 	"time"
 )
 
-type Mock struct {
+type MockNoArgs struct {
 	t          *testing.T
 	callsChan  chan string
 	resultChan chan bool
 	name       string
 }
 
-func NewMock(t *testing.T, callsChan chan string, name string) *Mock {
-	t.Helper()
+func (f *FUT) NewMockNoArgs(name string) *MockNoArgs {
+	f.T.Helper()
 
-	mock := &Mock{
-		t:          t,
-		callsChan:  callsChan,
+	mock := &MockNoArgs{
+		t:          f.T,
+		callsChan:  f.CallsChan,
 		resultChan: make(chan bool),
 		name:       name,
 	}
@@ -25,7 +25,7 @@ func NewMock(t *testing.T, callsChan chan string, name string) *Mock {
 	return mock
 }
 
-func (m *Mock) ExpectCall() *Mock {
+func (m *MockNoArgs) ExpectCall() *MockNoArgs {
 	m.t.Helper()
 
 	waitForCall(m.t, m.callsChan, m.name)
@@ -33,7 +33,7 @@ func (m *Mock) ExpectCall() *Mock {
 	return m
 }
 
-func (m *Mock) Return(r bool) *Mock {
+func (m *MockNoArgs) Return(r bool) *MockNoArgs {
 	m.t.Helper()
 
 	setReturnValue(m.t, m.resultChan, r)
@@ -41,25 +41,25 @@ func (m *Mock) Return(r bool) *Mock {
 	return m
 }
 
-func (m *Mock) Func() bool {
+func (m *MockNoArgs) Func() bool {
 	m.callsChan <- m.name
 
 	return <-m.resultChan
 }
 
-type MockArgs struct {
+type MockNoReturn struct {
 	t         *testing.T
 	callsChan chan string
 	argsChan  chan bool
 	name      string
 }
 
-func NewMockArgs(t *testing.T, callsChan chan string, name string) *MockArgs {
-	t.Helper()
+func (f *FUT) NewMockNoReturn(name string) *MockNoReturn {
+	f.T.Helper()
 
-	mock := &MockArgs{
-		t:         t,
-		callsChan: callsChan,
+	mock := &MockNoReturn{
+		t:         f.T,
+		callsChan: f.CallsChan,
 		argsChan:  make(chan bool),
 		name:      name,
 	}
@@ -67,7 +67,7 @@ func NewMockArgs(t *testing.T, callsChan chan string, name string) *MockArgs {
 	return mock
 }
 
-func (m *MockArgs) ExpectCall(b bool) *MockArgs {
+func (m *MockNoReturn) ExpectCall(b bool) *MockNoReturn {
 	m.t.Helper()
 
 	waitForCall(m.t, m.callsChan, m.name)
@@ -76,7 +76,7 @@ func (m *MockArgs) ExpectCall(b bool) *MockArgs {
 	return m
 }
 
-func (m *MockArgs) Func(args bool) {
+func (m *MockNoReturn) Func(args bool) {
 	m.callsChan <- m.name
 	m.argsChan <- args
 }
@@ -111,29 +111,31 @@ func (f *FUT) Call(ff func()) {
 	}()
 }
 
-func TestMainGetsCommand(t *testing.T) {
+func TestRun(t *testing.T) {
 	t.Parallel()
 
 	fut := NewFUT(t)
 
 	// Given a mutation func
-	// TODO make the new mocks functions of fut, to further hide the call channel
-	mutateMock := NewMock(t, fut.CallsChan, "mutate")
+	mutateMock := fut.NewMockNoArgs("mutate")
 	mutate := func() bool {
 		return mutateMock.Func()
 	}
 
 	// Given a reporting func
-	reportMock := NewMockArgs(t, fut.CallsChan, "report")
+	reportMock := fut.NewMockNoReturn("report")
 	report := func(r bool) {
 		reportMock.Func(r)
 	}
 
 	// Given an exit func
-	exitMock := NewMockArgs(t, fut.CallsChan, "exit")
+	exitMock := fut.NewMockNoReturn("exit")
 	exit := func(r bool) {
 		exitMock.Func(r)
 	}
+
+	// Given a return from the mutation func
+	mutationReturn := true
 
 	// When run is called
 	fut.Call(func() {
@@ -141,13 +143,13 @@ func TestMainGetsCommand(t *testing.T) {
 	})
 
 	// Then we run the mutations and return the results
-	mutateMock.ExpectCall().Return(true)
+	mutateMock.ExpectCall().Return(mutationReturn)
 
 	// Then we report the summary of the run with the mutation results
-	reportMock.ExpectCall(true)
+	reportMock.ExpectCall(mutationReturn)
 
 	// Then we exit with the result of the mutations
-	exitMock.ExpectCall(true)
+	exitMock.ExpectCall(mutationReturn)
 
 	// Then we expect run to be done
 	fut.ExpectDone()
