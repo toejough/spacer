@@ -1,44 +1,40 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
 
 type MockNoArgs struct {
-	t          *testing.T
 	callsChan  chan string
 	resultChan chan bool
 	name       string
 }
 
 func (f *FUT) NewMockNoArgs(name string) *MockNoArgs {
-	f.T.Helper()
-
-	mock := &MockNoArgs{
-		t:          f.T,
+	return &MockNoArgs{
 		callsChan:  f.CallsChan,
 		resultChan: make(chan bool),
 		name:       name,
 	}
-
-	return mock
 }
 
-func (m *MockNoArgs) ExpectCall() *MockNoArgs {
-	m.t.Helper()
-
-	waitForCall(m.t, m.callsChan, m.name)
-
-	return m
+func (m *MockNoArgs) WaitForCall() error {
+	return waitForCall(m.callsChan, m.name)
 }
 
-func (m *MockNoArgs) Return(r bool) *MockNoArgs {
-	m.t.Helper()
+func (m *MockNoArgs) WaitForCallFatal(t *testing.T) {
+	t.Helper()
 
-	setReturnValue(m.t, m.resultChan, r)
+	err := m.WaitForCall()
+	if err != nil {
+		t.Fatalf("did not call '%s': %s", m.name, err)
+	}
+}
 
-	return m
+func (m *MockNoArgs) Return(r bool) {
+	m.resultChan <- r
 }
 
 func (m *MockNoArgs) Func() bool {
@@ -48,32 +44,46 @@ func (m *MockNoArgs) Func() bool {
 }
 
 type MockNoReturn struct {
-	t         *testing.T
 	callsChan chan string
 	argsChan  chan bool
 	name      string
 }
 
 func (f *FUT) NewMockNoReturn(name string) *MockNoReturn {
-	f.T.Helper()
-
-	mock := &MockNoReturn{
-		t:         f.T,
+	return &MockNoReturn{
 		callsChan: f.CallsChan,
 		argsChan:  make(chan bool),
 		name:      name,
 	}
-
-	return mock
 }
 
-func (m *MockNoReturn) ExpectCall(b bool) *MockNoReturn {
-	m.t.Helper()
+func (m *MockNoReturn) ExpectCall(arg bool) (*bool, error) {
+	err := waitForCall(m.callsChan, m.name)
+	if err != nil {
+		return nil, err
+	}
 
-	waitForCall(m.t, m.callsChan, m.name)
-	waitForArgs(m.t, m.argsChan, b, m.name)
+	return waitForArgs(m.argsChan, arg, m.name)
+}
 
-	return m
+func (m *MockNoReturn) ExpectCallFatal(t *testing.T, expected bool) {
+	t.Helper()
+
+	args, err := m.ExpectCall(expected)
+	if err != nil {
+		t.Fatalf("'%s' was not called with the expected args: %s", m.name, err)
+	}
+
+	if args == nil {
+		t.Fatalf("args were unexpectedly nil. expected: %t", expected)
+	}
+
+	if *args != expected {
+		t.Fatalf(
+			"Expected 'report' to be called with arguments of '%t', but got arguments of '%t' instead\n",
+			expected, *args,
+		)
+	}
 }
 
 func (m *MockNoReturn) Func(args bool) {
@@ -83,24 +93,45 @@ func (m *MockNoReturn) Func(args bool) {
 
 type FUT struct {
 	CallsChan chan string
-	T         *testing.T
 }
 
-func NewFUT(t *testing.T) *FUT {
-	t.Helper()
-
-	return &FUT{T: t, CallsChan: make(chan string)}
+func NewFUT() *FUT {
+	return &FUT{CallsChan: make(chan string)}
 }
 
-func (f *FUT) ExpectDone() {
-	f.T.Helper()
+type UnexpectedCallError struct {
+	Call string
+}
+
+func (e UnexpectedCallError) Error() string {
+	return fmt.Sprintf("expected to be done, but function called '%s' instead", e.Call)
+}
+
+type UnendingError struct{}
+
+func (e UnendingError) Error() string {
+	return "expected to be done, but function timed out instead"
+}
+
+func (f *FUT) ExpectDone() error {
 	select {
 	case call := <-f.CallsChan:
 		if call != "" {
-			f.T.Fatalf("Expected run to be done, but it called '%s' instead.\n", call)
+			return UnexpectedCallError{call}
 		}
+
+		return nil
 	case <-time.After(time.Second):
-		f.T.Fatalf("Expected run to be done, but it didn't end.\n")
+		return UnendingError{}
+	}
+}
+
+func (f *FUT) ExpectDoneFatal(t *testing.T) {
+	t.Helper()
+
+	err := f.ExpectDone()
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 }
 
@@ -114,21 +145,17 @@ func (f *FUT) Call(ff func()) {
 func TestRun(t *testing.T) {
 	t.Parallel()
 
-	fut := NewFUT(t)
+	fut := NewFUT()
 
-	// Given a mutation func
+	// Given dependencies
 	mutateMock := fut.NewMockNoArgs("mutate")
 	mutate := func() bool {
 		return mutateMock.Func()
 	}
-
-	// Given a reporting func
 	reportMock := fut.NewMockNoReturn("report")
 	report := func(r bool) {
 		reportMock.Func(r)
 	}
-
-	// Given an exit func
 	exitMock := fut.NewMockNoReturn("exit")
 	exit := func(r bool) {
 		exitMock.Func(r)
@@ -142,50 +169,62 @@ func TestRun(t *testing.T) {
 		run(mutate, report, exit)
 	})
 
-	// Then we run the mutations and return the results
-	mutateMock.ExpectCall().Return(mutationReturn)
+	// Then we run the mutations
+	mutateMock.WaitForCallFatal(t)
+
+	// When we return the results of the mutation
+	mutateMock.Return(mutationReturn)
 
 	// Then we report the summary of the run with the mutation results
-	reportMock.ExpectCall(mutationReturn)
+	reportMock.ExpectCallFatal(t, mutationReturn)
 
 	// Then we exit with the result of the mutations
-	exitMock.ExpectCall(mutationReturn)
+	exitMock.ExpectCallFatal(t, mutationReturn)
 
 	// Then we expect run to be done
-	fut.ExpectDone()
+	fut.ExpectDoneFatal(t)
 }
 
-func waitForCall(t *testing.T, callsChan chan string, call string) {
-	t.Helper()
+type CallError struct {
+	Expected, Actual string
+}
+
+func (e CallError) Error() string {
+	return fmt.Sprintf("expected '%s' to be called, but '%s' was called instead", e.Expected, e.Actual)
+}
+
+type CallTimeoutError struct {
+	Expected string
+}
+
+func (e CallTimeoutError) Error() string {
+	return fmt.Sprintf("expected run to call '%s' before timing out, but it did not", e.Expected)
+}
+
+type ArgTimeoutError struct{}
+
+func (e ArgTimeoutError) Error() string {
+	return "expected to receive arguments before timing out, but did not"
+}
+
+func waitForCall(callsChan chan string, call string) error {
 	select {
 	case called := <-callsChan:
 		if called != call {
-			t.Fatalf("Expected '%s' to be called, but '%s' was called instead\n", call, called)
+			return CallError{call, called}
 		}
+
+		return nil
 	case <-time.After(time.Second):
-		t.Fatalf("Expected run to call '%s' before timing out, but it did not.\n", call)
+		return CallTimeoutError{call}
 	}
 }
 
-func waitForArgs(t *testing.T, argsChan chan bool, expectedArgs bool, toFunc string) {
-	t.Helper()
+func waitForArgs(argsChan chan bool, expectedArgs bool, toFunc string) (*bool, error) {
 	select {
 	case actualArgs := <-argsChan:
-		if actualArgs != expectedArgs {
-			t.Fatalf(
-				"Expected '%s' to be called with arguments of '%t', but got arguments of '%t' instead\n",
-				toFunc, expectedArgs, actualArgs,
-			)
-		}
+		return &actualArgs, nil
 	case <-time.After(time.Second):
-		t.Fatalf(
-			"Expected '%s' to be called with arguments of '%t' before timing out, but it was not.\n",
-			toFunc, expectedArgs,
-		)
+		return nil, ArgTimeoutError{}
 	}
-}
-
-func setReturnValue(t *testing.T, returnChan chan bool, returnValue bool) {
-	t.Helper()
-	returnChan <- returnValue
 }
