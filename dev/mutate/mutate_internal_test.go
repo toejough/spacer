@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+type Eq[E any] interface {
+	Equals(E) bool
+}
+
 type MockNoArgs struct {
 	callsChan  chan string
 	resultChan chan bool
@@ -43,50 +47,50 @@ func (m *MockNoArgs) Func() bool {
 	return <-m.resultChan
 }
 
-type MockNoReturn struct {
+type MockNoReturn[S any, A Eq[S]] struct {
 	callsChan chan string
-	argsChan  chan bool
+	argsChan  chan A
 	name      string
 }
 
-func (f *FUT) NewMockNoReturn(name string) *MockNoReturn {
-	return &MockNoReturn{
+func NewMockNoReturn[S any, A Eq[S]](f *FUT, name string) *MockNoReturn[S, A] {
+	return &MockNoReturn[S, A]{
 		callsChan: f.CallsChan,
-		argsChan:  make(chan bool),
+		argsChan:  make(chan A),
 		name:      name,
 	}
 }
 
-func (m *MockNoReturn) ExpectCall(arg bool) (*bool, error) {
-	err := waitForCall(m.callsChan, m.name)
+func ExpectCall[S any, A Eq[S]](mock *MockNoReturn[S, A]) (*A, error) {
+	err := waitForCall(mock.callsChan, mock.name)
 	if err != nil {
 		return nil, err
 	}
 
-	return waitForArgs(m.argsChan, arg, m.name)
+	return waitForArgs(mock.argsChan, mock.name)
 }
 
-func (m *MockNoReturn) ExpectCallFatal(t *testing.T, expected bool) {
+func ExpectCallFatal[S any, A Eq[S]](t *testing.T, m *MockNoReturn[S, A], expected S) {
 	t.Helper()
 
-	args, err := m.ExpectCall(expected)
+	args, err := ExpectCall(m)
 	if err != nil {
 		t.Fatalf("'%s' was not called with the expected args: %s", m.name, err)
 	}
 
 	if args == nil {
-		t.Fatalf("args were unexpectedly nil. expected: %t", expected)
+		t.Fatalf("args were unexpectedly nil. expected: %v", expected)
 	}
 
-	if *args != expected {
+	if !(*args).Equals(expected) {
 		t.Fatalf(
-			"Expected 'report' to be called with arguments of '%t', but got arguments of '%t' instead\n",
+			"Expected 'report' to be called with arguments of '%v', but got arguments of '%v' instead\n",
 			expected, *args,
 		)
 	}
 }
 
-func (m *MockNoReturn) Func(args bool) {
+func (m *MockNoReturn[S, A]) Func(args A) {
 	m.callsChan <- m.name
 	m.argsChan <- args
 }
@@ -142,6 +146,12 @@ func (f *FUT) Call(ff func()) {
 	}()
 }
 
+type eqBool bool
+
+func (e eqBool) Equals(b eqBool) bool {
+	return e == b
+}
+
 func TestRun(t *testing.T) {
 	t.Parallel()
 
@@ -152,13 +162,13 @@ func TestRun(t *testing.T) {
 	mutate := func() bool {
 		return mutateMock.Func()
 	}
-	reportMock := fut.NewMockNoReturn("report")
+	reportMock := NewMockNoReturn[eqBool, eqBool](fut, "report")
 	report := func(r bool) {
-		reportMock.Func(r)
+		reportMock.Func(eqBool(r))
 	}
-	exitMock := fut.NewMockNoReturn("exit")
+	exitMock := NewMockNoReturn[eqBool, eqBool](fut, "exit")
 	exit := func(r bool) {
-		exitMock.Func(r)
+		exitMock.Func(eqBool(r))
 	}
 
 	// Given a return from the mutation func
@@ -176,10 +186,10 @@ func TestRun(t *testing.T) {
 	mutateMock.Return(mutationReturn)
 
 	// Then we report the summary of the run with the mutation results
-	reportMock.ExpectCallFatal(t, mutationReturn)
+	ExpectCallFatal(t, reportMock, eqBool(mutationReturn))
 
 	// Then we exit with the result of the mutations
-	exitMock.ExpectCallFatal(t, mutationReturn)
+	ExpectCallFatal(t, exitMock, eqBool(mutationReturn))
 
 	// Then we expect run to be done
 	fut.ExpectDoneFatal(t)
@@ -220,7 +230,7 @@ func waitForCall(callsChan chan string, call string) error {
 	}
 }
 
-func waitForArgs(argsChan chan bool, expectedArgs bool, toFunc string) (*bool, error) {
+func waitForArgs[E any](argsChan chan E, toFunc string) (*E, error) {
 	select {
 	case actualArgs := <-argsChan:
 		return &actualArgs, nil
