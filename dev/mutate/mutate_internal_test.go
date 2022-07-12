@@ -47,21 +47,21 @@ func (m *MockNoArgs) Func() bool {
 	return <-m.resultChan
 }
 
-type MockNoReturn[S any, A Eq[S]] struct {
+type MockNoReturn[A Eq[A]] struct {
 	callsChan chan string
 	argsChan  chan A
 	name      string
 }
 
-func NewMockNoReturn[S any, A Eq[S]](f *FUT, name string) *MockNoReturn[S, A] {
-	return &MockNoReturn[S, A]{
+func NewMockNoReturn[A Eq[A]](f *FUT, name string) *MockNoReturn[A] {
+	return &MockNoReturn[A]{
 		callsChan: f.CallsChan,
 		argsChan:  make(chan A),
 		name:      name,
 	}
 }
 
-func ExpectCall[S any, A Eq[S]](mock *MockNoReturn[S, A]) (*A, error) {
+func (mock *MockNoReturn[A]) ExpectCall() (*A, error) {
 	err := waitForCall(mock.callsChan, mock.name)
 	if err != nil {
 		return nil, err
@@ -70,12 +70,12 @@ func ExpectCall[S any, A Eq[S]](mock *MockNoReturn[S, A]) (*A, error) {
 	return waitForArgs(mock.argsChan, mock.name)
 }
 
-func ExpectCallFatal[S any, A Eq[S]](t *testing.T, m *MockNoReturn[S, A], expected S) {
+func (mock *MockNoReturn[A]) ExpectCallFatal(t *testing.T, expected A) {
 	t.Helper()
 
-	args, err := ExpectCall(m)
+	args, err := mock.ExpectCall()
 	if err != nil {
-		t.Fatalf("'%s' was not called with the expected args: %s", m.name, err)
+		t.Fatalf("'%s' was not called with the expected args: %s", mock.name, err)
 	}
 
 	if args == nil {
@@ -90,9 +90,9 @@ func ExpectCallFatal[S any, A Eq[S]](t *testing.T, m *MockNoReturn[S, A], expect
 	}
 }
 
-func (m *MockNoReturn[S, A]) Func(args A) {
-	m.callsChan <- m.name
-	m.argsChan <- args
+func (mock *MockNoReturn[A]) Func(args A) {
+	mock.callsChan <- mock.name
+	mock.argsChan <- args
 }
 
 type FUT struct {
@@ -162,11 +162,11 @@ func TestRun(t *testing.T) {
 	mutate := func() bool {
 		return mutateMock.Func()
 	}
-	reportMock := NewMockNoReturn[eqBool, eqBool](fut, "report")
+	reportMock := NewMockNoReturn[eqBool](fut, "report")
 	report := func(r bool) {
 		reportMock.Func(eqBool(r))
 	}
-	exitMock := NewMockNoReturn[eqBool, eqBool](fut, "exit")
+	exitMock := NewMockNoReturn[eqBool](fut, "exit")
 	exit := func(r bool) {
 		exitMock.Func(eqBool(r))
 	}
@@ -186,10 +186,10 @@ func TestRun(t *testing.T) {
 	mutateMock.Return(mutationReturn)
 
 	// Then we report the summary of the run with the mutation results
-	ExpectCallFatal(t, reportMock, eqBool(mutationReturn))
+	reportMock.ExpectCallFatal(t, eqBool(mutationReturn))
 
 	// Then we exit with the result of the mutations
-	ExpectCallFatal(t, exitMock, eqBool(mutationReturn))
+	exitMock.ExpectCallFatal(t, eqBool(mutationReturn))
 
 	// Then we expect run to be done
 	fut.ExpectDoneFatal(t)
