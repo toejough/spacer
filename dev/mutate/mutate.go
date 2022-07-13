@@ -27,9 +27,9 @@ type (
 )
 
 func run(m MutateFunc, r ReportingFunc, e ExitFunc) {
-	m()
-	r(true)
-	e(true)
+	mr := m()
+	r(mr)
+	e(mr)
 }
 
 func main() {
