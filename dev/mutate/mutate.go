@@ -32,7 +32,7 @@ func run(m MutateFunc, r ReportingFunc, e ExitFunc) {
 	e(mr)
 }
 
-func main() {
+func mutate() bool {
 	searchText := "true"
 	replacementText := "false"
 	// get the command
@@ -72,15 +72,33 @@ func main() {
 		_ = replaceText(line, column, replacementText, searchText, path)
 		//   if failed, exit
 		if !caught {
-			fmt.Println("Exiting early due to uncaught mutant")
-
-			return
+			return false
 		}
 		//   continue
 		continue
 	}
 
-	fmt.Println("All mutants caught!")
+	return true
+}
+
+func report(result bool) {
+	if !result {
+		fmt.Println("Exiting early due to uncaught mutant")
+	} else {
+		fmt.Println("All mutants caught!")
+	}
+}
+
+func exit(result bool) {
+	if !result {
+		os.Exit(1)
+	} else {
+		os.Exit(0)
+	}
+}
+
+func main() {
+	run(mutate, report, exit)
 }
 
 func replaceText(line int, column int, searchText string, replacementText string, file string) error {
