@@ -6,21 +6,21 @@ import (
 	"testing"
 )
 
-type Stack[I any] struct {
+type FIFO[I any] struct {
 	items []I
 }
 
-func (s *Stack[I]) Len() int {
+func (s *FIFO[I]) Len() int {
 	return len(s.items)
 }
 
-func (s *Stack[I]) Push(i I) {
+func (s *FIFO[I]) Push(i I) {
 	s.items = append(s.items, i)
 }
 
 var ErrPop = fmt.Errorf("unable to pop from stack: no items in it")
 
-func (s *Stack[I]) Pop() (I, error) {
+func (s *FIFO[I]) Pop() (I, error) {
 	if len(s.items) == 0 {
 		zeroValue := *new(I) //nolint:gocritic // cannot do I(nil) with generics
 
@@ -34,7 +34,7 @@ func (s *Stack[I]) Pop() (I, error) {
 	return i, nil
 }
 
-func (s *Stack[I]) MustPop(t *testing.T) I {
+func (s *FIFO[I]) MustPop(t *testing.T) I {
 	t.Helper()
 
 	if len(s.items) == 0 {
@@ -58,7 +58,7 @@ func RequireCall(t *testing.T, expectedCall string, actualCall string) {
 	t.Logf("called '%s'\n", actualCall)
 }
 
-func RequireEmpty[I any](t *testing.T, s Stack[I]) {
+func RequireEmpty[I any](t *testing.T, s FIFO[I]) {
 	t.Helper()
 
 	l := s.Len()

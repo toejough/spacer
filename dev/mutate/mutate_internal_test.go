@@ -27,7 +27,7 @@ func TestRun(t *testing.T) {
 		t.Run(fmt.Sprintf("%t", mutationReturn), func(t *testing.T) {
 			t.Parallel()
 
-			actualCalls := protest.Stack[string]{}
+			actualCalls := protest.FIFO[string]{}
 			var reportArgs diffBool
 			var exitArgs diffBool
 
@@ -58,6 +58,7 @@ func TestRun(t *testing.T) {
 			protest.RequireCall(t, "exit", actualCalls.MustPop(t))
 			protest.RequireArgs(t, diffBool(mReturn), exitArgs)
 
+			// And no more calls are made
 			protest.RequireEmpty(t, actualCalls)
 		})
 	}
