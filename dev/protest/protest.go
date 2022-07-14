@@ -4,190 +4,80 @@ package protest
 import (
 	"fmt"
 	"testing"
-	"time"
 )
 
-type Eq[E any] interface {
-	Equals(E) bool
+type Stack[I any] struct {
+	items []I
 }
 
-type MockNoArgs[A any] struct {
-	callsChan  chan string
-	resultChan chan A
-	name       string
+func (s *Stack[I]) Len() int {
+	return len(s.items)
 }
 
-func NewMockNoArgs[A any](f *FUT, name string) *MockNoArgs[A] {
-	return &MockNoArgs[A]{
-		callsChan:  f.CallsChan,
-		resultChan: make(chan A),
-		name:       name,
+func (s *Stack[I]) Push(i I) {
+	s.items = append(s.items, i)
+}
+
+var ErrPop = fmt.Errorf("unable to pop from stack: no items in it")
+
+func (s *Stack[I]) Pop() (I, error) {
+	if len(s.items) == 0 {
+		zeroValue := *new(I) //nolint:gocritic // cannot do I(nil) with generics
+
+		return zeroValue, ErrPop
 	}
+
+	var i I
+
+	i, s.items = s.items[0], s.items[1:]
+
+	return i, nil
 }
 
-func (mock *MockNoArgs[A]) WaitForCall() error {
-	return waitForCall(mock.callsChan, mock.name)
-}
-
-func (mock *MockNoArgs[A]) WaitForCallFatal(t *testing.T) {
+func (s *Stack[I]) MustPop(t *testing.T) I {
 	t.Helper()
 
-	err := mock.WaitForCall()
-	if err != nil {
-		t.Fatalf("did not call '%s': %s", mock.name, err)
-	}
-}
-
-func (mock *MockNoArgs[A]) Return(r A) {
-	mock.resultChan <- r
-}
-
-// I know this returns an interface - it's a generic return type.
-func (mock *MockNoArgs[A]) Func() A { //nolint: ireturn
-	mock.callsChan <- mock.name
-
-	return <-mock.resultChan
-}
-
-type MockNoReturn[A any] struct {
-	callsChan chan string
-	argsChan  chan A
-	name      string
-}
-
-func NewMockNoReturn[A any](f *FUT, name string) *MockNoReturn[A] {
-	return &MockNoReturn[A]{
-		callsChan: f.CallsChan,
-		argsChan:  make(chan A),
-		name:      name,
-	}
-}
-
-func (mock *MockNoReturn[A]) ExpectCall() (*A, error) {
-	err := waitForCall(mock.callsChan, mock.name)
-	if err != nil {
-		return nil, err
+	if len(s.items) == 0 {
+		t.Fatalf("unable to pop from stack: no items in it")
 	}
 
-	return waitForArgs(mock.argsChan, mock.name)
+	var i I
+
+	i, s.items = s.items[0], s.items[1:]
+
+	return i
 }
 
-func (mock *MockNoReturn[A]) ExpectCallFatal(t *testing.T, expected Eq[A]) {
+func RequireCall(t *testing.T, expectedCall string, actualCall string) {
 	t.Helper()
 
-	args, err := mock.ExpectCall()
-	if err != nil {
-		t.Fatalf("'%s' was not called with the expected args: %s", mock.name, err)
+	if actualCall != expectedCall {
+		t.Fatalf("expected call to '%s', but '%s' was called instead\n", expectedCall, actualCall)
 	}
 
-	if args == nil {
-		t.Fatalf("args were unexpectedly nil. expected: %v", expected)
-	}
-
-	if !expected.Equals(*args) {
-		t.Fatalf(
-			"Expected 'report' to be called with arguments of '%v', but got arguments of '%v' instead\n",
-			expected, *args,
-		)
-	}
+	t.Logf("called '%s'\n", actualCall)
 }
 
-func (mock *MockNoReturn[A]) Func(args A) {
-	mock.callsChan <- mock.name
-	mock.argsChan <- args
-}
-
-type FUT struct {
-	CallsChan chan string
-}
-
-func NewFUT() *FUT {
-	return &FUT{CallsChan: make(chan string)}
-}
-
-func (f *FUT) ExpectDone() error {
-	select {
-	case call := <-f.CallsChan:
-		if call != "" {
-			return UnexpectedCallError{call}
-		}
-
-		return nil
-	case <-time.After(time.Second):
-		return UnendingError{}
-	}
-}
-
-func (f *FUT) ExpectDoneFatal(t *testing.T) {
+func RequireEmpty[I any](t *testing.T, s Stack[I]) {
 	t.Helper()
 
-	err := f.ExpectDone()
-	if err != nil {
-		t.Fatal(err.Error())
+	l := s.Len()
+	if l != 0 {
+		t.Fatalf("expected stack to be empty but it had %d items in it\n", l)
 	}
 }
 
-func (f *FUT) Call(ff func()) {
-	go func() {
-		ff()
-		close(f.CallsChan)
-	}()
+type Diffable[D any] interface {
+	Diff(D) string
 }
 
-type UnexpectedCallError struct {
-	Call string
-}
+func RequireArgs[D Diffable[D]](t *testing.T, expectedArgs D, actualArgs D) {
+	t.Helper()
 
-func (e UnexpectedCallError) Error() string {
-	return fmt.Sprintf("expected to be done, but function called '%s' instead", e.Call)
-}
-
-type UnendingError struct{}
-
-func (e UnendingError) Error() string {
-	return "expected to be done, but function timed out instead"
-}
-
-type CallError struct {
-	Expected, Actual string
-}
-
-func (e CallError) Error() string {
-	return fmt.Sprintf("expected '%s' to be called, but '%s' was called instead", e.Expected, e.Actual)
-}
-
-type CallTimeoutError struct {
-	Expected string
-}
-
-func (e CallTimeoutError) Error() string {
-	return fmt.Sprintf("expected run to call '%s' before timing out, but it did not", e.Expected)
-}
-
-type ArgTimeoutError struct{}
-
-func (e ArgTimeoutError) Error() string {
-	return "expected to receive arguments before timing out, but did not"
-}
-
-func waitForCall(callsChan chan string, call string) error {
-	select {
-	case called := <-callsChan:
-		if called != call {
-			return CallError{call, called}
-		}
-
-		return nil
-	case <-time.After(time.Second):
-		return CallTimeoutError{call}
+	diff := expectedArgs.Diff(actualArgs)
+	if len(diff) != 0 {
+		t.Fatalf("expected args to be '%v', but a diff of '%s' was found\n", expectedArgs, diff)
 	}
-}
 
-func waitForArgs[E any](argsChan chan E, toFunc string) (*E, error) {
-	select {
-	case actualArgs := <-argsChan:
-		return &actualArgs, nil
-	case <-time.After(time.Second):
-		return nil, ArgTimeoutError{}
-	}
+	t.Logf("args '%v'\n", actualArgs)
 }

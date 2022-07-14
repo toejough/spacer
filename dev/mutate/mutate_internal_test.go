@@ -6,57 +6,59 @@ import (
 	"testing"
 )
 
-type eqBool bool
+type diffBool bool
 
-func (e eqBool) Equals(b eqBool) bool {
-	return e == b
+func (e diffBool) Diff(b diffBool) string {
+	if bool(e) != bool(b) {
+		return fmt.Sprintf("%t != %t", bool(e), bool(b))
+	}
+
+	return ""
 }
 
 func TestRun(t *testing.T) {
 	t.Parallel()
 
-	// linter can't tell we're using the range value in the test
-	for _, mutationReturn := range []bool{true, false} { //nolint: paralleltest
+	for _, mutationReturn := range []bool{true, false} { //nolint:paralleltest
+		// linter can't tell we're using the range value in the test
 		// Given a return from the mutation func
 		mReturn := mutationReturn
+
 		t.Run(fmt.Sprintf("%t", mutationReturn), func(t *testing.T) {
 			t.Parallel()
 
-			fut := protest.NewFUT()
+			actualCalls := protest.Stack[string]{}
+			var reportArgs diffBool
+			var exitArgs diffBool
 
 			// Given dependencies
-			mutateMock := protest.NewMockNoArgs[eqBool](fut, "mutate")
 			mutate := func() bool {
-				return bool(mutateMock.Func())
+				actualCalls.Push("mutate")
+
+				return mReturn
 			}
-			reportMock := protest.NewMockNoReturn[eqBool](fut, "report")
 			report := func(r bool) {
-				reportMock.Func(eqBool(r))
+				actualCalls.Push("report")
+				reportArgs = diffBool(r)
 			}
-			exitMock := protest.NewMockNoReturn[eqBool](fut, "exit")
 			exit := func(r bool) {
-				exitMock.Func(eqBool(r))
+				actualCalls.Push("exit")
+				exitArgs = diffBool(r)
 			}
 
 			// When run is called
-			fut.Call(func() {
-				run(mutate, report, exit)
-			})
+			run(mutate, report, exit)
 
-			// Then we run the mutations
-			mutateMock.WaitForCallFatal(t)
+			// Then the functions are called in the right order with the right args
+			protest.RequireCall(t, "mutate", actualCalls.MustPop(t))
 
-			// When we return the results of the mutation
-			mutateMock.Return(eqBool(mReturn))
+			protest.RequireCall(t, "report", actualCalls.MustPop(t))
+			protest.RequireArgs(t, diffBool(mReturn), reportArgs)
 
-			// Then we report the summary of the run with the mutation results
-			reportMock.ExpectCallFatal(t, eqBool(mReturn))
+			protest.RequireCall(t, "exit", actualCalls.MustPop(t))
+			protest.RequireArgs(t, diffBool(mReturn), exitArgs)
 
-			// Then we exit with the result of the mutations
-			exitMock.ExpectCallFatal(t, eqBool(mReturn))
-
-			// Then we expect run to be done
-			fut.ExpectDoneFatal(t)
+			protest.RequireEmpty(t, actualCalls)
 		})
 	}
 }
