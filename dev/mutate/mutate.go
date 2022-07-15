@@ -26,10 +26,16 @@ type (
 	ExitFunc      func(bool)
 )
 
-func run(m MutateFunc, r ReportingFunc, e ExitFunc) {
-	mr := m()
-	r(mr)
-	e(mr)
+type run struct {
+	m MutateFunc
+	r ReportingFunc
+	e ExitFunc
+}
+
+func (r run) f() {
+	mr := r.m()
+	r.r(mr)
+	r.e(mr)
 }
 
 func mutate() bool {
@@ -98,7 +104,7 @@ func exit(result bool) {
 }
 
 func main() {
-	run(mutate, report, exit)
+	run{mutate, report, exit}.f()
 }
 
 func replaceText(line int, column int, searchText string, replacementText string, file string) error {

@@ -47,19 +47,28 @@ func TestRun(t *testing.T) {
 			}
 
 			// When run is called
-			run(mutate, report, exit)
+			run{mutate, report, exit}.f()
 
-			// Then the functions are called in the right order with the right args
+			// Then mutate is called
 			protest.RequireCall(t, "mutate", actualCalls.MustPop(t))
-
+			// Then report is called with mutate's output
 			protest.RequireCall(t, "report", actualCalls.MustPop(t))
 			protest.RequireArgs(t, diffBool(mReturn), reportArgs)
-
+			// Then exit is called with mutate's output
 			protest.RequireCall(t, "exit", actualCalls.MustPop(t))
 			protest.RequireArgs(t, diffBool(mReturn), exitArgs)
-
 			// And no more calls are made
 			protest.RequireEmpty(t, actualCalls)
 		})
 	}
+}
+
+func TestMutate(t *testing.T) {
+	t.Parallel()
+
+	// Given
+	// When called
+	// Then get the file iterator
+	// Then call the recursive mutator with the iterator
+	// The the output of the mutator is returned
 }
