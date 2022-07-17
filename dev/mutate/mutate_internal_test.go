@@ -31,22 +31,21 @@ func TestRun(t *testing.T) {
 			var reportArgs bool
 			var exitArgs bool
 			// Given dependencies
-			mutateT := func() bool {
+			mutate := func() bool {
 				actualCalls.Push("mutate")
-
 				return mReturn
 			}
-			report := func(r bool) {
+			reportT := func(r bool) {
 				actualCalls.Push("report")
 				reportArgs = r
 			}
-			exit := func(r bool) {
+			exitT := func(r bool) {
 				actualCalls.Push("exit")
 				exitArgs = r
 			}
 
 			// When run is called
-			run{mutateT, report, exit}.f()
+			run{mutate, reportT, exitT}.f()
 
 			// Then mutate is called
 			protest.RequireCall(t, "mutate", actualCalls.MustPop(t))
@@ -64,23 +63,29 @@ func TestRun(t *testing.T) {
 
 func diffIterator(expected, actual iterator) string { return "" }
 
-type iterator struct{}
-
 func TestMutate(t *testing.T) {
 	t.Parallel()
 
 	// Given test objects
 	actualCalls := protest.FIFO[string]{}
+	iReturn := iterator{}
+	mrReturn := false
 	// Given test vars
 	var (
 		mutatorArgs iterator
-		iReturn     iterator
-		mrReturn    bool
 	)
 	// Given dependencies
+	newIteratorT := func() iterator {
+		actualCalls.Push("new file iterator")
+		return iReturn
+	}
+	recursiveMutatorT := func(iterator) bool {
+		actualCalls.Push("recursive mutator")
+		return mrReturn
+	}
 
 	// When called
-	mReturn := mutate()
+	mReturn := mutate{newIteratorT, recursiveMutatorT}.f()
 
 	// Then get the file iterator
 	protest.RequireCall(t, "new file iterator", actualCalls.MustPop(t))

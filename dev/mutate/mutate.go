@@ -38,8 +38,11 @@ func (r run) f() {
 	r.e(mr)
 }
 
-func mutate() bool {
-	searchText := "true"
+type iterator struct{}
+
+func newIterator() iterator { return iterator{} }
+func recursiveMutator(iterator) bool {
+	searchText := "false"
 	replacementText := "false"
 	// get the command
 	commandPtr := flag.String("command", "go test ./...", "the command to run to attempt to catch the mutants.")
@@ -64,7 +67,9 @@ func mutate() bool {
 		_ = replaceText(line, column, searchText, replacementText, path)
 		//   retest
 		cp := strings.Fields(command)
-		out, err := exec.Command(cp[0], cp[1:]...).CombinedOutput() //nolint:gosec // I know I'm running user input.
+
+		var out []byte
+		out, err = exec.Command(cp[0], cp[1:]...).CombinedOutput() //nolint:gosec // I know I'm running user input.
 		fmt.Println(string(out))
 		//   mark pass/failed
 		if err == nil {
@@ -87,6 +92,16 @@ func mutate() bool {
 	return true
 }
 
+type mutate struct {
+	newIterator      func() iterator
+	recursiveMutator func(iterator) bool
+}
+
+func (m mutate) f() bool {
+	i := m.newIterator()
+	return m.recursiveMutator(i)
+}
+
 func report(result bool) {
 	if !result {
 		fmt.Println("Exiting early due to uncaught mutant")
@@ -104,7 +119,7 @@ func exit(result bool) {
 }
 
 func main() {
-	run{mutate, report, exit}.f()
+	run{mutate{newIterator, recursiveMutator}.f, report, exit}.f()
 }
 
 func replaceText(line int, column int, searchText string, replacementText string, file string) error {
@@ -168,7 +183,6 @@ func searchFiles(searchText string) ([]match, error) {
 	err = fs.WalkDir(os.DirFS(workingDirectory), ".", func(path string, _ fs.DirEntry, err error) error {
 		if err != nil {
 			fmt.Printf("error: %s\n", err)
-
 			return fs.SkipDir
 		}
 		if filepath.Ext(path) == ".go" {

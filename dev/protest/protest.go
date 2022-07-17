@@ -23,7 +23,6 @@ var ErrPop = fmt.Errorf("unable to pop from stack: no items in it")
 func (s *FIFO[I]) Pop() (I, error) {
 	if len(s.items) == 0 {
 		zeroValue := *new(I) //nolint:gocritic // cannot do I(nil) with generics
-
 		return zeroValue, ErrPop
 	}
 
@@ -61,7 +60,6 @@ func RequireCall(t *testing.T, expected, actual string) {
 
 	require(t, expected, actual, stringDiff, "call")
 }
-
 
 type differ[T any] func(T, T) string
 
