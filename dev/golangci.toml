@@ -9,3 +9,10 @@ disable = [
 
 [issues]
 fix = true
+[linters-settings]
+enable-all = true
+[linters-settings.govet]
+check-shadowing = true
+settings = { shadow = { strict = true } } # I want to know!
+[linters-settings.nlreturn]
+block-size=2 # IMO this is ok style
