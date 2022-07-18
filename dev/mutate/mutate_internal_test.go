@@ -31,24 +31,21 @@ func TestRun(t *testing.T) {
 			var reportArgs bool
 			var exitArgs bool
 			// Given dependencies
-			mutate := func() (bool, error) {
+			mutate := func() bool {
 				actualCalls.Push("mutate")
-				// TODO: what about the error case?
-				return mReturn, nil
+				return mReturn
 			}
-			// TODO: test the prod version of this
 			reportT := func(r bool) {
 				actualCalls.Push("report")
 				reportArgs = r
 			}
-			// TODO: test the prod version of this
 			exitT := func(r bool) {
 				actualCalls.Push("exit")
 				exitArgs = r
 			}
 
 			// When run is called
-			run{mutate, reportT, exitT, nil}.f()
+			run{mutate, reportT, exitT}.f()
 
 			// Then mutate is called
 			protest.RequireCall(t, "mutate", actualCalls.MustPop(t))
@@ -65,7 +62,6 @@ func TestRun(t *testing.T) {
 }
 
 func diffIterator(expected, actual iterator) string { return "" }
-func diffErr(expected, actual error) string         { return "" }
 
 func TestMutate(t *testing.T) {
 	t.Parallel()
@@ -79,26 +75,23 @@ func TestMutate(t *testing.T) {
 			t.Parallel()
 			// Given test objects
 			actualCalls := protest.FIFO[string]{}
-			iReturn := iterator{root: "test"}
+			iReturn := iterator{}
 			// Given test vars
 			var (
 				mutatorArgs iterator
 			)
 			// Given dependencies
-			// TODO: test the prod version of this
-			newIteratorT := func() (iterator, error) {
+			newIteratorT := func() iterator {
 				actualCalls.Push("new file iterator")
-				// TODO: what about the error case?
-				return iReturn, nil
+				return iReturn
 			}
-			// TODO: test the prod version of this
 			recursiveMutatorT := func(iterator) bool {
 				actualCalls.Push("recursive mutator")
 				return rmReturn
 			}
 
 			// When called
-			mReturn, err := mutate{newIteratorT, recursiveMutatorT}.f()
+			mReturn := mutate{newIteratorT, recursiveMutatorT}.f()
 
 			// Then get the file iterator
 			protest.RequireCall(t, "new file iterator", actualCalls.MustPop(t))
@@ -109,7 +102,6 @@ func TestMutate(t *testing.T) {
 			protest.RequireEmpty(t, actualCalls)
 			// And the output of the mutator is returned
 			protest.RequireReturn(t, mReturn, rmReturn, diffBool)
-			protest.RequireReturn(t, err, nil, diffErr)
 		})
 	}
 }

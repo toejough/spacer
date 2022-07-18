@@ -21,45 +21,31 @@ import (
 // Would like to cache candidates and results
 
 type (
-	MutateFunc         func() (bool, error)
-	ReportingFunc      func(bool)
-	ExitFunc           func(bool)
-	ErrorReportingFunc func(error)
+	MutateFunc    func() bool
+	ReportingFunc func(bool)
+	ExitFunc      func(bool)
 )
 
 type run struct {
-	m      MutateFunc
-	r      ReportingFunc
-	e      ExitFunc
-	rError ErrorReportingFunc
+	m MutateFunc
+	r ReportingFunc
+	e ExitFunc
 }
 
 func (r run) f() {
-	mutationsWereCaught, err := r.m()
-	if err != nil {
-		r.rError(err)
-		r.e(false)
-	} else {
-		r.r(mutationsWereCaught)
-		r.e(mutationsWereCaught)
-	}
+	mutationsWereCaught := r.m()
+	r.r(mutationsWereCaught)
+	r.e(mutationsWereCaught)
 }
 
-type iterator struct {
-	root string
-}
+type iterator struct{}
 
-func newIterator() (iterator, error) {
-	workingDirectory, err := os.Getwd()
-	if err != nil {
-		return iterator{}, fmt.Errorf("unable to search files: %w", err)
-	}
-
-	return iterator{root: workingDirectory}, nil
+func newIterator() iterator {
+	return iterator{}
 }
 
 func recursiveMutator(iterator) bool {
-	searchText := "false"
+	searchText := "true"
 	replacementText := "false"
 	// get the command
 	commandPtr := flag.String("command", "go test ./...", "the command to run to attempt to catch the mutants.")
@@ -110,17 +96,13 @@ func recursiveMutator(iterator) bool {
 }
 
 type mutate struct {
-	newIterator      func() (iterator, error)
+	newIterator      func() iterator
 	recursiveMutator func(iterator) bool
 }
 
-func (m mutate) f() (bool, error) {
-	i, err := m.newIterator()
-	if err != nil {
-		return false, fmt.Errorf("unable to mutate: could not create the file iterator: %w", err)
-	}
-
-	return m.recursiveMutator(i), nil
+func (m mutate) f() bool {
+	i := m.newIterator()
+	return m.recursiveMutator(i)
 }
 
 func report(result bool) {
@@ -129,10 +111,6 @@ func report(result bool) {
 	} else {
 		fmt.Println("All mutants caught!")
 	}
-}
-
-func reportError(e error) {
-	fmt.Printf("Exiting early due to runtime error: %v\n", e)
 }
 
 func exit(result bool) {
@@ -144,7 +122,7 @@ func exit(result bool) {
 }
 
 func main() {
-	run{mutate{newIterator, recursiveMutator}.f, report, exit, reportError}.f()
+	run{mutate{newIterator, recursiveMutator}.f, report, exit}.f()
 }
 
 func replaceText(line int, column int, searchText string, replacementText string, file string) error {
