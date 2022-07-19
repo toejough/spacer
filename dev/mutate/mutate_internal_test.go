@@ -105,3 +105,17 @@ func TestMutate(t *testing.T) {
 		})
 	}
 }
+
+/*
+Properties
+* overall flow is:
+  * for each go file under pwd, for each pattern, for each instance of this pattern in this file, serially
+  * report instance, mutate, test with CLI command (capture but don't act on result yet), restore, report
+  * stop testing after first error/failure
+  * report overall candidate/error/mutant status
+  * exit with
+    * 1 if no candidates were found
+    * 1 if any errors occurred
+    * 1 if any mutants survived
+    * 0 if there were mutants and all of them were caught
+*/
