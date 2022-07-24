@@ -41,6 +41,8 @@ func Monitor() error {
 	err := Check()
 	if err != nil {
 		fmt.Printf("continuing to monitor after check failure: %s\n", err)
+	} else {
+		fmt.Println("continuing to monitor after all checks passed!")
 	}
 
 	lastFinishedTime := time.Now()
@@ -67,7 +69,9 @@ func Monitor() error {
 			fmt.Println("Change detected...")
 			err = Check()
 			if err != nil {
-				fmt.Printf("continuing to monitor after check failure: %s", err)
+				fmt.Printf("continuing to monitor after check failure: %s\n", err)
+			} else {
+				fmt.Println("continuing to monitor after all checks passed!")
 			}
 
 			lastFinishedTime = time.Now()

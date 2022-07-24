@@ -8,6 +8,11 @@ import (
 
 type FIFO[I any] struct {
 	items []I
+	name  string
+}
+
+func NewFIFO[I any](name string) *FIFO[I] {
+	return &FIFO[I]{items: []I{}, name: name}
 }
 
 func (s *FIFO[I]) Len() int {
@@ -37,7 +42,7 @@ func (s *FIFO[I]) MustPop(t *testing.T) I {
 	t.Helper()
 
 	if len(s.items) == 0 {
-		t.Fatalf("unable to pop from stack: no items in it")
+		t.Fatalf("expected to pop from %s stack, but there were no items in it\n", s.name)
 	}
 
 	var i I
@@ -59,6 +64,12 @@ func RequireCall(t *testing.T, expected, actual string) {
 	t.Helper()
 
 	require(t, expected, actual, stringDiff, "call")
+}
+
+func RequireNext[I any](t *testing.T, expected I, fifo *FIFO[I], d differ[I]) {
+	t.Helper()
+
+	require(t, expected, fifo.MustPop(t), d, fifo.name)
 }
 
 type differ[T any] func(T, T) string
@@ -86,7 +97,7 @@ func require[T any](t *testing.T, expected, actual T, d differ[T], what string) 
 	t.Logf("%s '%v'\n", what, actual)
 }
 
-func RequireEmpty[I any](t *testing.T, s FIFO[I]) {
+func RequireEmpty[I any](t *testing.T, s *FIFO[I]) {
 	t.Helper()
 
 	l := s.Len()
