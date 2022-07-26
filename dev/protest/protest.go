@@ -66,10 +66,14 @@ func RequireCall(t *testing.T, expected, actual string) {
 	require(t, expected, actual, stringDiff, "call")
 }
 
-func RequireNext[I any](t *testing.T, expected I, fifo *FIFO[I], d differ[I]) {
+func RequireNext[I any](t *testing.T, expected I, fifo *FIFO[I], diff differ[I]) {
 	t.Helper()
 
-	require(t, expected, fifo.MustPop(t), d, fifo.name)
+	if len(fifo.items) == 0 {
+		t.Fatalf("expected to pop %v from %s stack, but there were no items in it\n", expected, fifo.name)
+	}
+
+	require(t, expected, fifo.MustPop(t), diff, fifo.name)
 }
 
 type differ[T any] func(T, T) string

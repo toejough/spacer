@@ -48,7 +48,7 @@ func TestRunAll(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			// Given call FIFO
+			// Given test objects
 			calls := protest.NewFIFO[string]("calls")
 			exitArgs := protest.NewFIFO[int]("exitArgs")
 			reportArgs := protest.NewFIFO[bool]("reportArgs")
@@ -93,7 +93,61 @@ Test files:
         early result return if error
         early result return if any verification failed
     return results
+*/
 
+type mockFileIterator struct {
+	filepaths []string
+	i         int
+}
+
+func (m *mockFileIterator) Next() string {
+	if m.i >= len(m.filepaths) {
+		return ""
+	}
+
+	current := m.filepaths[m.i]
+	m.i++
+
+	return current
+}
+
+func newMockFileIterator(filepaths []string) *mockFileIterator {
+	return &mockFileIterator{filepaths, 0}
+}
+
+func TestTestFiles(t *testing.T) {
+	t.Parallel()
+	// Given test objects
+	calls := protest.NewFIFO[string]("calls")
+	testArgs := protest.NewFIFO[string]("testArgs")
+	// Given expected data
+	filepaths := []string{"some file path"}
+	expectedResults := true
+	// When run
+	actualResults := testFiles{
+		newFileIterator: func() fileIterator {
+			calls.Push("newFileIterator")
+			return newMockFileIterator(filepaths)
+		},
+		testAllPatterns: func(filepath string) bool {
+			calls.Push("testAllPatterns")
+			testArgs.Push(filepath)
+
+			return true
+		},
+	}.f()
+	// Then newIterator is called with n files
+	protest.RequireNext(t, "newFileIterator", calls, diffString)
+	// Then test all patterns called with each file until all gone/error/failure
+	for _, filepath := range filepaths {
+		protest.RequireNext(t, "testAllPatterns", calls, diffString)
+		protest.RequireNext(t, filepath, testArgs, diffString)
+	}
+	// Then the results are returned
+	protest.RequireReturn(t, expectedResults, actualResults, diffBool)
+}
+
+/*
 test all patterns:
     Get iterator for patterns
     for every patterns
@@ -121,4 +175,13 @@ verify mutation caught:
     return error early
     Run the command from the CLI...
     return result
+
+reportResults:
+    if all passed, report "all mutants caught"
+    if error, report the error
+    if no candidates found report "no candidates for mutation found"
+    if any failure, report "a mutant escaped"
+
+exit:
+    call os exit with the given exit code
 */

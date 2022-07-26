@@ -9,13 +9,44 @@ package main
 // Would like to cache candidates and results
 
 func main() {
-	run{testFiles, reportResults, exit}.f()
+	run{testFiles{newFileIterator, testAllPatterns}.f, reportResults, exit}.f()
 }
 
 type run struct {
 	testFiles     func() bool
 	reportResults func(bool)
 	exit          func(int)
+}
+
+func (r run) f() {
+	results := r.testFiles()
+	r.reportResults(results)
+	exitCode := resultsToExitCode(results)
+	r.exit(exitCode)
+}
+
+type fileIterator interface {
+	Next() string
+}
+
+type realFileIterator struct {
+	filepaths []string
+	i         int
+}
+
+func (r *realFileIterator) Next() string {
+	if r.i >= len(r.filepaths) {
+		return ""
+	}
+
+	current := r.filepaths[r.i]
+	r.i++
+
+	return current
+}
+
+func newFileIterator() fileIterator {
+	return &realFileIterator{[]string{}, 0}
 }
 
 func resultsToExitCode(results bool) int {
@@ -26,16 +57,21 @@ func resultsToExitCode(results bool) int {
 	return 0
 }
 
-func (r run) f() {
-	results := r.testFiles()
-	r.reportResults(results)
-	exitCode := resultsToExitCode(results)
-	r.exit(exitCode)
+type testFiles struct {
+	newFileIterator func() fileIterator
+	testAllPatterns func(string) bool
 }
 
-func testFiles() bool    { return true }
-func reportResults(bool) {}
-func exit(int)           {}
+func (tf testFiles) f() bool {
+	iterator := tf.newFileIterator()
+	path := iterator.Next()
+	tf.testAllPatterns(path)
+
+	return true
+}
+func testAllPatterns(string) bool { return true }
+func reportResults(bool)          {}
+func exit(int)                    {}
 
 //    searchText := "true"
 //    replacementText := "false"
