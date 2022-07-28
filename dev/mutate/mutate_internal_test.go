@@ -117,34 +117,66 @@ func newMockFileIterator(filepaths []string) *mockFileIterator {
 
 func TestTestFiles(t *testing.T) {
 	t.Parallel()
-	// Given test objects
-	calls := protest.NewFIFO[string]("calls")
-	testArgs := protest.NewFIFO[string]("testArgs")
-	// Given expected data
-	filepaths := []string{"some file path"}
-	expectedResults := true
-	// When run
-	actualResults := testFiles{
-		newFileIterator: func() fileIterator {
-			calls.Push("newFileIterator")
-			return newMockFileIterator(filepaths)
-		},
-		testAllPatterns: func(filepath string) bool {
-			calls.Push("testAllPatterns")
-			testArgs.Push(filepath)
 
-			return true
-		},
-	}.f()
-	// Then newIterator is called with n files
-	protest.RequireNext(t, "newFileIterator", calls, diffString)
-	// Then test all patterns called with each file until all gone/error/failure
-	for _, filepath := range filepaths {
-		protest.RequireNext(t, "testAllPatterns", calls, diffString)
-		protest.RequireNext(t, filepath, testArgs, diffString)
+	testTable := map[string][]struct {
+		filepath string
+		result   bool
+	}{
+		"passing": {{"some file path", true}},
+		"error":   {{"some file path", false}},
+		"failure": {{"some file path", false}},
+		// TODO rapid test these
 	}
-	// Then the results are returned
-	protest.RequireReturn(t, expectedResults, actualResults, diffBool)
+
+	for name, testCase := range testTable { //nolint:paralleltest // we _are_ using the range value
+		testCase := testCase // avoid using the loop-scoped value in the closure
+
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			// Given test objects
+			calls := protest.NewFIFO[string]("calls")
+			testArgs := protest.NewFIFO[string]("testArgs")
+			// Given expected data
+			allFilepaths := []string{}
+			filepaths := []string{}
+			fileTestResults := protest.NewFIFO[bool]("file test results")
+			expectedResults := true
+			for i := range testCase {
+				allFilepaths = append(allFilepaths, testCase[i].filepath)
+				if expectedResults {
+					filepaths = append(filepaths, testCase[i].filepath)
+					fileTestResults.Push(testCase[i].result)
+					if !testCase[i].result {
+						expectedResults = false
+					}
+				}
+			}
+			// When run
+			actualResults := testFiles{
+				newFileIterator: func() fileIterator {
+					calls.Push("newFileIterator")
+					return newMockFileIterator(allFilepaths)
+				},
+				testAllPatterns: func(filepath string) bool {
+					calls.Push("testAllPatterns")
+					testArgs.Push(filepath)
+
+					return fileTestResults.MustPop(t)
+				},
+			}.f()
+			// Then newIterator is called with n files
+			protest.RequireNext(t, "newFileIterator", calls, diffString)
+			// Then test all patterns called with each file until all gone/error/failure
+			for _, filepath := range filepaths {
+				protest.RequireNext(t, "testAllPatterns", calls, diffString)
+				protest.RequireNext(t, filepath, testArgs, diffString)
+			}
+			protest.RequireEmpty(t, calls)
+			protest.RequireEmpty(t, testArgs)
+			// Then the results are returned
+			protest.RequireReturn(t, expectedResults, actualResults, diffBool)
+		})
+	}
 }
 
 /*

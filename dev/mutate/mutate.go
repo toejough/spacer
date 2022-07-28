@@ -65,9 +65,8 @@ type testFiles struct {
 func (tf testFiles) f() bool {
 	iterator := tf.newFileIterator()
 	path := iterator.Next()
-	tf.testAllPatterns(path)
 
-	return true
+	return tf.testAllPatterns(path)
 }
 func testAllPatterns(string) bool { return true }
 func reportResults(bool)          {}
