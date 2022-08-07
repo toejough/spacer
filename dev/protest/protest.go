@@ -4,6 +4,8 @@ package protest
 import (
 	"fmt"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 type FIFO[I any] struct {
@@ -53,11 +55,7 @@ func (s *FIFO[I]) MustPop(t *testing.T) I {
 }
 
 func stringDiff(e, a string) string {
-	if e != a {
-		return fmt.Sprintf("%s != %s", e, a)
-	}
-
-	return ""
+	return cmp.Diff(e, a)
 }
 
 func RequireCall(t *testing.T, expected, actual string) {
