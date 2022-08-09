@@ -26,11 +26,9 @@ func TestWhenProgramStartsAnAnnouncementIsMade(t *testing.T) {
 	}.run()
 
 	protest.RequireNext(t, "announce mutation testing", calls, stringDiff)
-	protest.RequireNext(t, "test cli command", calls, stringDiff)
-	protest.RequireNext(t, "search for files under PWD", calls, stringDiff)
-	protest.RequireNext(t, "search for instances in files", calls, stringDiff)
-	protest.RequireNext(t, "run experiments on instances", calls, stringDiff)
-	protest.RequireNext(t, "report results of experiments", calls, stringDiff)
+	protest.RequireNext(t, "verify cli command passes prior to mutations", calls, stringDiff)
+	protest.RequireNext(t, "test mutation types", calls, stringDiff)
+	protest.RequireNext(t, "announce mutation results", calls, stringDiff)
 	protest.RequireNext(t, "exit", calls, stringDiff)
 	protest.RequireEmpty(t, calls)
 }
