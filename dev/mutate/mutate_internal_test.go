@@ -3,16 +3,36 @@ package main
 import (
 	"spacer/dev/protest"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
+
+func stringDiff(e, a string) string {
+	return cmp.Diff(e, a)
+}
 
 // announce mutation testing.
 func TestWhenProgramStartsAnAnnouncementIsMade(t *testing.T) {
 	t.Parallel()
 
-	var call string
+	calls := protest.NewFIFO[string]("calls")
 
-	runner{announceMutationTesting: func() { call = "announce mutation testing" }}.run()
-	protest.RequireCall(t, "announce mutation testing", call)
+	runner{
+		announceMutationTesting: func() { calls.Push("announce mutation testing") },
+		testCLICommand: func() bool {
+			calls.Push("test cli command")
+			return true
+		},
+	}.run()
+
+	protest.RequireNext(t, "announce mutation testing", calls, stringDiff)
+	protest.RequireNext(t, "test cli command", calls, stringDiff)
+	protest.RequireNext(t, "search for files under PWD", calls, stringDiff)
+	protest.RequireNext(t, "search for instances in files", calls, stringDiff)
+	protest.RequireNext(t, "run experiments on instances", calls, stringDiff)
+	protest.RequireNext(t, "report results of experiments", calls, stringDiff)
+	protest.RequireNext(t, "exit", calls, stringDiff)
+	protest.RequireEmpty(t, calls)
 }
 
 // test out the CLI command

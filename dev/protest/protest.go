@@ -4,8 +4,6 @@ package protest
 import (
 	"fmt"
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 type FIFO[I any] struct {
@@ -54,21 +52,11 @@ func (s *FIFO[I]) MustPop(t *testing.T) I {
 	return i
 }
 
-func stringDiff(e, a string) string {
-	return cmp.Diff(e, a)
-}
-
-func RequireCall(t *testing.T, expected, actual string) {
-	t.Helper()
-
-	require(t, expected, actual, stringDiff, "call")
-}
-
 func RequireNext[I any](t *testing.T, expected I, fifo *FIFO[I], diff differ[I]) {
 	t.Helper()
 
 	if len(fifo.items) == 0 {
-		t.Fatalf("expected to pop %v from %s stack, but there were no items in it\n", expected, fifo.name)
+		t.Fatalf("expected to pop '%v' from '%s' stack, but there were no items in it\n", expected, fifo.name)
 	}
 
 	require(t, expected, fifo.MustPop(t), diff, fifo.name)
