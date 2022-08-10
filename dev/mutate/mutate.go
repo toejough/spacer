@@ -1,8 +1,6 @@
 // Package mutate provides mutation testing functionality.
 package main
 
-import "fmt"
-
 // Mutate. Based loosely on:
 // * https://mutmut.readthedocs.io/en/latest/
 // * https://github.com/zimmski/go-mutesting
@@ -12,24 +10,33 @@ import "fmt"
 
 func main() {
 	runner{
-		announceMutationTesting: func() { fmt.Printf("Beginning mutation tests\n") },
-		testCLICommand: func() bool {
-			fmt.Printf("Mock test of CLI Command")
-			return true
-		},
+		announceMutationTesting:   func() { panic("unimplemented") },
+		verifyMutantCatcherPasses: func() { panic("unimplemented") },
+		testMutationTypes:         func() { panic("unimplemented") },
+		announceMutationResults:   func() { panic("unimplemented") },
+		exit:                      func() { panic("unimplemented") },
 	}.run()
 }
 
 type (
-	announceMutationTestingFunc func()
-	testCLICommandFunc          func() bool
-	runner                      struct {
-		announceMutationTesting announceMutationTestingFunc
-		testCLICommand          testCLICommandFunc
+	announceMutationTestingFunc   func()
+	verifyMutantCatcherPassesFunc func()
+	testMutationTypesFunc         func()
+	announceMutationResultsFunc   func()
+	exitFunc                      func()
+	runner                        struct {
+		announceMutationTesting   announceMutationTestingFunc
+		verifyMutantCatcherPasses verifyMutantCatcherPassesFunc
+		testMutationTypes         testMutationTypesFunc
+		announceMutationResults   announceMutationResultsFunc
+		exit                      exitFunc
 	}
 )
 
 func (r runner) run() {
 	r.announceMutationTesting()
-	r.testCLICommand()
+	r.verifyMutantCatcherPasses()
+	r.testMutationTypes()
+	r.announceMutationResults()
+	r.exit()
 }

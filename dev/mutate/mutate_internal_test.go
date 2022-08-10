@@ -18,15 +18,15 @@ func TestWhenProgramStartsAnAnnouncementIsMade(t *testing.T) {
 	calls := protest.NewFIFO[string]("calls")
 
 	runner{
-		announceMutationTesting: func() { calls.Push("announce mutation testing") },
-		testCLICommand: func() bool {
-			calls.Push("test cli command")
-			return true
-		},
+		announceMutationTesting:   func() { calls.Push("announce mutation testing") },
+		verifyMutantCatcherPasses: func() { calls.Push("verify mutant catcher passes prior to mutations") },
+		testMutationTypes:         func() { calls.Push("test mutation types") },
+		announceMutationResults:   func() { calls.Push("announce mutation results") },
+		exit:                      func() { calls.Push("exit") },
 	}.run()
 
 	protest.RequireNext(t, "announce mutation testing", calls, stringDiff)
-	protest.RequireNext(t, "verify cli command passes prior to mutations", calls, stringDiff)
+	protest.RequireNext(t, "verify mutant catcher passes prior to mutations", calls, stringDiff)
 	protest.RequireNext(t, "test mutation types", calls, stringDiff)
 	protest.RequireNext(t, "announce mutation results", calls, stringDiff)
 	protest.RequireNext(t, "exit", calls, stringDiff)
