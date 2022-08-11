@@ -19,14 +19,10 @@ func main() {
 
 type (
 	announceMutationTestingFunc   func()
-	verifyMutantCatcherPassesFunc func() mutantCatcherResult
+	verifyMutantCatcherPassesFunc func() bool
 	mutationResult                struct {
 		allCaught bool
 		err       error
-	}
-	mutantCatcherResult struct {
-		pass bool
-		err  error
 	}
 	testMutationTypesFunc func() mutationResult
 	exitFunc              func(returnCodes)
@@ -48,8 +44,8 @@ const (
 func (r runner) run() {
 	r.announceMutationTesting()
 
-	results := r.verifyMutantCatcherPasses()
-	if !results.pass {
+	passes := r.verifyMutantCatcherPasses()
+	if !passes {
 		r.exit(returnCodeMutantCatcherFailure)
 		return
 	}

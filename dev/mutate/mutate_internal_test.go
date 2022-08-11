@@ -22,12 +22,12 @@ func TestRunHappyPath(t *testing.T) {
 	exitCodes := protest.NewFIFO[returnCodes]("exit codes")
 
 	// Given happy path return values from dependencies
-	mutantCatcherPasses := mutantCatcherResult{pass: true, err: nil}
+	mutantCatcherPasses := true
 	allMutantsCaught := mutationResult{allCaught: true, err: nil}
 	passCode := returnCodePass
 	theRunner := runner{
 		announceMutationTesting: func() { calls.Push("announce mutation testing") },
-		verifyMutantCatcherPasses: func() mutantCatcherResult {
+		verifyMutantCatcherPasses: func() bool {
 			calls.Push("verify mutant catcher passes prior to mutations")
 			return mutantCatcherPasses
 		},
@@ -65,11 +65,11 @@ func TestRunMutationCatcherFailure(t *testing.T) {
 	exitCodes := protest.NewFIFO[returnCodes]("exit codes")
 
 	// Given mutant catcher failure return values from dependencies
-	mutantCatcherFails := mutantCatcherResult{pass: false, err: nil}
+	mutantCatcherFails := false
 	mutantCatcherFailedCode := returnCodeMutantCatcherFailure
 	theRunner := runner{
 		announceMutationTesting: func() { calls.Push("announce mutation testing") },
-		verifyMutantCatcherPasses: func() mutantCatcherResult {
+		verifyMutantCatcherPasses: func() bool {
 			calls.Push("verify mutant catcher passes prior to mutations")
 			return mutantCatcherFails
 		},
