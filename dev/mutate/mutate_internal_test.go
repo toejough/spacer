@@ -11,25 +11,58 @@ func stringDiff(e, a string) string {
 	return cmp.Diff(e, a)
 }
 
+func mutationResultDiff(e, a mutationResult) string {
+	// struct passed here for type, not for data
+	return cmp.Diff(e, a, cmp.AllowUnexported(mutationResult{})) //nolint:exhaustivestruct,exhaustruct
+}
+
+func intDiff(e, a int) string {
+	return cmp.Diff(e, a)
+}
+
 // announce mutation testing.
-func TestWhenProgramStartsAnAnnouncementIsMade(t *testing.T) {
+func TestRunHappyPath(t *testing.T) {
 	t.Parallel()
 
 	calls := protest.NewFIFO[string]("calls")
+	mutantCatcherPasses := mutantCatcherResult{pass: true, err: nil}
+	mutationResults := protest.NewFIFO[mutationResult]("mutation results")
+	allMutantsCaught := mutationResult{allCaught: true, err: nil}
+	exitCodes := protest.NewFIFO[int]("exit codes")
+	passCode := 0
 
 	runner{
-		announceMutationTesting:   func() { calls.Push("announce mutation testing") },
-		verifyMutantCatcherPasses: func() { calls.Push("verify mutant catcher passes prior to mutations") },
-		testMutationTypes:         func() { calls.Push("test mutation types") },
-		announceMutationResults:   func() { calls.Push("announce mutation results") },
-		exit:                      func() { calls.Push("exit") },
+		announceMutationTesting: func() { calls.Push("announce mutation testing") },
+		verifyMutantCatcherPasses: func() mutantCatcherResult {
+			calls.Push("verify mutant catcher passes prior to mutations")
+			return mutantCatcherPasses
+		},
+		testMutationTypes: func() mutationResult {
+			calls.Push("test mutation types")
+			return allMutantsCaught
+		},
+		announceMutationResults: func(r mutationResult) {
+			calls.Push("announce mutation results")
+			mutationResults.Push(r)
+		},
+		exit: func(code int) {
+			calls.Push("exit")
+			exitCodes.Push(code)
+		},
 	}.run()
 
 	protest.RequireNext(t, "announce mutation testing", calls, stringDiff)
 	protest.RequireNext(t, "verify mutant catcher passes prior to mutations", calls, stringDiff)
 	protest.RequireNext(t, "test mutation types", calls, stringDiff)
+
 	protest.RequireNext(t, "announce mutation results", calls, stringDiff)
+	protest.RequireNext(t, allMutantsCaught, mutationResults, mutationResultDiff)
+	protest.RequireEmpty(t, mutationResults)
+
 	protest.RequireNext(t, "exit", calls, stringDiff)
+	protest.RequireNext(t, passCode, exitCodes, intDiff)
+	protest.RequireEmpty(t, exitCodes)
+
 	protest.RequireEmpty(t, calls)
 }
 

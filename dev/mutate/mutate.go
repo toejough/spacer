@@ -11,20 +11,28 @@ package main
 func main() {
 	runner{
 		announceMutationTesting:   func() { panic("unimplemented") },
-		verifyMutantCatcherPasses: func() { panic("unimplemented") },
-		testMutationTypes:         func() { panic("unimplemented") },
-		announceMutationResults:   func() { panic("unimplemented") },
-		exit:                      func() { panic("unimplemented") },
+		verifyMutantCatcherPasses: func() mutantCatcherResult { panic("unimplemented") },
+		testMutationTypes:         func() mutationResult { panic("unimplemented") },
+		announceMutationResults:   func(mutationResult) { panic("unimplemented") },
+		exit:                      func(int) { panic("unimplemented") },
 	}.run()
 }
 
 type (
 	announceMutationTestingFunc   func()
-	verifyMutantCatcherPassesFunc func()
-	testMutationTypesFunc         func()
-	announceMutationResultsFunc   func()
-	exitFunc                      func()
-	runner                        struct {
+	verifyMutantCatcherPassesFunc func() mutantCatcherResult
+	mutationResult                struct {
+		allCaught bool
+		err       error
+	}
+	mutantCatcherResult struct {
+		pass bool
+		err  error
+	}
+	testMutationTypesFunc       func() mutationResult
+	announceMutationResultsFunc func(mutationResult)
+	exitFunc                    func(int)
+	runner                      struct {
 		announceMutationTesting   announceMutationTestingFunc
 		verifyMutantCatcherPasses verifyMutantCatcherPassesFunc
 		testMutationTypes         testMutationTypesFunc
@@ -36,7 +44,7 @@ type (
 func (r runner) run() {
 	r.announceMutationTesting()
 	r.verifyMutantCatcherPasses()
-	r.testMutationTypes()
-	r.announceMutationResults()
-	r.exit()
+	result := r.testMutationTypes()
+	r.announceMutationResults(result)
+	r.exit(0)
 }
