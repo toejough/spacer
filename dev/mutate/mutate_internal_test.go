@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"spacer/dev/protest"
 	"testing"
 
@@ -15,6 +16,29 @@ func returnCodeDiff(e, a returnCodes) string {
 	return cmp.Diff(e, a)
 }
 
+func newMockedRunner(
+	calls *protest.FIFO[string],
+	exitCodes *protest.FIFO[returnCodes],
+	mockedMutantCatcherResult bool,
+	mockedMutationResult mutationResult,
+) runner {
+	return runner{
+		announceMutationTesting: func() { calls.Push("announce mutation testing") },
+		verifyMutantCatcherPasses: func() bool {
+			calls.Push("verify mutant catcher passes prior to mutations")
+			return mockedMutantCatcherResult
+		},
+		testMutationTypes: func() mutationResult {
+			calls.Push("test mutation types")
+			return mockedMutationResult
+		},
+		exit: func(code returnCodes) {
+			calls.Push("exit")
+			exitCodes.Push(code)
+		},
+	}
+}
+
 func TestRunHappyPath(t *testing.T) {
 	t.Parallel()
 
@@ -23,23 +47,9 @@ func TestRunHappyPath(t *testing.T) {
 
 	// Given happy path return values from dependencies
 	mutantCatcherPasses := true
-	allMutantsCaught := mutationResult{allCaught: true, err: nil}
+	allMutantsCaught := mutationResult{result: experimentResultAllCaught, err: nil}
 	passCode := returnCodePass
-	theRunner := runner{
-		announceMutationTesting: func() { calls.Push("announce mutation testing") },
-		verifyMutantCatcherPasses: func() bool {
-			calls.Push("verify mutant catcher passes prior to mutations")
-			return mutantCatcherPasses
-		},
-		testMutationTypes: func() mutationResult {
-			calls.Push("test mutation types")
-			return allMutantsCaught
-		},
-		exit: func(code returnCodes) {
-			calls.Push("exit")
-			exitCodes.Push(code)
-		},
-	}
+	theRunner := newMockedRunner(calls, exitCodes, mutantCatcherPasses, allMutantsCaught)
 
 	// When the func is run
 	theRunner.run()
@@ -67,18 +77,8 @@ func TestRunMutationCatcherFailure(t *testing.T) {
 	// Given mutant catcher failure return values from dependencies
 	mutantCatcherFails := false
 	mutantCatcherFailedCode := returnCodeMutantCatcherFailure
-	theRunner := runner{
-		announceMutationTesting: func() { calls.Push("announce mutation testing") },
-		verifyMutantCatcherPasses: func() bool {
-			calls.Push("verify mutant catcher passes prior to mutations")
-			return mutantCatcherFails
-		},
-		testMutationTypes: nil,
-		exit: func(code returnCodes) {
-			calls.Push("exit")
-			exitCodes.Push(code)
-		},
-	}
+	nilMutationResult := mutationResult{} //nolint:exhaustivestruct,exhaustruct
+	theRunner := newMockedRunner(calls, exitCodes, mutantCatcherFails, nilMutationResult)
 
 	// When the func is run
 	theRunner.run()
@@ -90,6 +90,95 @@ func TestRunMutationCatcherFailure(t *testing.T) {
 	// And the program exits with 3
 	protest.RequireNext(t, "exit", calls, stringDiff)
 	protest.RequireNext(t, mutantCatcherFailedCode, exitCodes, returnCodeDiff)
+	protest.RequireEmpty(t, exitCodes)
+	// And that's it
+	protest.RequireEmpty(t, calls)
+}
+
+func TestRunUndetectedMutants(t *testing.T) {
+	t.Parallel()
+
+	calls := protest.NewFIFO[string]("calls")
+	exitCodes := protest.NewFIFO[returnCodes]("exit codes")
+
+	// Given undetected-mutants return values from dependencies
+	mutantCatcherPasses := true
+	mutantsEscaped := mutationResult{result: experimentResultUndetectedMutants, err: nil}
+	failCode := returnCodeFail
+	theRunner := newMockedRunner(calls, exitCodes, mutantCatcherPasses, mutantsEscaped)
+
+	// When the func is run
+	theRunner.run()
+
+	// Then the program is announced
+	protest.RequireNext(t, "announce mutation testing", calls, stringDiff)
+	// And the mutant catcher is verified to pass prior to mutations
+	protest.RequireNext(t, "verify mutant catcher passes prior to mutations", calls, stringDiff)
+	// And the mutations are run
+	protest.RequireNext(t, "test mutation types", calls, stringDiff)
+	// And the program exits with 1
+	protest.RequireNext(t, "exit", calls, stringDiff)
+	protest.RequireNext(t, failCode, exitCodes, returnCodeDiff)
+	protest.RequireEmpty(t, exitCodes)
+	// And that's it
+	protest.RequireEmpty(t, calls)
+}
+
+func TestRunNoCandidates(t *testing.T) {
+	t.Parallel()
+
+	calls := protest.NewFIFO[string]("calls")
+	exitCodes := protest.NewFIFO[returnCodes]("exit codes")
+
+	// Given "no candidates" return values from dependencies
+	mutantCatcherPasses := true
+	mutantsEscaped := mutationResult{result: experimentResultNoCandidatesFound, err: nil}
+	failCode := returnCodeNoCandidatesFound
+	theRunner := newMockedRunner(calls, exitCodes, mutantCatcherPasses, mutantsEscaped)
+
+	// When the func is run
+	theRunner.run()
+
+	// Then the program is announced
+	protest.RequireNext(t, "announce mutation testing", calls, stringDiff)
+	// And the mutant catcher is verified to pass prior to mutations
+	protest.RequireNext(t, "verify mutant catcher passes prior to mutations", calls, stringDiff)
+	// And the mutations are run
+	protest.RequireNext(t, "test mutation types", calls, stringDiff)
+	// And the program exits with no candidates code
+	protest.RequireNext(t, "exit", calls, stringDiff)
+	protest.RequireNext(t, failCode, exitCodes, returnCodeDiff)
+	protest.RequireEmpty(t, exitCodes)
+	// And that's it
+	protest.RequireEmpty(t, calls)
+}
+
+var errMocked = fmt.Errorf("mocked error")
+
+func TestRunError(t *testing.T) {
+	t.Parallel()
+
+	calls := protest.NewFIFO[string]("calls")
+	exitCodes := protest.NewFIFO[returnCodes]("exit codes")
+
+	// Given "error" return values from dependencies
+	mutantCatcherPasses := true
+	mutantsEscaped := mutationResult{result: experimentResultError, err: errMocked}
+	failCode := returnCodeError
+	theRunner := newMockedRunner(calls, exitCodes, mutantCatcherPasses, mutantsEscaped)
+
+	// When the func is run
+	theRunner.run()
+
+	// Then the program is announced
+	protest.RequireNext(t, "announce mutation testing", calls, stringDiff)
+	// And the mutant catcher is verified to pass prior to mutations
+	protest.RequireNext(t, "verify mutant catcher passes prior to mutations", calls, stringDiff)
+	// And the mutations are run
+	protest.RequireNext(t, "test mutation types", calls, stringDiff)
+	// And the program exits with no candidates code
+	protest.RequireNext(t, "exit", calls, stringDiff)
+	protest.RequireNext(t, failCode, exitCodes, returnCodeDiff)
 	protest.RequireEmpty(t, exitCodes)
 	// And that's it
 	protest.RequireEmpty(t, calls)

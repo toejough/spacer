@@ -20,11 +20,13 @@ func main() {
 type (
 	announceMutationTestingFunc   func()
 	verifyMutantCatcherPassesFunc func() bool
+	experimentResult              int
 	mutationResult                struct {
-		allCaught bool
-		err       error
+		result experimentResult
+		err    error
 	}
 	testMutationTypesFunc func() mutationResult
+	returnCodes           int
 	exitFunc              func(returnCodes)
 	runner                struct {
 		announceMutationTesting   announceMutationTestingFunc
@@ -34,11 +36,19 @@ type (
 	}
 )
 
-type returnCodes int
+const (
+	experimentResultAllCaught experimentResult = iota
+	experimentResultUndetectedMutants
+	experimentResultNoCandidatesFound
+	experimentResultError
+)
 
 const (
 	returnCodePass returnCodes = iota
+	returnCodeFail
+	returnCodeError
 	returnCodeMutantCatcherFailure
+	returnCodeNoCandidatesFound
 )
 
 func (r runner) run() {
@@ -50,6 +60,19 @@ func (r runner) run() {
 		return
 	}
 
-	r.testMutationTypes()
-	r.exit(returnCodePass)
+	results := r.testMutationTypes()
+	switch results.result {
+	case experimentResultAllCaught:
+		r.exit(returnCodePass)
+		return
+	case experimentResultUndetectedMutants:
+		r.exit(returnCodeFail)
+		return
+	case experimentResultNoCandidatesFound:
+		r.exit(returnCodeNoCandidatesFound)
+		return
+	case experimentResultError:
+		r.exit(returnCodeError)
+		return
+	}
 }
