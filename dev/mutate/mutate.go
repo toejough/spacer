@@ -10,11 +10,10 @@ package main
 
 func main() {
 	runner{
-		announceMutationTesting:   func() { panic("unimplemented") },
-		verifyMutantCatcherPasses: func() mutantCatcherResult { panic("unimplemented") },
-		testMutationTypes:         func() mutationResult { panic("unimplemented") },
-		announceMutationResults:   func(mutationResult) { panic("unimplemented") },
-		exit:                      func(int) { panic("unimplemented") },
+		announceMutationTesting:   nil,
+		verifyMutantCatcherPasses: nil,
+		testMutationTypes:         nil,
+		exit:                      nil,
 	}.run()
 }
 
@@ -29,22 +28,32 @@ type (
 		pass bool
 		err  error
 	}
-	testMutationTypesFunc       func() mutationResult
-	announceMutationResultsFunc func(mutationResult)
-	exitFunc                    func(int)
-	runner                      struct {
+	testMutationTypesFunc func() mutationResult
+	exitFunc              func(returnCodes)
+	runner                struct {
 		announceMutationTesting   announceMutationTestingFunc
 		verifyMutantCatcherPasses verifyMutantCatcherPassesFunc
 		testMutationTypes         testMutationTypesFunc
-		announceMutationResults   announceMutationResultsFunc
 		exit                      exitFunc
 	}
 )
 
+type returnCodes int
+
+const (
+	returnCodePass returnCodes = iota
+	returnCodeMutantCatcherFailure
+)
+
 func (r runner) run() {
 	r.announceMutationTesting()
-	r.verifyMutantCatcherPasses()
-	result := r.testMutationTypes()
-	r.announceMutationResults(result)
-	r.exit(0)
+
+	results := r.verifyMutantCatcherPasses()
+	if !results.pass {
+		r.exit(returnCodeMutantCatcherFailure)
+		return
+	}
+
+	r.testMutationTypes()
+	r.exit(returnCodePass)
 }
