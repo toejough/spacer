@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type NewFIFODeps[I any] struct {
+type FIFODeps[I any] struct {
 	Differ differ[I]
 	T      *testing.T
 }
@@ -14,19 +14,15 @@ type NewFIFODeps[I any] struct {
 type FIFO[I any] struct {
 	items chan I
 	name  string
-	deps  NewFIFODeps[I]
+	deps  FIFODeps[I]
 }
 
-func NewFIFO[I any](name string) *FIFO[I] {
-	return &FIFO[I]{items: make(chan I), name: name}
-}
-
-func NewFIFO2[I any](name string, deps NewFIFODeps[I]) *FIFO[I] {
+func NewFIFO[I any](name string, deps FIFODeps[I]) *FIFO[I] {
 	return &FIFO[I]{items: make(chan I), name: name, deps: deps}
 }
 
-func (s *FIFO[I]) Len() int {
-	return len(s.items)
+func (s *FIFO[I]) Close() {
+    close(s.items)
 }
 
 func (s *FIFO[I]) Push(i I) {
@@ -51,11 +47,7 @@ func (s *FIFO[I]) RequireNext(next I) {
 	}
 }
 
-func (s *FIFO[I]) RequireEmpty() {
-	RequireEmpty(s.deps.T, s)
-}
-
-func (s *FIFO[I]) MustPop2() I {
+func (s *FIFO[I]) GetNext() I {
 	s.deps.T.Helper()
 
 	select {
@@ -67,14 +59,4 @@ func (s *FIFO[I]) MustPop2() I {
 	}
 }
 
-
 type differ[T any] func(T, T) string
-
-func RequireEmpty[I any](t *testing.T, s *FIFO[I]) {
-	t.Helper()
-
-	l := s.Len()
-	if l != 0 {
-		t.Fatalf("expected stack to be empty but it had %d items in it\n", l)
-	}
-}

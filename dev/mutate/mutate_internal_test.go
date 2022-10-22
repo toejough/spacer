@@ -33,11 +33,11 @@ func newMockedRunner(
 		announceMutationTesting: func() { calls.Push("announceMutationTesting") },
 		verifyMutantCatcherPasses: func() bool {
 			calls.Push("verifyMutantCatcherPasses")
-			return verifyMutantCatcherPassesReturns.MustPop2()
+			return verifyMutantCatcherPassesReturns.GetNext()
 		},
 		testMutationTypes: func() mutationResult {
 			calls.Push("testMutationTypes")
-			return testMutationTypesReturns.MustPop2()
+			return testMutationTypesReturns.GetNext()
 		},
 		exit: func(code returnCodes) {
 			calls.Push("exit")
@@ -50,16 +50,16 @@ func TestRunHappyPath(t *testing.T) {
 	t.Parallel()
 
     // Given Call/Arg/Return FIFOS
-	calls := protest.NewFIFO2[string]("calls", protest.NewFIFODeps[string]{
+	calls := protest.NewFIFO("calls", protest.FIFODeps[string]{
 		Differ: stringDiff,
 		T:      t,
 	})
-	exitArgs := protest.NewFIFO2[returnCodes]("exitArgs", protest.NewFIFODeps[returnCodes]{Differ: returnCodeDiff, T: t})
-	verifyMutantCatcherPassesReturns := protest.NewFIFO2[bool]("verifyMutantCatcherPassesReturns", protest.NewFIFODeps[bool]{
+	exitArgs := protest.NewFIFO("exitArgs", protest.FIFODeps[returnCodes]{Differ: returnCodeDiff, T: t})
+	verifyMutantCatcherPassesReturns := protest.NewFIFO("verifyMutantCatcherPassesReturns", protest.FIFODeps[bool]{
 		Differ: boolDiff,
 		T:      t,
 	})
-	testMutationTypesReturns := protest.NewFIFO2[mutationResult]("testMutationTypesReturns", protest.NewFIFODeps[mutationResult]{
+	testMutationTypesReturns := protest.NewFIFO("testMutationTypesReturns", protest.FIFODeps[mutationResult]{
 		Differ: mutationResultDiff,
 		T:      t,
 	})
@@ -68,7 +68,10 @@ func TestRunHappyPath(t *testing.T) {
 	theRunner := newMockedRunner(calls, exitArgs, verifyMutantCatcherPassesReturns, testMutationTypesReturns)
 
 	// When the func is run
-	go theRunner.run()
+	go func() {
+        theRunner.run()
+        calls.Close()
+    }()
 
 	// Then the program is announced
 	calls.RequireNext("announceMutationTesting")
@@ -81,9 +84,8 @@ func TestRunHappyPath(t *testing.T) {
 
 	calls.RequireNext("exit")
 	exitArgs.RequireNext(returnCodePass)
-	exitArgs.RequireEmpty()
 
-	calls.RequireEmpty()
+	calls.RequireNext("")
 }
 
 //func TestRunMutationCatcherFailure(t *testing.T) {
