@@ -46,7 +46,7 @@ const (
 const (
 	returnCodePass returnCodes = iota
 	returnCodeFail
-	returnCodeError
+	returnCodeFail
 	returnCodeMutantCatcherFailure
 	returnCodeNoCandidatesFound
 )

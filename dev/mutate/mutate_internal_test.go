@@ -26,6 +26,8 @@ func newMockedRunner(
 		announceMutationTesting: func() { calls.Push("announce mutation testing") },
 		verifyMutantCatcherPasses: func() bool {
 			calls.Push("verify mutant catcher passes prior to mutations")
+            // calls.Push("verifyMutantCatcherPasses")
+            // return verifyMutantCatcherPassesReturns.PopLeft()
 			return mockedMutantCatcherResult
 		},
 		testMutationTypes: func() mutationResult {
@@ -43,6 +45,10 @@ func TestRunHappyPath(t *testing.T) {
 	t.Parallel()
 
 	calls := protest.NewFIFO[string]("calls")
+    // calls := protest.NewFIFO[string]("calls", protest.NewFIFODeps{
+    //   t: t,
+    //   differ: stringDiff,
+    // })
 	exitCodes := protest.NewFIFO[returnCodes]("exit codes")
 
 	// Given happy path return values from dependencies
@@ -55,6 +61,9 @@ func TestRunHappyPath(t *testing.T) {
 	theRunner.run()
 
 	// Then the program is announced
+    // TODO: The comments here are smells that this call flow is not clean enough
+    // calls.RequireNext("verifyMutantCatcherPasses")
+    // verifyMutantCatcherPassesReturns.Push(true)
 	protest.RequireNext(t, "announce mutation testing", calls, stringDiff)
 	// And the mutant catcher is verified to pass prior to mutations
 	protest.RequireNext(t, "verify mutant catcher passes prior to mutations", calls, stringDiff)
@@ -176,7 +185,7 @@ func TestRunError(t *testing.T) {
 	protest.RequireNext(t, "verify mutant catcher passes prior to mutations", calls, stringDiff)
 	// And the mutations are run
 	protest.RequireNext(t, "test mutation types", calls, stringDiff)
-	// And the program exits with no candidates code
+	// And the program exits with error code
 	protest.RequireNext(t, "exit", calls, stringDiff)
 	protest.RequireNext(t, failCode, exitCodes, returnCodeDiff)
 	protest.RequireEmpty(t, exitCodes)
