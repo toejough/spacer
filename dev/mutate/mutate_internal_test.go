@@ -63,8 +63,6 @@ func TestRunHappyPath(t *testing.T) {
 		Differ: mutationResultDiff,
 		T:      t,
 	})
-
-	// Given happy path return values from dependencies
 	theRunner := newMockedRunner(calls, exitArgs, verifyMutantCatcherPassesReturns, testMutationTypesReturns)
 
 	// When the func is run
@@ -73,19 +71,26 @@ func TestRunHappyPath(t *testing.T) {
         calls.Close()
     }()
 
-	// Then the program is announced
+	// Then mutation testing is announced
 	calls.RequireNext("announceMutationTesting")
-
+    // And the mutant catcher is tested
 	calls.RequireNext("verifyMutantCatcherPasses")
+
+    // When the mutant catcher returns true
 	verifyMutantCatcherPassesReturns.Push(true)
 
+    // Then mutation type testing is done
 	calls.RequireNext("testMutationTypes")
+
+    // When the testing is all caught
 	testMutationTypesReturns.Push(mutationResult{result: experimentResultAllCaught, err: nil})
 
+    // Then the program exits
 	calls.RequireNext("exit")
+    // and does so with a passing return code
 	exitArgs.RequireNext(returnCodePass)
-
-	calls.RequireNext("")
+    // and there are no more dependency calls
+	calls.RequireClosedAndEmpty()
 }
 
 //func TestRunMutationCatcherFailure(t *testing.T) {

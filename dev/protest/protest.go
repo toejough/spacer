@@ -2,6 +2,7 @@
 package protest
 
 import (
+	"reflect"
 	"testing"
 	"time"
 )
@@ -15,14 +16,16 @@ type FIFO[I any] struct {
 	items chan I
 	name  string
 	deps  FIFODeps[I]
+    closed bool
 }
 
 func NewFIFO[I any](name string, deps FIFODeps[I]) *FIFO[I] {
-	return &FIFO[I]{items: make(chan I), name: name, deps: deps}
+    return &FIFO[I]{items: make(chan I), name: name, deps: deps, closed: false}
 }
 
 func (s *FIFO[I]) Close() {
     close(s.items)
+    s.closed = true
 }
 
 func (s *FIFO[I]) Push(i I) {
@@ -45,6 +48,17 @@ func (s *FIFO[I]) RequireNext(next I) {
 		s.deps.T.Fatalf("expected to pop from %s FIFO, but there were no items in it after 1s of waiting.\n", s.name)
 		panic("panic here to satisfy linter")
 	}
+}
+
+func (s *FIFO[I]) RequireClosedAndEmpty() {
+	s.deps.T.Helper()
+    if !s.closed {
+        s.deps.T.Fatalf("expected %s to be closed, but it was not", s.name)
+    }
+    value := <-s.items
+    if !reflect.ValueOf(value).IsZero() {
+        s.deps.T.Fatalf("expected no more values in %s, but found %v", s.name, value)
+    }
 }
 
 func (s *FIFO[I]) GetNext() I {
