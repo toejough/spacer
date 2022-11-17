@@ -23,13 +23,13 @@ func returnCodeDiff(e, a returnCodes) string {
 	return cmp.Diff(e, a)
 }
 
-func newMockedRunner(
+func newMockedDeps(
 	calls *protest.FIFO[string],
 	exitArgs *protest.FIFO[returnCodes],
 	verifyMutantCatcherPassesReturns *protest.FIFO[bool],
 	testMutationTypesReturns *protest.FIFO[mutationResult],
-) runner {
-	return runner{
+) runDeps {
+	return runDeps{
 		announceMutationTesting: func() { calls.Push("announceMutationTesting") },
 		verifyMutantCatcherPasses: func() bool {
 			calls.Push("verifyMutantCatcherPasses")
@@ -49,7 +49,7 @@ func newMockedRunner(
 func TestRunHappyPath(t *testing.T) {
 	t.Parallel()
 
-    // Given Call/Arg/Return FIFOS
+	// Given Call/Arg/Return FIFOS
 	calls := protest.NewFIFO("calls", protest.FIFODeps[string]{
 		Differ: stringDiff,
 		T:      t,
@@ -63,37 +63,36 @@ func TestRunHappyPath(t *testing.T) {
 		Differ: mutationResultDiff,
 		T:      t,
 	})
-	theRunner := newMockedRunner(calls, exitArgs, verifyMutantCatcherPassesReturns, testMutationTypesReturns)
+	deps := newMockedDeps(calls, exitArgs, verifyMutantCatcherPassesReturns, testMutationTypesReturns)
 
 	// When the func is run
 	go func() {
-        theRunner.run()
-        calls.Close()
-    }()
+		run(deps)
+		calls.Close()
+	}()
 
 	// Then mutation testing is announced
 	calls.RequireNext("announceMutationTesting")
-    // And the mutant catcher is tested
+	// And the mutant catcher is tested
 	calls.RequireNext("verifyMutantCatcherPasses")
 
-    // When the mutant catcher returns true
+	// When the mutant catcher returns true
 	verifyMutantCatcherPassesReturns.Push(true)
 
-    // Then mutation type testing is done
+	// Then mutation type testing is done
 	calls.RequireNext("testMutationTypes")
 
-    // When the testing is all caught
+	// When the testing is all caught
 	testMutationTypesReturns.Push(mutationResult{result: experimentResultAllCaught, err: nil})
 
-    // Then the program exits
+	// Then the program exits
 	calls.RequireNext("exit")
-    // and does so with a passing return code
+	// and does so with a passing return code
 	exitArgs.RequireNext(returnCodePass)
-    // and there are no more dependency calls
+	// and there are no more dependency calls
 	calls.RequireClosedAndEmpty()
 }
 
-//func TestRunMutationCatcherFailure(t *testing.T) {
 //    t.Parallel()
 
 //    calls := protest.NewFIFO[string]("calls")
@@ -120,7 +119,6 @@ func TestRunHappyPath(t *testing.T) {
 //    protest.RequireEmpty(t, calls)
 //}
 
-//func TestRunUndetectedMutants(t *testing.T) {
 //    t.Parallel()
 
 //    calls := protest.NewFIFO[string]("calls")
@@ -149,7 +147,6 @@ func TestRunHappyPath(t *testing.T) {
 //    protest.RequireEmpty(t, calls)
 //}
 
-//func TestRunNoCandidates(t *testing.T) {
 //    t.Parallel()
 
 //    calls := protest.NewFIFO[string]("calls")
@@ -178,9 +175,7 @@ func TestRunHappyPath(t *testing.T) {
 //    protest.RequireEmpty(t, calls)
 //}
 
-//var errMocked = fmt.Errorf("mocked error")
-
-//func TestRunError(t *testing.T) {
+// func TestRunError(t *testing.T) {
 //    t.Parallel()
 
 //    calls := protest.NewFIFO[string]("calls")

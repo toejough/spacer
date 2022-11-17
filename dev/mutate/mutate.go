@@ -9,12 +9,12 @@ package main
 // Would like to cache candidates and results
 
 func main() {
-	runner{
+	run(runDeps{
 		announceMutationTesting:   nil,
 		verifyMutantCatcherPasses: nil,
 		testMutationTypes:         nil,
 		exit:                      nil,
-	}.run()
+	})
 }
 
 type (
@@ -28,7 +28,7 @@ type (
 	testMutationTypesFunc func() mutationResult
 	returnCodes           int
 	exitFunc              func(returnCodes)
-	runner                struct {
+	runDeps               struct {
 		announceMutationTesting   announceMutationTestingFunc
 		verifyMutantCatcherPasses verifyMutantCatcherPassesFunc
 		testMutationTypes         testMutationTypesFunc
@@ -51,28 +51,28 @@ const (
 	returnCodeNoCandidatesFound
 )
 
-func (r runner) run() {
-	r.announceMutationTesting()
+func run(deps runDeps) {
+	deps.announceMutationTesting()
 
-	passes := r.verifyMutantCatcherPasses()
+	passes := deps.verifyMutantCatcherPasses()
 	if !passes {
-		r.exit(returnCodeMutantCatcherFailure)
+		deps.exit(returnCodeMutantCatcherFailure)
 		return
 	}
 
-	results := r.testMutationTypes()
+	results := deps.testMutationTypes()
 	switch results.result {
 	case experimentResultAllCaught:
-		r.exit(returnCodePass)
+		deps.exit(returnCodePass)
 		return
 	case experimentResultUndetectedMutants:
-		r.exit(returnCodeFail)
+		deps.exit(returnCodeFail)
 		return
 	case experimentResultNoCandidatesFound:
-		r.exit(returnCodeNoCandidatesFound)
+		deps.exit(returnCodeNoCandidatesFound)
 		return
 	case experimentResultError:
-		r.exit(returnCodeError)
+		deps.exit(returnCodeError)
 		return
 	}
 }
