@@ -3,6 +3,7 @@ package main
 import (
 	"spacer/dev/protest"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -41,16 +42,13 @@ func newMockedDeps(t *testing.T) mockRunDeps {
 	// Given Call/Arg/Return FIFOS
 	calls := protest.NewFIFO("calls", protest.FIFODeps[string]{
 		Differ: stringDiff,
-		T:      t,
 	})
-	exitArgs := protest.NewFIFO("exitArgs", protest.FIFODeps[returnCodes]{Differ: returnCodeDiff, T: t})
+	exitArgs := protest.NewFIFO("exitArgs", protest.FIFODeps[returnCodes]{Differ: returnCodeDiff})
 	verifyMutantCatcherPassesReturns := protest.NewFIFO("verifyMutantCatcherPassesReturns", protest.FIFODeps[bool]{
 		Differ: boolDiff,
-		T:      t,
 	})
 	testMutationTypesReturns := protest.NewFIFO("testMutationTypesReturns", protest.FIFODeps[mutationResult]{
 		Differ: mutationResultDiff,
-		T:      t,
 	})
 
 	return mockRunDeps{
@@ -62,11 +60,21 @@ func newMockedDeps(t *testing.T) mockRunDeps {
 			announceMutationTesting: func() { calls.Push("announceMutationTesting") },
 			verifyMutantCatcherPasses: func() bool {
 				calls.Push("verifyMutantCatcherPasses")
-				return verifyMutantCatcherPassesReturns.GetNext()
+				toReturn, err := verifyMutantCatcherPassesReturns.WaitForNext(1 * time.Second)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				return toReturn
 			},
 			testMutationTypes: func() mutationResult {
 				calls.Push("testMutationTypes")
-				return testMutationTypesReturns.GetNext()
+				toReturn, err := testMutationTypesReturns.WaitForNext(1 * time.Second)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				return toReturn
 			},
 			exit: func(code returnCodes) {
 				calls.Push("exit")
@@ -88,23 +96,78 @@ func TestRunHappyPath(t *testing.T) {
 	}()
 
 	// Then mutation testing is announced
-	deps.calls.RequireNext("announceMutationTesting")
+	{
+		called, err := deps.calls.WaitForNext(1 * time.Second)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := "announceMutationTesting"
+		if called != expected {
+			t.Fatalf("expected %s but %s was called instead", expected, called)
+		}
+	}
 	// And the mutant catcher is tested
-	deps.calls.RequireNext("verifyMutantCatcherPasses")
+	{
+		called, err := deps.calls.WaitForNext(1 * time.Second)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := "verifyMutantCatcherPasses"
+		if called != expected {
+			t.Fatalf("expected %s but %s was called instead", expected, called)
+		}
+	}
 
 	// When the mutant catcher returns true
 	deps.verifyMutantCatcherPassesReturns.Push(true)
 
 	// Then mutation type testing is done
-	deps.calls.RequireNext("testMutationTypes")
+	{
+		called, err := deps.calls.WaitForNext(1 * time.Second)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := "testMutationTypes"
+		if called != expected {
+			t.Fatalf("expected %s but %s was called instead", expected, called)
+		}
+	}
 
 	// When the testing is all caught
 	deps.testMutationTypesReturns.Push(mutationResult{result: experimentResultAllCaught, err: nil})
 
 	// Then the program exits
-	deps.calls.RequireNext("exit")
-	// and does so with a passing return code
-	deps.exitArgs.RequireNext(returnCodePass)
+	{
+		called, err := deps.calls.WaitForNext(1 * time.Second)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := "exit"
+		if called != expected {
+			t.Fatalf("expected %s but %s was called instead", expected, called)
+		}
+	}
+	// and does so with a passing %return code
+	{
+		returned, err := deps.exitArgs.WaitForNext(1 * time.Second)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expected := returnCodePass
+		if returned != expected {
+			t.Fatalf("expected %v but %v was called instead", expected, returned)
+		}
+	}
 	// and there are no more dependency calls
-	deps.calls.RequireClosedAndEmpty()
+	{
+		err := deps.calls.RequireClosedAndEmpty()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 }
