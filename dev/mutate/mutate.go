@@ -1,6 +1,8 @@
 // Package mutate provides mutation testing functionality.
 package main
 
+import "fmt"
+
 // Mutate. Based loosely on:
 // * https://mutmut.readthedocs.io/en/latest/
 // * https://github.com/zimmski/go-mutesting
@@ -10,7 +12,7 @@ package main
 
 func main() {
 	run(runDeps{
-		announceMutationTesting:   nil,
+		announceMutationTesting:   func() { fmt.Println("Starting mutation testing") },
 		verifyMutantCatcherPasses: nil,
 		testMutationTypes:         nil,
 		exit:                      nil,
