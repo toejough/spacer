@@ -80,3 +80,21 @@ func (s *FIFO[I]) MustGetNext(t *testing.T) (next I) {
 
 	return s.MustWaitForNext(t, 1*time.Second)
 }
+
+func (s *FIFO[I]) RequireNext(t *testing.T, expected I) {
+	t.Helper()
+
+	next := s.MustGetNext(t)
+	if !reflect.DeepEqual(expected, next) {
+		t.Fatalf("expected %#v but found %#v instead", expected, next)
+	}
+}
+
+func (s *FIFO[I]) RequireNextWithin(t *testing.T, expected I, d time.Duration) {
+	t.Helper()
+
+	next := s.MustWaitForNext(t, d)
+	if reflect.DeepEqual(expected, next) {
+		t.Fatalf("expected %#v but found %#v instead", expected, next)
+	}
+}

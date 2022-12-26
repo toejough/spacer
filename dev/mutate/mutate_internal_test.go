@@ -84,53 +84,24 @@ func TestRunHappyPath(t *testing.T) {
 	}()
 
 	// Then mutation testing is announced
-	{
-		called := deps.calls.MustGetNext(t)
-		expected := "announceMutationTesting"
-		if called != expected {
-			t.Fatalf("expected %s but %s was called instead", expected, called)
-		}
-	}
+	// TODO use enums instead of strings for function names
+	deps.calls.RequireNext(t, "announceMutationTesting")
 	// And the mutant catcher is tested
-	{
-		called := deps.calls.MustGetNext(t)
-		expected := "verifyMutantCatcherPasses"
-		if called != expected {
-			t.Fatalf("expected %s but %s was called instead", expected, called)
-		}
-	}
+	deps.calls.RequireNext(t, "verifyMutantCatcherPasses")
 
 	// When the mutant catcher returns true
 	deps.verifyMutantCatcherPassesReturns.Push(true)
 
 	// Then mutation type testing is done
-	{
-		called := deps.calls.MustGetNext(t)
-		expected := "testMutationTypes"
-		if called != expected {
-			t.Fatalf("expected %s but %s was called instead", expected, called)
-		}
-	}
+	deps.calls.RequireNext(t, "testMutationTypes")
 
 	// When the testing is all caught
 	deps.testMutationTypesReturns.Push(mutationResult{result: experimentResultAllCaught, err: nil})
 
 	// Then the program exits
-	{
-		called := deps.calls.MustGetNext(t)
-		expected := "exit"
-		if called != expected {
-			t.Fatalf("expected %s but %s was called instead", expected, called)
-		}
-	}
+	deps.calls.RequireNext(t, "exit")
 	// and does so with a passing %return code
-	{
-		returned := deps.exitArgs.MustGetNext(t)
-		expected := returnCodePass
-		if returned != expected {
-			t.Fatalf("expected %v but %v was called instead", expected, returned)
-		}
-	}
+	deps.exitArgs.RequireNext(t, returnCodePass)
 	// and there are no more dependency calls
 	{
 		// TODO make this follow the t/no-t example of Get. CheckFinal vs RequireFinal?
