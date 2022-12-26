@@ -56,3 +56,7 @@ func (s *FIFO[I]) WaitForNext(d time.Duration) (next I, err error) {
 		return next, fmt.Errorf("waited %v for an item from %s FIFO, but there was none: %w", d, s.name, ErrTimedOut)
 	}
 }
+
+func (s *FIFO[I]) GetNext() (next I, err error) {
+	return s.WaitForNext(1 * time.Second)
+}

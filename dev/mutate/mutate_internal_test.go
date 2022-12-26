@@ -3,7 +3,6 @@ package main
 import (
 	"spacer/dev/protest"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -59,7 +58,7 @@ func newMockedDeps(t *testing.T) mockRunDeps {
 			announceMutationTesting: func() { calls.Push("announceMutationTesting") },
 			verifyMutantCatcherPasses: func() bool {
 				calls.Push("verifyMutantCatcherPasses")
-				toReturn, err := verifyMutantCatcherPassesReturns.WaitForNext(1 * time.Second)
+				toReturn, err := verifyMutantCatcherPassesReturns.GetNext()
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -68,7 +67,7 @@ func newMockedDeps(t *testing.T) mockRunDeps {
 			},
 			testMutationTypes: func() mutationResult {
 				calls.Push("testMutationTypes")
-				toReturn, err := testMutationTypesReturns.WaitForNext(1 * time.Second)
+				toReturn, err := testMutationTypesReturns.GetNext()
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -96,7 +95,7 @@ func TestRunHappyPath(t *testing.T) {
 
 	// Then mutation testing is announced
 	{
-		called, err := deps.calls.WaitForNext(1 * time.Second)
+		called, err := deps.calls.GetNext()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -108,7 +107,7 @@ func TestRunHappyPath(t *testing.T) {
 	}
 	// And the mutant catcher is tested
 	{
-		called, err := deps.calls.WaitForNext(1 * time.Second)
+		called, err := deps.calls.GetNext()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -124,7 +123,7 @@ func TestRunHappyPath(t *testing.T) {
 
 	// Then mutation type testing is done
 	{
-		called, err := deps.calls.WaitForNext(1 * time.Second)
+		called, err := deps.calls.GetNext()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -140,7 +139,7 @@ func TestRunHappyPath(t *testing.T) {
 
 	// Then the program exits
 	{
-		called, err := deps.calls.WaitForNext(1 * time.Second)
+		called, err := deps.calls.GetNext()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -152,7 +151,7 @@ func TestRunHappyPath(t *testing.T) {
 	}
 	// and does so with a passing %return code
 	{
-		returned, err := deps.exitArgs.WaitForNext(1 * time.Second)
+		returned, err := deps.exitArgs.GetNext()
 		if err != nil {
 			t.Fatal(err)
 		}
