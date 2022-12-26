@@ -10,7 +10,7 @@ import (
 
 type mockRunDeps struct {
 	deps                             runDeps
-	calls                            *protest.FIFO[string]
+	calls                            *protest.FIFO[interface{}]
 	exitArgs                         *protest.FIFO[returnCodes]
 	verifyMutantCatcherPassesReturns *protest.FIFO[bool]
 	testMutationTypesReturns         *protest.FIFO[mutationResult]
@@ -20,7 +20,7 @@ func newMockedDeps(t *testing.T) mockRunDeps {
 	t.Helper()
 
 	// Given Call/Arg/Return FIFOS
-	calls := protest.NewFIFO[string]("calls")
+	calls := protest.NewFIFO[any]("calls")
 	exitArgs := protest.NewFIFO[returnCodes]("exitArgs")
 	verifyMutantCatcherPassesReturns := protest.NewFIFO[bool]("verifyMutantCatcherPassesReturns")
 	testMutationTypesReturns := protest.NewFIFO[mutationResult]("testMutationTypesReturns")
@@ -31,22 +31,35 @@ func newMockedDeps(t *testing.T) mockRunDeps {
 		verifyMutantCatcherPassesReturns: verifyMutantCatcherPassesReturns,
 		testMutationTypesReturns:         testMutationTypesReturns,
 		deps: runDeps{
-			announceMutationTesting: func() { calls.Push("announceMutationTesting") },
+			announceMutationTesting: func() { calls.Push(announceMutationTestingMock{}) },
 			verifyMutantCatcherPasses: func() bool {
-				calls.Push("verifyMutantCatcherPasses")
-				return verifyMutantCatcherPassesReturns.MustGetNext(t)
+				calls.Push(verifyMutantCatcherPassesMock{returnFifo: verifyMutantCatcherPassesReturns})
+				return verifyMutantCatcherPassesReturns.MustPop(t)
 			},
 			testMutationTypes: func() mutationResult {
-				calls.Push("testMutationTypes")
-				return testMutationTypesReturns.MustGetNext(t)
+				calls.Push(testMutationTypesMock{returnFifo: testMutationTypesReturns})
+				return testMutationTypesReturns.MustPop(t)
 			},
 			exit: func(code returnCodes) {
-				calls.Push("exit")
-				exitArgs.Push(code)
+				calls.Push(exitMock{code: code})
 			},
 		},
 	}
 }
+
+type exitMock struct {
+	code returnCodes
+}
+
+type testMutationTypesMock struct {
+	returnFifo *protest.FIFO[mutationResult]
+}
+
+type verifyMutantCatcherPassesMock struct {
+	returnFifo *protest.FIFO[bool]
+}
+
+type announceMutationTestingMock struct{}
 
 func TestRunHappyPath(t *testing.T) {
 	t.Parallel()
@@ -60,31 +73,27 @@ func TestRunHappyPath(t *testing.T) {
 	}()
 
 	// Then mutation testing is announced
-	// TODO use enums instead of strings for function names
-	deps.calls.RequireNext(t, "announceMutationTesting")
+	// TODO use a one-shot mechanism for the return values instead of FIFO's
+	deps.calls.MustPopEqualTo(t, announceMutationTestingMock{})
 	// And the mutant catcher is tested
-	deps.calls.RequireNext(t, "verifyMutantCatcherPasses")
-
+	verifyCall := new(verifyMutantCatcherPassesMock)
+	deps.calls.MustPopAs(t, verifyCall)
 	// When the mutant catcher returns true
-	deps.verifyMutantCatcherPassesReturns.Push(true)
+	verifyCall.returnFifo.Push(true)
 
 	// Then mutation type testing is done
-	deps.calls.RequireNext(t, "testMutationTypes")
-
+	mutationTypesCall := new(testMutationTypesMock)
+	deps.calls.MustPopAs(t, mutationTypesCall)
 	// When the testing is all caught
-	deps.testMutationTypesReturns.Push(mutationResult{result: experimentResultAllCaught, err: nil})
+	mutationTypesCall.returnFifo.Push(mutationResult{result: experimentResultAllCaught, err: nil})
 
 	// Then the program exits
-	deps.calls.RequireNext(t, "exit")
-	// and does so with a passing %return code
-	deps.exitArgs.RequireNext(t, returnCodePass)
+	deps.calls.MustPopEqualTo(t, exitMock{code: returnCodePass})
 	// and there are no more dependency calls
-	{
-		// TODO make this follow the t/no-t example of Get. CheckFinal vs RequireFinal?
-		// TODO split into two? CheckClosed, CheckDrained? A helper for both? what does everyone else do about channels?
-		err := deps.calls.RequireClosedAndEmpty()
-		if err != nil {
-			t.Fatal(err)
-		}
+	// TODO make this follow the t/no-t example of Get. GetClosed & GetClosedWithin?
+	// TODO need a within variant
+	err := deps.calls.RequireClosedAndEmpty()
+	if err != nil {
+		t.Fatal(err)
 	}
 }
