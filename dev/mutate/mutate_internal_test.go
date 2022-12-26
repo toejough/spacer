@@ -25,7 +25,6 @@ func returnCodeDiff(e, a returnCodes) string {
 }
 
 // TODO make deps an interface
-// TODO remove t requirement from protest inits
 // TODO move protest closes into the mock deps implementation
 
 type mockRunDeps struct {
