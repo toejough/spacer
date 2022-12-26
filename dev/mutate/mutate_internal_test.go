@@ -38,6 +38,7 @@ func newMockedDeps(t *testing.T) mockRunDeps {
 	t.Helper()
 
 	// Given Call/Arg/Return FIFOS
+	// TODO remove the differs & the FIFO deps
 	calls := protest.NewFIFO("calls", protest.FIFODeps[string]{
 		Differ: stringDiff,
 	})
