@@ -4,6 +4,7 @@ package protest
 import (
 	"fmt"
 	"reflect"
+	"testing"
 	"time"
 )
 
@@ -57,6 +58,25 @@ func (s *FIFO[I]) WaitForNext(d time.Duration) (next I, err error) {
 	}
 }
 
+func (s *FIFO[I]) MustWaitForNext(t *testing.T, d time.Duration) (next I) {
+	t.Helper()
+
+	var err error
+	next, err = s.WaitForNext(1 * time.Second)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return next
+}
+
 func (s *FIFO[I]) GetNext() (next I, err error) {
 	return s.WaitForNext(1 * time.Second)
+}
+
+func (s *FIFO[I]) MustGetNext(t *testing.T) (next I) {
+	t.Helper()
+
+	return s.MustWaitForNext(t, 1*time.Second)
 }

@@ -58,21 +58,11 @@ func newMockedDeps(t *testing.T) mockRunDeps {
 			announceMutationTesting: func() { calls.Push("announceMutationTesting") },
 			verifyMutantCatcherPasses: func() bool {
 				calls.Push("verifyMutantCatcherPasses")
-				toReturn, err := verifyMutantCatcherPassesReturns.GetNext()
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				return toReturn
+				return verifyMutantCatcherPassesReturns.MustGetNext(t)
 			},
 			testMutationTypes: func() mutationResult {
 				calls.Push("testMutationTypes")
-				toReturn, err := testMutationTypesReturns.GetNext()
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				return toReturn
+				return testMutationTypesReturns.MustGetNext(t)
 			},
 			exit: func(code returnCodes) {
 				calls.Push("exit")
@@ -95,11 +85,7 @@ func TestRunHappyPath(t *testing.T) {
 
 	// Then mutation testing is announced
 	{
-		called, err := deps.calls.GetNext()
-		if err != nil {
-			t.Fatal(err)
-		}
-
+		called := deps.calls.MustGetNext(t)
 		expected := "announceMutationTesting"
 		if called != expected {
 			t.Fatalf("expected %s but %s was called instead", expected, called)
@@ -107,11 +93,7 @@ func TestRunHappyPath(t *testing.T) {
 	}
 	// And the mutant catcher is tested
 	{
-		called, err := deps.calls.GetNext()
-		if err != nil {
-			t.Fatal(err)
-		}
-
+		called := deps.calls.MustGetNext(t)
 		expected := "verifyMutantCatcherPasses"
 		if called != expected {
 			t.Fatalf("expected %s but %s was called instead", expected, called)
@@ -123,11 +105,7 @@ func TestRunHappyPath(t *testing.T) {
 
 	// Then mutation type testing is done
 	{
-		called, err := deps.calls.GetNext()
-		if err != nil {
-			t.Fatal(err)
-		}
-
+		called := deps.calls.MustGetNext(t)
 		expected := "testMutationTypes"
 		if called != expected {
 			t.Fatalf("expected %s but %s was called instead", expected, called)
@@ -139,11 +117,7 @@ func TestRunHappyPath(t *testing.T) {
 
 	// Then the program exits
 	{
-		called, err := deps.calls.GetNext()
-		if err != nil {
-			t.Fatal(err)
-		}
-
+		called := deps.calls.MustGetNext(t)
 		expected := "exit"
 		if called != expected {
 			t.Fatalf("expected %s but %s was called instead", expected, called)
@@ -151,11 +125,7 @@ func TestRunHappyPath(t *testing.T) {
 	}
 	// and does so with a passing %return code
 	{
-		returned, err := deps.exitArgs.GetNext()
-		if err != nil {
-			t.Fatal(err)
-		}
-
+		returned := deps.exitArgs.MustGetNext(t)
 		expected := returnCodePass
 		if returned != expected {
 			t.Fatalf("expected %v but %v was called instead", expected, returned)
@@ -163,6 +133,8 @@ func TestRunHappyPath(t *testing.T) {
 	}
 	// and there are no more dependency calls
 	{
+		// TODO make this follow the t/no-t example of Get. CheckFinal vs RequireFinal?
+		// TODO split into two? CheckClosed, CheckDrained? A helper for both? what does everyone else do about channels?
 		err := deps.calls.RequireClosedAndEmpty()
 		if err != nil {
 			t.Fatal(err)
