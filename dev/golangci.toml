@@ -2,9 +2,20 @@
 enable-all = true
 disable = [
     "gci", # doesn't play nicely with goimports
-    "ifshort", # I'd rather be explicit about exec-ing commands and responding to them
+    "ifshort", # I'd often rather be explicit about calling functions and then using their output
     "forbidigo", # I print output on purpose
     "ireturn", # I return generic types
+    "nonamedreturns", # I like named returns
+    # deprecated
+    "deadcode",
+    "structcheck",
+    "exhaustivestruct",
+    "scopelint",
+    "nosnakecase",
+    "maligned",
+    "varcheck",
+    "interfacer",
+    "golint",
 ]
 
 [issues]
