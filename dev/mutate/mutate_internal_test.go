@@ -3,25 +3,7 @@ package main
 import (
 	"spacer/dev/protest"
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
 )
-
-func stringDiff(e, a string) string {
-	return cmp.Diff(e, a)
-}
-
-func boolDiff(e, a bool) string {
-	return cmp.Diff(e, a)
-}
-
-func mutationResultDiff(e, a mutationResult) string {
-	return cmp.Diff(e, a)
-}
-
-func returnCodeDiff(e, a returnCodes) string {
-	return cmp.Diff(e, a)
-}
 
 // TODO make deps an interface
 // TODO move protest closes into the mock deps implementation
@@ -38,17 +20,10 @@ func newMockedDeps(t *testing.T) mockRunDeps {
 	t.Helper()
 
 	// Given Call/Arg/Return FIFOS
-	// TODO remove the differs & the FIFO deps
-	calls := protest.NewFIFO("calls", protest.FIFODeps[string]{
-		Differ: stringDiff,
-	})
-	exitArgs := protest.NewFIFO("exitArgs", protest.FIFODeps[returnCodes]{Differ: returnCodeDiff})
-	verifyMutantCatcherPassesReturns := protest.NewFIFO("verifyMutantCatcherPassesReturns", protest.FIFODeps[bool]{
-		Differ: boolDiff,
-	})
-	testMutationTypesReturns := protest.NewFIFO("testMutationTypesReturns", protest.FIFODeps[mutationResult]{
-		Differ: mutationResultDiff,
-	})
+	calls := protest.NewFIFO[string]("calls")
+	exitArgs := protest.NewFIFO[returnCodes]("exitArgs")
+	verifyMutantCatcherPassesReturns := protest.NewFIFO[bool]("verifyMutantCatcherPassesReturns")
+	testMutationTypesReturns := protest.NewFIFO[mutationResult]("testMutationTypesReturns")
 
 	return mockRunDeps{
 		calls:                            calls,

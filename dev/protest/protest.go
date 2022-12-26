@@ -8,18 +8,13 @@ import (
 	"time"
 )
 
-type FIFODeps[I any] struct {
-	Differ differ[I]
-}
-
 type FIFO[I any] struct {
 	items chan I
 	name  string
-	deps  FIFODeps[I]
 }
 
-func NewFIFO[I any](name string, deps FIFODeps[I]) *FIFO[I] {
-	return &FIFO[I]{items: make(chan I), name: name, deps: deps}
+func NewFIFO[I any](name string) *FIFO[I] {
+	return &FIFO[I]{items: make(chan I), name: name}
 }
 
 func (s *FIFO[I]) Close() {
@@ -44,8 +39,6 @@ func (s *FIFO[I]) RequireClosedAndEmpty() error {
 
 	return nil
 }
-
-type differ[T any] func(T, T) string
 
 var ErrTimedOut = fmt.Errorf("timed out")
 
