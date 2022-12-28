@@ -102,3 +102,34 @@ func TestRunTestsFailWithoutMutants(t *testing.T) {
 	// and there are no more dependency calls
 	deps.calls.MustConfirmClosed(t)
 }
+
+func TestRunNoMutationTypesFound(t *testing.T) {
+	t.Parallel()
+
+	deps := newMockedDeps(t)
+
+	// When the func is run
+	go func() {
+		run(deps)
+		deps.close()
+	}()
+
+	// The mutant catcher is tested
+	verifyCall := new(verifyTestsPassWithNoMutants)
+	deps.calls.MustPopAs(t, verifyCall)
+
+	// When the mutant catcher returns true
+	verifyCall.returnOneShot.Push(true)
+
+	// Then mutation type testing is done
+	mutationTypesCall := new(testMutationTypes)
+	deps.calls.MustPopAs(t, mutationTypesCall)
+
+	// When the testing returns all caught
+	mutationTypesCall.returnOneShot.Push(mutationResult{result: experimentResultNoCandidatesFound, err: nil})
+
+	// Then the program exits
+	deps.calls.MustPopEqualTo(t, exit{code: returnCodeNoCandidatesFound})
+	// and there are no more dependency calls
+	deps.calls.MustConfirmClosed(t)
+}
