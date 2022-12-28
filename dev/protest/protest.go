@@ -23,8 +23,9 @@ import (
 )
 
 type FIFO[I any] struct {
-	items chan I
-	name  string
+	items   chan I
+	name    string
+	oneShot bool
 }
 
 var (
@@ -38,7 +39,13 @@ var (
 
 // NewFIFO creates a new FIFO and returns a pointer to it.
 func NewFIFO[I any](name string) *FIFO[I] {
-	return &FIFO[I]{items: make(chan I), name: name}
+	return &FIFO[I]{items: make(chan I), name: name, oneShot: false}
+}
+
+// NewOneShotFIFO creates a new FIFO and returns a pointer to it. The FIFO is a "one-shot", meaning it only allows one
+// push, and one pop. After the first push, subsequent pushes will panic.
+func NewOneShotFIFO[I any](name string) *FIFO[I] {
+	return &FIFO[I]{items: make(chan I), name: name, oneShot: true}
 }
 
 // Close closes the underlying resources for the FIFO.
@@ -49,6 +56,9 @@ func (s *FIFO[I]) Close() {
 // Push pushes the given value into the FIFO.
 func (s *FIFO[I]) Push(i I) {
 	s.items <- i
+	if s.oneShot {
+		s.Close()
+	}
 }
 
 // Pop pops the next thing from the FIFO, waiting up to 1s for it to be available. If it is available within the
@@ -73,12 +83,16 @@ func (s *FIFO[I]) PopAs(target I) (err error) {
 
 // PopWithin pops the next thing from the FIFO, waiting up to the given duration for it to be available. If it is
 // available, it returns the value and a nil error. If it is not available within the timeout, it returns ErrTimedOut.
-func (s *FIFO[I]) PopWithin(d time.Duration) (next I, err error) {
+func (s *FIFO[I]) PopWithin(duration time.Duration) (next I, err error) {
 	select {
 	case next = <-s.items:
-		return next, nil
-	case <-time.After(d):
-		return next, fmt.Errorf("waited %v for an item from %s FIFO, but there was none: %w", d, s.name, ErrTimedOut)
+		if s.oneShot {
+			err = s.ConfirmClosedWithin(duration)
+		}
+
+		return next, err
+	case <-time.After(duration):
+		return next, fmt.Errorf("waited %v for an item from %s FIFO, but there was none: %w", duration, s.name, ErrTimedOut)
 	}
 }
 

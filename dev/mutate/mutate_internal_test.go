@@ -8,11 +8,8 @@ import (
 // TODO make deps an interface
 
 type mockRunDeps struct {
-	deps                             runDeps
-	calls                            *protest.FIFO[interface{}]
-	exitArgs                         *protest.FIFO[returnCodes]
-	verifyMutantCatcherPassesReturns *protest.FIFO[bool]
-	testMutationTypesReturns         *protest.FIFO[mutationResult]
+	deps  runDeps
+	calls *protest.FIFO[interface{}]
 }
 
 func (m *mockRunDeps) close() {
@@ -24,24 +21,22 @@ func newMockedDeps(t *testing.T) mockRunDeps {
 
 	// Given Call/Arg/Return FIFOS
 	calls := protest.NewFIFO[any]("calls")
-	exitArgs := protest.NewFIFO[returnCodes]("exitArgs")
-	verifyMutantCatcherPassesReturns := protest.NewFIFO[bool]("verifyMutantCatcherPassesReturns")
-	testMutationTypesReturns := protest.NewFIFO[mutationResult]("testMutationTypesReturns")
 
 	return mockRunDeps{
-		calls:                            calls,
-		exitArgs:                         exitArgs,
-		verifyMutantCatcherPassesReturns: verifyMutantCatcherPassesReturns,
-		testMutationTypesReturns:         testMutationTypesReturns,
+		calls: calls,
 		deps: runDeps{
 			announceMutationTesting: func() { calls.Push(announceMutationTestingMock{}) },
 			verifyMutantCatcherPasses: func() bool {
-				calls.Push(verifyMutantCatcherPassesMock{returnFifo: verifyMutantCatcherPassesReturns})
-				return verifyMutantCatcherPassesReturns.MustPop(t)
+				returnOneShot := protest.NewOneShotFIFO[bool]("verifyMutantCatcherPassesReturns")
+				calls.Push(verifyMutantCatcherPassesMock{returnFifo: returnOneShot})
+
+				return returnOneShot.MustPop(t)
 			},
 			testMutationTypes: func() mutationResult {
-				calls.Push(testMutationTypesMock{returnFifo: testMutationTypesReturns})
-				return testMutationTypesReturns.MustPop(t)
+				returnOneShot := protest.NewOneShotFIFO[mutationResult]("testMutationTypesReturns")
+				calls.Push(testMutationTypesMock{returnFifo: returnOneShot})
+
+				return returnOneShot.MustPop(t)
 			},
 			exit: func(code returnCodes) {
 				calls.Push(exitMock{code: code})
@@ -76,7 +71,6 @@ func TestRunHappyPath(t *testing.T) {
 	}()
 
 	// Then mutation testing is announced
-	// TODO use a one-shot mechanism for the return values instead of FIFO's
 	deps.calls.MustPopEqualTo(t, announceMutationTestingMock{})
 	// And the mutant catcher is tested
 	verifyCall := new(verifyMutantCatcherPassesMock)
