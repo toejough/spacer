@@ -5,59 +5,53 @@ import (
 	"testing"
 )
 
-// TODO make deps an interface
+type (
+	runDepsMock struct {
+		calls *protest.FIFO[interface{}]
+		t     *testing.T
+	}
+	exitMock                      struct{ code returnCodes }
+	testMutationTypesMock         struct{ returnFifo *protest.FIFO[mutationResult] }
+	verifyMutantCatcherPassesMock struct{ returnFifo *protest.FIFO[bool] }
+	announceMutationTestingMock   struct{}
+)
 
-type mockRunDeps struct {
-	deps  runDeps
-	calls *protest.FIFO[interface{}]
+func (rdm *runDepsMock) announceMutationTesting() {
+	rdm.calls.Push(announceMutationTestingMock{})
 }
 
-func (m *mockRunDeps) close() {
-	m.calls.Close()
+func (rdm *runDepsMock) verifyMutantCatcherPasses() bool {
+	returnOneShot := protest.NewOneShotFIFO[bool]("verifyMutantCatcherPassesReturns")
+
+	rdm.calls.Push(verifyMutantCatcherPassesMock{returnFifo: returnOneShot})
+
+	return returnOneShot.MustPop(rdm.t)
 }
 
-func newMockedDeps(t *testing.T) mockRunDeps {
+func (rdm *runDepsMock) testMutationTypes() mutationResult {
+	returnOneShot := protest.NewOneShotFIFO[mutationResult]("testMutationTypesReturns")
+
+	rdm.calls.Push(testMutationTypesMock{returnFifo: returnOneShot})
+
+	return returnOneShot.MustPop(rdm.t)
+}
+
+func (rdm *runDepsMock) exit(code returnCodes) {
+	rdm.calls.Push(exitMock{code: code})
+}
+
+func (rdm *runDepsMock) close() {
+	rdm.calls.Close()
+}
+
+func newMockedDeps(t *testing.T) *runDepsMock {
 	t.Helper()
 
-	// Given Call/Arg/Return FIFOS
-	calls := protest.NewFIFO[any]("calls")
-
-	return mockRunDeps{
-		calls: calls,
-		deps: runDeps{
-			announceMutationTesting: func() { calls.Push(announceMutationTestingMock{}) },
-			verifyMutantCatcherPasses: func() bool {
-				returnOneShot := protest.NewOneShotFIFO[bool]("verifyMutantCatcherPassesReturns")
-				calls.Push(verifyMutantCatcherPassesMock{returnFifo: returnOneShot})
-
-				return returnOneShot.MustPop(t)
-			},
-			testMutationTypes: func() mutationResult {
-				returnOneShot := protest.NewOneShotFIFO[mutationResult]("testMutationTypesReturns")
-				calls.Push(testMutationTypesMock{returnFifo: returnOneShot})
-
-				return returnOneShot.MustPop(t)
-			},
-			exit: func(code returnCodes) {
-				calls.Push(exitMock{code: code})
-			},
-		},
+	return &runDepsMock{
+		calls: protest.NewFIFO[any]("calls"),
+		t:     t,
 	}
 }
-
-type exitMock struct {
-	code returnCodes
-}
-
-type testMutationTypesMock struct {
-	returnFifo *protest.FIFO[mutationResult]
-}
-
-type verifyMutantCatcherPassesMock struct {
-	returnFifo *protest.FIFO[bool]
-}
-
-type announceMutationTestingMock struct{}
 
 func TestRunHappyPath(t *testing.T) {
 	t.Parallel()
@@ -66,7 +60,7 @@ func TestRunHappyPath(t *testing.T) {
 
 	// When the func is run
 	go func() {
-		run(deps.deps)
+		run(deps)
 		deps.close()
 	}()
 

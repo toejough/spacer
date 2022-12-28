@@ -11,32 +11,40 @@ import "fmt"
 // Would like to cache candidates and results
 
 func main() {
-	run(runDeps{
-		announceMutationTesting:   func() { fmt.Println("Starting mutation testing") },
-		verifyMutantCatcherPasses: nil,
-		testMutationTypes:         nil,
-		exit:                      nil,
-	})
+	run(&runDepsMain{})
 }
 
 type (
-	announceMutationTestingFunc   func()
-	verifyMutantCatcherPassesFunc func() bool
-	experimentResult              int
-	mutationResult                struct {
+	experimentResult int
+	mutationResult   struct {
 		result experimentResult
 		err    error
 	}
-	testMutationTypesFunc func() mutationResult
-	returnCodes           int
-	exitFunc              func(returnCodes)
-	runDeps               struct {
-		announceMutationTesting   announceMutationTestingFunc
-		verifyMutantCatcherPasses verifyMutantCatcherPassesFunc
-		testMutationTypes         testMutationTypesFunc
-		exit                      exitFunc
+	returnCodes int
+	runDeps     interface {
+		announceMutationTesting()
+		verifyMutantCatcherPasses() bool
+		testMutationTypes() mutationResult
+		exit(returnCodes)
 	}
+	runDepsMain struct{}
 )
+
+func (rdm *runDepsMain) announceMutationTesting() {
+	fmt.Println("Starting mutation testing")
+}
+
+func (rdm *runDepsMain) verifyMutantCatcherPasses() bool {
+	panic("not implemented")
+}
+
+func (rdm *runDepsMain) testMutationTypes() mutationResult {
+	panic("not implemented")
+}
+
+func (rdm *runDepsMain) exit(rc returnCodes) {
+	panic("not implemented")
+}
 
 const (
 	experimentResultAllCaught experimentResult = iota
