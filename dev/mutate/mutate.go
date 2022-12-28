@@ -1,8 +1,6 @@
 // Package mutate provides mutation testing functionality.
 package main
 
-import "fmt"
-
 // Mutate. Based loosely on:
 // * https://mutmut.readthedocs.io/en/latest/
 // * https://github.com/zimmski/go-mutesting
@@ -22,19 +20,14 @@ type (
 	}
 	returnCodes int
 	runDeps     interface {
-		announceMutationTesting()
-		verifyMutantCatcherPasses() bool
+		verifyTestsPassWithNoMutants() bool
 		testMutationTypes() mutationResult
 		exit(returnCodes)
 	}
 	runDepsMain struct{}
 )
 
-func (rdm *runDepsMain) announceMutationTesting() {
-	fmt.Println("Starting mutation testing")
-}
-
-func (rdm *runDepsMain) verifyMutantCatcherPasses() bool {
+func (rdm *runDepsMain) verifyTestsPassWithNoMutants() bool {
 	panic("not implemented")
 }
 
@@ -57,16 +50,14 @@ const (
 	returnCodePass returnCodes = iota
 	returnCodeFail
 	returnCodeError
-	returnCodeMutantCatcherFailure
+	returnCodeTestsFailWithNoMutations
 	returnCodeNoCandidatesFound
 )
 
 func run(deps runDeps) {
-	deps.announceMutationTesting()
-
-	passes := deps.verifyMutantCatcherPasses()
+	passes := deps.verifyTestsPassWithNoMutants()
 	if !passes {
-		deps.exit(returnCodeMutantCatcherFailure)
+		deps.exit(returnCodeTestsFailWithNoMutations)
 		return
 	}
 
