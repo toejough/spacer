@@ -6,7 +6,6 @@ import (
 )
 
 // TODO make deps an interface
-// TODO move protest closes into the mock deps implementation
 
 type mockRunDeps struct {
 	deps                             runDeps
@@ -14,6 +13,10 @@ type mockRunDeps struct {
 	exitArgs                         *protest.FIFO[returnCodes]
 	verifyMutantCatcherPassesReturns *protest.FIFO[bool]
 	testMutationTypesReturns         *protest.FIFO[mutationResult]
+}
+
+func (m *mockRunDeps) close() {
+	m.calls.Close()
 }
 
 func newMockedDeps(t *testing.T) mockRunDeps {
@@ -69,7 +72,7 @@ func TestRunHappyPath(t *testing.T) {
 	// When the func is run
 	go func() {
 		run(deps.deps)
-		deps.calls.Close()
+		deps.close()
 	}()
 
 	// Then mutation testing is announced
