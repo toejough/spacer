@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"spacer/dev/protest"
 	"testing"
 )
@@ -104,7 +105,7 @@ func TestRunTestsFailWithoutMutants(t *testing.T) {
 	deps.calls.MustConfirmClosed(t)
 }
 
-func TestRunNoMutationTypesFound(t *testing.T) {
+func TestRunNoMutationCandidatesFound(t *testing.T) {
 	t.Parallel()
 
 	deps := newMockedDeps(t)
@@ -159,6 +160,42 @@ func TestRunUndetectedMutants(t *testing.T) {
 
 	// When the testing returns all caught
 	mutationTypesCall.returnOneShot.Push(mutationResult{result: experimentResultUndetectedMutants, err: nil})
+
+	// Then the program exits
+	deps.calls.MustPopEqualTo(t, exit{code: returnCodeFail})
+	// and there are no more dependency calls
+	deps.calls.MustConfirmClosed(t)
+}
+
+func TestRunDetectionError(t *testing.T) {
+	t.Parallel()
+
+	deps := newMockedDeps(t)
+
+	// When the func is run
+	go func() {
+		run(deps)
+		deps.close()
+	}()
+
+	// The mutant catcher is tested
+	verifyCall := new(verifyTestsPassWithNoMutants)
+	deps.calls.MustPopAs(t, verifyCall)
+
+	// When the mutant catcher returns true
+	verifyCall.returnOneShot.Push(true)
+
+	// Then mutation type testing is done
+	mutationTypesCall := new(testMutationTypes)
+	deps.calls.MustPopAs(t, mutationTypesCall)
+
+	// When the testing returns all caught
+	// TODO table drive this one - they should all be error, no matter the return type, and no matter the actual error
+	mutationTypesCall.returnOneShot.Push(mutationResult{
+		result: experimentResultUndetectedMutants,
+		// Don't grouse about the dynammic error here, it's supposed to be even _more_ dynamic (see above todo)
+		err: fmt.Errorf("any arbitrary error"), //nolint: goerr113
+	})
 
 	// Then the program exits
 	deps.calls.MustPopEqualTo(t, exit{code: returnCodeFail})
