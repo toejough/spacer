@@ -11,8 +11,8 @@ type (
 		t     *testing.T
 	}
 	exitMock                      struct{ code returnCodes }
-	testMutationTypesMock         struct{ returnFifo *protest.FIFO[mutationResult] }
-	verifyMutantCatcherPassesMock struct{ returnFifo *protest.FIFO[bool] }
+	testMutationTypesMock         struct{ returnOneShot *protest.FIFO[mutationResult] }
+	verifyMutantCatcherPassesMock struct{ returnOneShot *protest.FIFO[bool] }
 	announceMutationTestingMock   struct{}
 )
 
@@ -23,7 +23,7 @@ func (rdm *runDepsMock) announceMutationTesting() {
 func (rdm *runDepsMock) verifyMutantCatcherPasses() bool {
 	returnOneShot := protest.NewOneShotFIFO[bool]("verifyMutantCatcherPassesReturns")
 
-	rdm.calls.Push(verifyMutantCatcherPassesMock{returnFifo: returnOneShot})
+	rdm.calls.Push(verifyMutantCatcherPassesMock{returnOneShot: returnOneShot})
 
 	return returnOneShot.MustPop(rdm.t)
 }
@@ -31,7 +31,7 @@ func (rdm *runDepsMock) verifyMutantCatcherPasses() bool {
 func (rdm *runDepsMock) testMutationTypes() mutationResult {
 	returnOneShot := protest.NewOneShotFIFO[mutationResult]("testMutationTypesReturns")
 
-	rdm.calls.Push(testMutationTypesMock{returnFifo: returnOneShot})
+	rdm.calls.Push(testMutationTypesMock{returnOneShot: returnOneShot})
 
 	return returnOneShot.MustPop(rdm.t)
 }
@@ -69,20 +69,19 @@ func TestRunHappyPath(t *testing.T) {
 	// And the mutant catcher is tested
 	verifyCall := new(verifyMutantCatcherPassesMock)
 	deps.calls.MustPopAs(t, verifyCall)
+
 	// When the mutant catcher returns true
-	verifyCall.returnFifo.Push(true)
+	verifyCall.returnOneShot.Push(true)
 
 	// Then mutation type testing is done
 	mutationTypesCall := new(testMutationTypesMock)
 	deps.calls.MustPopAs(t, mutationTypesCall)
-	// When the testing is all caught
-	mutationTypesCall.returnFifo.Push(mutationResult{result: experimentResultAllCaught, err: nil})
+
+	// When the testing returns all caught
+	mutationTypesCall.returnOneShot.Push(mutationResult{result: experimentResultAllCaught, err: nil})
 
 	// Then the program exits
 	deps.calls.MustPopEqualTo(t, exitMock{code: returnCodePass})
 	// and there are no more dependency calls
-	err := deps.calls.ConfirmClosed()
-	if err != nil {
-		t.Fatal(err)
-	}
+	deps.calls.MustConfirmClosed(t)
 }
