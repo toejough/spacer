@@ -20,14 +20,14 @@ type (
 	}
 	returnCodes int
 	runDeps     interface {
-		verifyTestsPassWithNoMutants() bool
+		verifyTestsPassWithNoMutants() error
 		testMutationTypes() mutationResult
 		exit(returnCodes)
 	}
 	runDepsMain struct{}
 )
 
-func (rdm *runDepsMain) verifyTestsPassWithNoMutants() bool {
+func (rdm *runDepsMain) verifyTestsPassWithNoMutants() error {
 	panic("not implemented")
 }
 
@@ -55,8 +55,8 @@ const (
 )
 
 func run(deps runDeps) {
-	passes := deps.verifyTestsPassWithNoMutants()
-	if !passes {
+	err := deps.verifyTestsPassWithNoMutants()
+	if err != nil {
 		deps.exit(returnCodeTestsFailWithNoMutations)
 		return
 	}

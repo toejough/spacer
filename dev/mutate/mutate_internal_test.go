@@ -13,15 +13,16 @@ type (
 	}
 	exit                         struct{ code returnCodes }
 	testMutationTypes            struct{ returnOneShot *protest.FIFO[mutationResult] }
-	verifyTestsPassWithNoMutants struct{ returnOneShot *protest.FIFO[bool] }
+	verifyTestsPassWithNoMutants struct{ returnOneShot *protest.FIFO[error] }
 )
 
-func (rdm *runDepsMock) verifyTestsPassWithNoMutants() bool {
-	returnOneShot := protest.NewOneShotFIFO[bool]("verifyTestsPassWithNoMutantsReturn")
+func (rdm *runDepsMock) verifyTestsPassWithNoMutants() error {
+	returnOneShot := protest.NewOneShotFIFO[error]("verifyTestsPassWithNoMutantsReturn")
 
 	rdm.calls.Push(verifyTestsPassWithNoMutants{returnOneShot: returnOneShot})
 
-	return returnOneShot.MustPop(rdm.t)
+	// this is the specific error to return for the test
+	return returnOneShot.MustPop(rdm.t) //nolint: wrapcheck
 }
 
 func (rdm *runDepsMock) testMutationTypes() mutationResult {
@@ -64,8 +65,8 @@ func TestRunHappyPath(t *testing.T) {
 	verifyCall := new(verifyTestsPassWithNoMutants)
 	deps.calls.MustPopAs(t, verifyCall)
 
-	// When the mutant catcher returns true
-	verifyCall.returnOneShot.Push(true)
+	// When the mutant catcher returns no error
+	verifyCall.returnOneShot.Push(nil)
 
 	// Then mutation type testing is done
 	mutationTypesCall := new(testMutationTypes)
@@ -95,9 +96,10 @@ func TestRunTestsFailWithoutMutants(t *testing.T) {
 	verifyCall := new(verifyTestsPassWithNoMutants)
 	deps.calls.MustPopAs(t, verifyCall)
 
-	// When the mutant catcher returns true
-	// TODO make this an error
-	verifyCall.returnOneShot.Push(false)
+	// When the mutant catcher returns no error
+	// TODO make this any error via rapid.
+	// this is intentionally an arbitrary error.
+	verifyCall.returnOneShot.Push(fmt.Errorf("arbitrary error")) //nolint: goerr113
 
 	// Then the program exits
 	deps.calls.MustPopEqualTo(t, exit{code: returnCodeTestsFailWithNoMutations})
@@ -120,8 +122,8 @@ func TestRunNoMutationCandidatesFound(t *testing.T) {
 	verifyCall := new(verifyTestsPassWithNoMutants)
 	deps.calls.MustPopAs(t, verifyCall)
 
-	// When the mutant catcher returns true
-	verifyCall.returnOneShot.Push(true)
+	// When the mutant catcher returns no error
+	verifyCall.returnOneShot.Push(nil)
 
 	// Then mutation type testing is done
 	mutationTypesCall := new(testMutationTypes)
@@ -151,8 +153,8 @@ func TestRunUndetectedMutants(t *testing.T) {
 	verifyCall := new(verifyTestsPassWithNoMutants)
 	deps.calls.MustPopAs(t, verifyCall)
 
-	// When the mutant catcher returns true
-	verifyCall.returnOneShot.Push(true)
+	// When the mutant catcher returns no error
+	verifyCall.returnOneShot.Push(nil)
 
 	// Then mutation type testing is done
 	mutationTypesCall := new(testMutationTypes)
@@ -182,8 +184,8 @@ func TestRunDetectionError(t *testing.T) {
 	verifyCall := new(verifyTestsPassWithNoMutants)
 	deps.calls.MustPopAs(t, verifyCall)
 
-	// When the mutant catcher returns true
-	verifyCall.returnOneShot.Push(true)
+	// When the mutant catcher returns no error
+	verifyCall.returnOneShot.Push(nil)
 
 	// Then mutation type testing is done
 	mutationTypesCall := new(testMutationTypes)
@@ -191,6 +193,7 @@ func TestRunDetectionError(t *testing.T) {
 
 	// When the testing returns all caught
 	// TODO table drive this one - they should all be error, no matter the return type, and no matter the actual error
+	// (use rapid)
 	mutationTypesCall.returnOneShot.Push(mutationResult{
 		result: experimentResultUndetectedMutants,
 		// Don't grouse about the dynammic error here, it's supposed to be even _more_ dynamic (see above todo)
