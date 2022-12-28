@@ -90,9 +90,7 @@ func TestRunHappyPath(t *testing.T) {
 	// Then the program exits
 	deps.calls.MustPopEqualTo(t, exitMock{code: returnCodePass})
 	// and there are no more dependency calls
-	// TODO make this follow the t/no-t example of Get. GetClosed & GetClosedWithin?
-	// TODO need a within variant
-	err := deps.calls.RequireClosedAndEmpty()
+	err := deps.calls.ConfirmClosed()
 	if err != nil {
 		t.Fatal(err)
 	}

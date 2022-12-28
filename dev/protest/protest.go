@@ -29,13 +29,13 @@ type FIFO[I any] struct {
 
 var (
 	ErrChannelNotClosed     = fmt.Errorf("the channel isn't closed")
+	ErrChannelNotEmpty      = fmt.Errorf("the channel isn't empty")
+	ErrNilPointerTarget     = fmt.Errorf("target must be a non-nil pointer")
 	ErrNotEqual             = fmt.Errorf("values not equal")
 	ErrTimedOut             = fmt.Errorf("timed out")
-	ErrNilPointerTarget     = fmt.Errorf("target must be a non-nil pointer")
 	ErrUnassignableToTarget = fmt.Errorf("value is unassignable to target")
 )
 
-// TODO Drop the fifo name.
 // NewFIFO creates a new FIFO and returns a pointer to it.
 func NewFIFO[I any](name string) *FIFO[I] {
 	return &FIFO[I]{items: make(chan I), name: name}
@@ -192,18 +192,49 @@ func (s *FIFO[I]) MustPopAsWithin(t *testing.T, target I, d time.Duration) {
 	}
 }
 
-func (s *FIFO[I]) RequireClosedAndEmpty() error {
+// ConfirmClosed checks if the FIFO is closed and empty, waiting up to 1s. If it is not empty, it returns
+// ErrChannelNotEmpty. If it is not closed within the timeout, it returns ErrChannelNotClosed.
+func (s *FIFO[I]) ConfirmClosed() error {
+	return s.ConfirmClosedWithin(1 * time.Second)
+}
+
+// ConfirmClosedWithin checks if the FIFO is closed and empty, waiting up to the given duration. If it is not empty, it
+// returns ErrChannelNotEmpty. If it is not closed within the timeout, it returns ErrChannelNotClosed.
+func (s *FIFO[I]) ConfirmClosedWithin(duration time.Duration) error {
 	select {
-	// TODO use value, ok := ... "ok" will be false if the channel is closed and empty
-	case value := <-s.items:
-		if reflect.ValueOf(value).IsValid() && !reflect.ValueOf(value).IsZero() {
-			return fmt.Errorf("expected no more values in %s, but found %v: %w", s.name, value, ErrChannelNotClosed)
+	case value, ok := <-s.items:
+		if ok {
+			return fmt.Errorf("expected no more values in %s, but found %v: %w", s.name, value, ErrChannelNotEmpty)
 		}
-	case <-time.After(1 * time.Second):
-		return fmt.Errorf("expected %s to be closed, but it was not after 1s of waiting: %w", s.name, ErrChannelNotClosed)
+	case <-time.After(duration):
+		return fmt.Errorf(
+			"expected %s to be closed, but it was not after %#v of waiting: %w",
+			s.name,
+			duration,
+			ErrChannelNotClosed,
+		)
 	}
 
 	return nil
+}
+
+// MustConfirmClosed checks if the FIFO is closed and empty, waiting up to 1s. If it is not empty, it triggers a fatal
+// test failure. If it is not closed within the timeout, it triggers a fatal test failure.
+func (s *FIFO[I]) MustConfirmClosed(t *testing.T) {
+	t.Helper()
+
+	s.MustConfirmClosedWithin(t, 1*time.Second)
+}
+
+// MustConfirmClosedWithin checks if the FIFO is closed and empty, waiting up to the given duration. If it is not empty,
+// it triggers a fatal test failure. If it is not closed within the timeout, it triggers a fatal test failure.
+func (s *FIFO[I]) MustConfirmClosedWithin(t *testing.T, d time.Duration) {
+	t.Helper()
+
+	err := s.ConfirmClosedWithin(d)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 // TODO RequireDeepEqual
