@@ -91,11 +91,7 @@ func (s *FIFO[I]) PopEqualToWithin(expected I, d time.Duration) (err error) {
 		return err
 	}
 
-	if !reflect.DeepEqual(expected, next) {
-		return fmt.Errorf("expected %#v but found %#v instead: %w", expected, next, ErrNotEqual)
-	}
-
-	return nil
+	return Equal(expected, next)
 }
 
 // PopAsWithin pops the next thing from the FIFO, waiting up to the given duration for it to be available. If it is
@@ -237,4 +233,23 @@ func (s *FIFO[I]) MustConfirmClosedWithin(t *testing.T, d time.Duration) {
 	}
 }
 
-// TODO RequireDeepEqual
+// Equal checks if the expected value (first arg) is equal to the actual value (second arg). Equality is tested with
+// reflect.DeepEqual. If it is not equal, it returns ErrNotEqual.
+func Equal[I any](expected, actual I) (err error) {
+	if !reflect.DeepEqual(expected, actual) {
+		return fmt.Errorf("expected %#v but found %#v instead: %w", expected, actual, ErrNotEqual)
+	}
+
+	return nil
+}
+
+// MustEqual checks if the expected value (first arg) is equal to the actual value (second arg). Equality is tested with
+// reflect.DeepEqual. If it is not equal, it triggers a fatal test failure.
+func MustEqual[I any](t *testing.T, expected, actual I) {
+	t.Helper()
+
+	err := Equal(expected, actual)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
