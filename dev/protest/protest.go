@@ -18,7 +18,6 @@ package protest
 import (
 	"fmt"
 	"reflect"
-	"testing"
 	"time"
 )
 
@@ -136,9 +135,14 @@ func (s *FIFO[I]) PopAsWithin(target I, d time.Duration) (err error) {
 	return fmt.Errorf("%#v can not be set as %T: %w", next, target, ErrUnassignableToTarget)
 }
 
+type tester interface {
+	Helper()
+	Fatal(...any)
+}
+
 // MustPop pops the next thing from the FIFO, waiting up to 1s for it to be available. If it is available within the
 // timeout, it returns the value. If it is not available within the timeout, it triggers a fatal test failure.
-func (s *FIFO[I]) MustPop(t *testing.T) (next I) {
+func (s *FIFO[I]) MustPop(t tester) (next I) {
 	t.Helper()
 
 	return s.MustPopWithin(t, 1*time.Second)
@@ -147,7 +151,7 @@ func (s *FIFO[I]) MustPop(t *testing.T) (next I) {
 // MustPopEqualTo pops the next thing from the FIFO, waiting up to 1s for it to be available. If it is available within
 // the timeout and equal to the expected value, it returns. Equality is tested with reflect.DeepEqual. If it is not
 // available within the timeout, it triggers a fatal test failure. If it is not equal, it triggers a fatal test failure.
-func (s *FIFO[I]) MustPopEqualTo(t *testing.T, expected I) {
+func (s *FIFO[I]) MustPopEqualTo(t tester, expected I) {
 	t.Helper()
 
 	s.MustPopEqualToWithin(t, expected, 1*time.Second)
@@ -156,7 +160,7 @@ func (s *FIFO[I]) MustPopEqualTo(t *testing.T, expected I) {
 // MustPopAs pops the next thing from the FIFO, waiting up to 1s for it to be available. If it is available within the
 // timeout, it attempts to set the target to be the value. If it is not available within the timeout, it triggers a
 // fatal test failure. If it is not settable, it triggers a fatal test failure.
-func (s *FIFO[I]) MustPopAs(t *testing.T, target I) {
+func (s *FIFO[I]) MustPopAs(t tester, target I) {
 	t.Helper()
 
 	s.MustPopAsWithin(t, target, 1*time.Second)
@@ -164,15 +168,15 @@ func (s *FIFO[I]) MustPopAs(t *testing.T, target I) {
 
 // MustPopWithin pops the next thing from the FIFO, waiting up to the given duration for it to be available. If it is
 // available, it returns the value. If it is not available within the timeout, it triggers a fatal test failure.
-func (s *FIFO[I]) MustPopWithin(t *testing.T, d time.Duration) (next I) {
-	t.Helper()
+func (s *FIFO[I]) MustPopWithin(test tester, d time.Duration) (next I) {
+	test.Helper()
 
 	var err error
 
 	next, err = s.PopWithin(d)
 
 	if err != nil {
-		t.Fatal(err)
+		test.Fatal(err)
 	}
 
 	return
@@ -181,7 +185,7 @@ func (s *FIFO[I]) MustPopWithin(t *testing.T, d time.Duration) (next I) {
 // MustPopEqualToWithin pops the next thing from the FIFO, waiting up to the given duration for it to be available. If
 // it is available and equal to the expected value, it returns. Equality is tested with reflect.DeepEqual. If it is not
 // available within the timeout, it triggers a fatal test failure. If it is not equal, it triggers a fatal test failure.
-func (s *FIFO[I]) MustPopEqualToWithin(t *testing.T, expected I, d time.Duration) {
+func (s *FIFO[I]) MustPopEqualToWithin(t tester, expected I, d time.Duration) {
 	t.Helper()
 
 	err := s.PopEqualToWithin(expected, d)
@@ -193,7 +197,7 @@ func (s *FIFO[I]) MustPopEqualToWithin(t *testing.T, expected I, d time.Duration
 // MustPopAsWithin pops the next thing from the FIFO, waiting up to the given duration for it to be available. If it is
 // available, it attempts to set the target to be the value. If settable, it returns. If it is not available within the
 // timeout, it triggers a fatal test failure. If it is not settable, it triggers a fatal test failure.
-func (s *FIFO[I]) MustPopAsWithin(t *testing.T, target I, d time.Duration) {
+func (s *FIFO[I]) MustPopAsWithin(t tester, target I, d time.Duration) {
 	t.Helper()
 
 	err := s.PopAsWithin(target, d)
@@ -230,7 +234,7 @@ func (s *FIFO[I]) ConfirmClosedWithin(duration time.Duration) error {
 
 // MustConfirmClosed checks if the FIFO is closed and empty, waiting up to 1s. If it is not empty, it triggers a fatal
 // test failure. If it is not closed within the timeout, it triggers a fatal test failure.
-func (s *FIFO[I]) MustConfirmClosed(t *testing.T) {
+func (s *FIFO[I]) MustConfirmClosed(t tester) {
 	t.Helper()
 
 	s.MustConfirmClosedWithin(t, 1*time.Second)
@@ -238,7 +242,7 @@ func (s *FIFO[I]) MustConfirmClosed(t *testing.T) {
 
 // MustConfirmClosedWithin checks if the FIFO is closed and empty, waiting up to the given duration. If it is not empty,
 // it triggers a fatal test failure. If it is not closed within the timeout, it triggers a fatal test failure.
-func (s *FIFO[I]) MustConfirmClosedWithin(t *testing.T, d time.Duration) {
+func (s *FIFO[I]) MustConfirmClosedWithin(t tester, d time.Duration) {
 	t.Helper()
 
 	err := s.ConfirmClosedWithin(d)
@@ -259,7 +263,7 @@ func Equal[I any](expected, actual I) (err error) {
 
 // MustEqual checks if the expected value (first arg) is equal to the actual value (second arg). Equality is tested with
 // reflect.DeepEqual. If it is not equal, it triggers a fatal test failure.
-func MustEqual[I any](t *testing.T, expected, actual I) {
+func MustEqual[I any](t tester, expected, actual I) {
 	t.Helper()
 
 	err := Equal(expected, actual)
