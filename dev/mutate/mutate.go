@@ -13,67 +13,48 @@ func main() {
 }
 
 type (
-	experimentResult int
-	mutationResult   struct {
-		result experimentResult
-		err    error
-	}
-	returnCodes int
-	runDeps     interface {
-		verifyTestsPassWithNoMutants() error
-		testMutationTypes() mutationResult
-		exit(returnCodes)
+	runDeps interface {
+		announceStarting()
+		verifyTestsPassWithNoMutants() bool
+		testMutations() bool
+		announceEnding()
+		exit(bool)
 	}
 	runDepsMain struct{}
 )
 
-func (rdm *runDepsMain) verifyTestsPassWithNoMutants() error {
+func (rdm *runDepsMain) announceStarting() {
 	panic("not implemented")
 }
 
-func (rdm *runDepsMain) testMutationTypes() mutationResult {
+func (rdm *runDepsMain) verifyTestsPassWithNoMutants() bool {
 	panic("not implemented")
 }
 
-func (rdm *runDepsMain) exit(rc returnCodes) {
+func (rdm *runDepsMain) testMutations() bool {
 	panic("not implemented")
 }
 
-const (
-	experimentResultAllCaught experimentResult = iota
-	experimentResultUndetectedMutants
-	experimentResultNoCandidatesFound
-	experimentResultError
-)
+func (rdm *runDepsMain) announceEnding() {
+	panic("not implemented")
+}
 
-const (
-	returnCodePass returnCodes = iota
-	returnCodeFail
-	returnCodeError
-	returnCodeTestsFailWithNoMutations
-	returnCodeNoCandidatesFound
-)
+func (rdm *runDepsMain) exit(passes bool) {
+	panic("not implemented")
+}
 
 func run(deps runDeps) {
-	err := deps.verifyTestsPassWithNoMutants()
-	if err != nil {
-		deps.exit(returnCodeTestsFailWithNoMutations)
+	deps.announceStarting()
+
+	passes := deps.verifyTestsPassWithNoMutants()
+	if !passes {
+		deps.announceEnding()
+		deps.exit(false)
+
 		return
 	}
 
-	results := deps.testMutationTypes()
-	switch results.result {
-	case experimentResultAllCaught:
-		deps.exit(returnCodePass)
-		return
-	case experimentResultUndetectedMutants:
-		deps.exit(returnCodeFail)
-		return
-	case experimentResultNoCandidatesFound:
-		deps.exit(returnCodeNoCandidatesFound)
-		return
-	case experimentResultError:
-		deps.exit(returnCodeError)
-		return
-	}
+	passes = deps.testMutations()
+	deps.announceEnding()
+	deps.exit(passes)
 }

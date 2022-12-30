@@ -1,11 +1,14 @@
 package main
 
+// The main idea for all the unit tests is to test the behavior we care about _at this level_.
+// This means we validate the calls to dependencies _at this level_ (critically, _not_ subdependency calls).
+// Leave "and now xyz is happening" testing to the thing that is making it happen.
+// For example, for "run", we do _not_ care where the test command is coming from, how it is run, or how its output is
+// conveyed.
+
 import (
-	"fmt"
 	"spacer/dev/protest"
 	"testing"
-
-	"pgregory.net/rapid"
 )
 
 type (
@@ -13,34 +16,50 @@ type (
 		calls *protest.FIFO[interface{}]
 		t     tester
 	}
-	exit                         struct{ code returnCodes }
-	testMutationTypes            struct{ returnOneShot *protest.FIFO[mutationResult] }
-	verifyTestsPassWithNoMutants struct{ returnOneShot *protest.FIFO[error] }
-	tester                       interface {
+	announceStartingCall             struct{}
+	verifyTestsPassWithNoMutantsCall struct {
+		returnOneShot *protest.FIFO[bool]
+	}
+	testMutationsCall struct {
+		returnOneShot *protest.FIFO[bool]
+	}
+	announceEndingCall struct{}
+	exitArgs           struct{ passed bool }
+	exitCall           struct {
+		args exitArgs
+	}
+	tester interface {
 		Helper()
 		Fatal(...any)
 	}
 )
 
-func (rdm *runDepsMock) verifyTestsPassWithNoMutants() error {
-	returnOneShot := protest.NewOneShotFIFO[error]("verifyTestsPassWithNoMutantsReturn")
-
-	rdm.calls.Push(verifyTestsPassWithNoMutants{returnOneShot: returnOneShot})
-
-	// this is the specific error to return for the test
-	return returnOneShot.MustPop(rdm.t) //nolint: wrapcheck
+func (rdm *runDepsMock) announceStarting() {
+	rdm.calls.Push(announceStartingCall{})
 }
 
-func (rdm *runDepsMock) testMutationTypes() mutationResult {
-	returnOneShot := protest.NewOneShotFIFO[mutationResult]("testMutationTypesReturn")
+func (rdm *runDepsMock) verifyTestsPassWithNoMutants() bool {
+	returnOneShot := protest.NewOneShotFIFO[bool]("verifyTestsPassWithNoMutantsReturn")
 
-	rdm.calls.Push(testMutationTypes{returnOneShot: returnOneShot})
+	rdm.calls.Push(verifyTestsPassWithNoMutantsCall{returnOneShot: returnOneShot})
 
 	return returnOneShot.MustPop(rdm.t)
 }
 
-func (rdm *runDepsMock) exit(code returnCodes) {
-	rdm.calls.Push(exit{code: code})
+func (rdm *runDepsMock) testMutations() bool {
+	returnOneShot := protest.NewOneShotFIFO[bool]("testMutationsReturn")
+
+	rdm.calls.Push(testMutationsCall{returnOneShot: returnOneShot})
+
+	return returnOneShot.MustPop(rdm.t)
+}
+
+func (rdm *runDepsMock) announceEnding() {
+	rdm.calls.Push(announceEndingCall{})
+}
+
+func (rdm *runDepsMock) exit(passed bool) {
+	rdm.calls.Push(exitCall{args: exitArgs{passed: passed}})
 }
 
 func (rdm *runDepsMock) close() {
@@ -67,54 +86,31 @@ func TestRunHappyPath(t *testing.T) {
 		deps.close()
 	}()
 
-	// The mutant catcher is tested
-	verifyCall := new(verifyTestsPassWithNoMutants)
+	// Then the program announces itself
+	deps.calls.MustPopEqualTo(t, announceStartingCall{})
+	// And the tester is run to ensure it passes prior to applying mutations
+	verifyCall := new(verifyTestsPassWithNoMutantsCall)
 	deps.calls.MustPopAs(t, verifyCall)
 
-	// When the mutant catcher returns no error
-	verifyCall.returnOneShot.Push(nil)
+	// When the tester passes
+	verifyCall.returnOneShot.Push(true)
 
-	// Then mutation type testing is done
-	mutationTypesCall := new(testMutationTypes)
-	deps.calls.MustPopAs(t, mutationTypesCall)
+	// Then mutation type testing is performed
+	testMutationsCall := new(testMutationsCall)
+	deps.calls.MustPopAs(t, testMutationsCall)
 
 	// When the testing returns all caught
-	mutationTypesCall.returnOneShot.Push(mutationResult{result: experimentResultAllCaught, err: nil})
+	testMutationsCall.returnOneShot.Push(true)
 
-	// Then the program exits
-	deps.calls.MustPopEqualTo(t, exit{code: returnCodePass})
+	// Then program announces it's exiting
+	deps.calls.MustPopEqualTo(t, announceEndingCall{})
+	// And the program exits
+	deps.calls.MustPopEqualTo(t, exitCall{args: exitArgs{passed: true}})
 	// and there are no more dependency calls
 	deps.calls.MustConfirmClosed(t)
 }
 
-func TestRunTestsFailWithoutMutants(t *testing.T) {
-	t.Parallel()
-
-	rapid.Check(t, func(test *rapid.T) {
-		deps := newMockedDeps(test)
-
-		// When the func is run
-		go func() {
-			run(deps)
-			deps.close()
-		}()
-
-		// The mutant catcher is tested
-		verifyCall := new(verifyTestsPassWithNoMutants)
-		deps.calls.MustPopAs(test, verifyCall)
-
-		// When the mutant catcher returns no error
-		// Don't grouse about the dynammic error here - it's the whole point
-		verifyCall.returnOneShot.Push(fmt.Errorf(rapid.String().Draw(test, "mutationTypesError"))) //nolint: goerr113
-
-		// Then the program exits
-		deps.calls.MustPopEqualTo(test, exit{code: returnCodeTestsFailWithNoMutations})
-		// and there are no more dependency calls
-		deps.calls.MustConfirmClosed(test)
-	})
-}
-
-func TestRunNoMutationCandidatesFound(t *testing.T) {
+func TestRunTesterFailsBeforeAnyMutations(t *testing.T) {
 	t.Parallel()
 
 	deps := newMockedDeps(t)
@@ -125,27 +121,24 @@ func TestRunNoMutationCandidatesFound(t *testing.T) {
 		deps.close()
 	}()
 
-	// The mutant catcher is tested
-	verifyCall := new(verifyTestsPassWithNoMutants)
+	// Then the program announces itself
+	deps.calls.MustPopEqualTo(t, announceStartingCall{})
+	// And the tester is run to ensure it passes prior to applying mutations
+	verifyCall := new(verifyTestsPassWithNoMutantsCall)
 	deps.calls.MustPopAs(t, verifyCall)
 
-	// When the mutant catcher returns no error
-	verifyCall.returnOneShot.Push(nil)
+	// When the tester passes
+	verifyCall.returnOneShot.Push(false)
 
-	// Then mutation type testing is done
-	mutationTypesCall := new(testMutationTypes)
-	deps.calls.MustPopAs(t, mutationTypesCall)
-
-	// When the testing returns all caught
-	mutationTypesCall.returnOneShot.Push(mutationResult{result: experimentResultNoCandidatesFound, err: nil})
-
-	// Then the program exits
-	deps.calls.MustPopEqualTo(t, exit{code: returnCodeNoCandidatesFound})
+	// Then program announces it's exiting
+	deps.calls.MustPopEqualTo(t, announceEndingCall{})
+	// And the program exits
+	deps.calls.MustPopEqualTo(t, exitCall{args: exitArgs{passed: false}})
 	// and there are no more dependency calls
 	deps.calls.MustConfirmClosed(t)
 }
 
-func TestRunUndetectedMutants(t *testing.T) {
+func TestRunMutationTestsFail(t *testing.T) {
 	t.Parallel()
 
 	deps := newMockedDeps(t)
@@ -156,59 +149,26 @@ func TestRunUndetectedMutants(t *testing.T) {
 		deps.close()
 	}()
 
-	// The mutant catcher is tested
-	verifyCall := new(verifyTestsPassWithNoMutants)
+	// Then the program announces itself
+	deps.calls.MustPopEqualTo(t, announceStartingCall{})
+	// And the tester is run to ensure it passes prior to applying mutations
+	verifyCall := new(verifyTestsPassWithNoMutantsCall)
 	deps.calls.MustPopAs(t, verifyCall)
 
-	// When the mutant catcher returns no error
-	verifyCall.returnOneShot.Push(nil)
+	// When the tester passes
+	verifyCall.returnOneShot.Push(true)
 
-	// Then mutation type testing is done
-	mutationTypesCall := new(testMutationTypes)
-	deps.calls.MustPopAs(t, mutationTypesCall)
+	// Then mutation type testing is performed
+	testMutationsCall := new(testMutationsCall)
+	deps.calls.MustPopAs(t, testMutationsCall)
 
 	// When the testing returns all caught
-	mutationTypesCall.returnOneShot.Push(mutationResult{result: experimentResultUndetectedMutants, err: nil})
+	testMutationsCall.returnOneShot.Push(false)
 
-	// Then the program exits
-	deps.calls.MustPopEqualTo(t, exit{code: returnCodeFail})
+	// Then program announces it's exiting
+	deps.calls.MustPopEqualTo(t, announceEndingCall{})
+	// And the program exits
+	deps.calls.MustPopEqualTo(t, exitCall{args: exitArgs{passed: false}})
 	// and there are no more dependency calls
 	deps.calls.MustConfirmClosed(t)
-}
-
-func TestRunDetectionError(t *testing.T) {
-	t.Parallel()
-
-	rapid.Check(t, func(test *rapid.T) {
-		deps := newMockedDeps(test)
-
-		// When the func is run
-		go func() {
-			run(deps)
-			deps.close()
-		}()
-
-		// The mutant catcher is tested
-		verifyCall := new(verifyTestsPassWithNoMutants)
-		deps.calls.MustPopAs(test, verifyCall)
-
-		// When the mutant catcher returns no error
-		verifyCall.returnOneShot.Push(nil)
-
-		// Then mutation type testing is done
-		mutationTypesCall := new(testMutationTypes)
-		deps.calls.MustPopAs(test, mutationTypesCall)
-
-		// When the testing returns all caught
-		mutationTypesCall.returnOneShot.Push(mutationResult{
-			result: experimentResultUndetectedMutants,
-			// Don't grouse about the dynammic error here - it's the whole point
-			err: fmt.Errorf(rapid.String().Draw(test, "mutationTypesError")), //nolint: goerr113
-		})
-
-		// Then the program exits
-		deps.calls.MustPopEqualTo(test, exit{code: returnCodeFail})
-		// and there are no more dependency calls
-		deps.calls.MustConfirmClosed(test)
-	})
 }
