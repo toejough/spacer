@@ -1,7 +1,10 @@
 // Package mutate provides mutation testing functionality.
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 // Mutate. Based loosely on:
 // * https://mutmut.readthedocs.io/en/latest/
@@ -11,25 +14,26 @@ import "fmt"
 // Would like to cache candidates and results
 
 func main() {
-	run(&runDeps{
+	if run(&runDeps{
 		announceStarting: func() {
 			announceStarting(announceStartingDeps{
 				print: func(s string) { fmt.Println(s) },
 			})
 		},
 		verifyTestsPassWithNoMutants: func() bool {
-			panic("not implemented")
+			panic("verifyTestsPassWithNoMutants not implemented")
 		},
 		testMutations: func() bool {
-			panic("not implemented")
+			panic("testMutations not implemented")
 		},
 		announceEnding: func() {
-			panic("not implemented")
+			panic("announceEnding not implemented")
 		},
-		exit: func(passes bool) {
-			panic("not implemented")
-		},
-	})
+	}) {
+		os.Exit(0)
+	} else {
+		os.Exit(1)
+	}
 }
 
 type (
@@ -38,18 +42,18 @@ type (
 		verifyTestsPassWithNoMutants func() bool
 		testMutations                func() bool
 		announceEnding               func()
-		exit                         func(bool)
 	}
 	announceStartingDeps struct {
 		print func(string)
 	}
 )
 
-func run(deps *runDeps) {
+func run(deps *runDeps) bool {
 	deps.announceStarting()
 	passes := deps.verifyTestsPassWithNoMutants() && deps.testMutations()
 	deps.announceEnding()
-	deps.exit(passes)
+
+	return passes
 }
 
 func announceStarting(deps announceStartingDeps) {

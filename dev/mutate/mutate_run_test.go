@@ -25,11 +25,7 @@ type (
 		returnOneShot *protest.FIFO[bool]
 	}
 	announceEndingCall struct{}
-	exitArgs           struct{ passed bool }
-	exitCall           struct {
-		args exitArgs
-	}
-	tester interface {
+	tester             interface {
 		Helper()
 		Fatal(...any)
 	}
@@ -68,9 +64,6 @@ func newMockedDeps(test tester) *runDepsMock {
 			announceEnding: func() {
 				calls.Push(announceEndingCall{})
 			},
-			exit: func(passed bool) {
-				calls.Push(exitCall{args: exitArgs{passed: passed}})
-			},
 		},
 	}
 }
@@ -78,11 +71,14 @@ func newMockedDeps(test tester) *runDepsMock {
 func TestRunHappyPath(t *testing.T) {
 	t.Parallel()
 
+	// Given inputs & outputs
 	deps := newMockedDeps(t)
+
+	var passes bool
 
 	// When the func is run
 	go func() {
-		run(deps.deps)
+		passes = run(deps.deps)
 		deps.close()
 	}()
 
@@ -104,10 +100,10 @@ func TestRunHappyPath(t *testing.T) {
 
 	// Then program announces it's exiting
 	deps.calls.MustPopEqualTo(t, announceEndingCall{})
-	// And the program exits
-	deps.calls.MustPopEqualTo(t, exitCall{args: exitArgs{passed: true}})
 	// and there are no more dependency calls
 	deps.calls.MustConfirmClosed(t)
+	// and the return value is as expected
+	protest.MustEqual(t, true, passes)
 }
 
 func TestRunTesterFailsBeforeAnyMutations(t *testing.T) {
@@ -115,9 +111,11 @@ func TestRunTesterFailsBeforeAnyMutations(t *testing.T) {
 
 	deps := newMockedDeps(t)
 
+	var passes bool
+
 	// When the func is run
 	go func() {
-		run(deps.deps)
+		passes = run(deps.deps)
 		deps.close()
 	}()
 
@@ -132,10 +130,10 @@ func TestRunTesterFailsBeforeAnyMutations(t *testing.T) {
 
 	// Then program announces it's exiting
 	deps.calls.MustPopEqualTo(t, announceEndingCall{})
-	// And the program exits
-	deps.calls.MustPopEqualTo(t, exitCall{args: exitArgs{passed: false}})
 	// and there are no more dependency calls
 	deps.calls.MustConfirmClosed(t)
+	// and the return value is as expected
+	protest.MustEqual(t, false, passes)
 }
 
 func TestRunMutationTestsFail(t *testing.T) {
@@ -143,9 +141,11 @@ func TestRunMutationTestsFail(t *testing.T) {
 
 	deps := newMockedDeps(t)
 
+	var passes bool
+
 	// When the func is run
 	go func() {
-		run(deps.deps)
+		passes = run(deps.deps)
 		deps.close()
 	}()
 
@@ -167,8 +167,8 @@ func TestRunMutationTestsFail(t *testing.T) {
 
 	// Then program announces it's exiting
 	deps.calls.MustPopEqualTo(t, announceEndingCall{})
-	// And the program exits
-	deps.calls.MustPopEqualTo(t, exitCall{args: exitArgs{passed: false}})
 	// and there are no more dependency calls
 	deps.calls.MustConfirmClosed(t)
+	// and the return value is as expected
+	protest.MustEqual(t, false, passes)
 }
