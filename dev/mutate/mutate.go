@@ -45,16 +45,7 @@ func (rdm *runDepsMain) exit(passes bool) {
 
 func run(deps runDeps) {
 	deps.announceStarting()
-
-	passes := deps.verifyTestsPassWithNoMutants()
-	if !passes {
-		deps.announceEnding()
-		deps.exit(false)
-
-		return
-	}
-
-	passes = deps.testMutations()
+	passes := deps.verifyTestsPassWithNoMutants() && deps.testMutations()
 	deps.announceEnding()
 	deps.exit(passes)
 }
