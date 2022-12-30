@@ -11,60 +11,47 @@ import "fmt"
 // Would like to cache candidates and results
 
 func main() {
-	run(&runDepsMain{
-		announceStartingDeps: &announceStartingDepsMain{
-			printfunc: func(m string) { fmt.Println(m) },
+	run(&runDeps{
+		announceStarting: func() {
+			announceStarting(announceStartingDeps{
+				print: func(s string) { fmt.Println(s) },
+			})
+		},
+		verifyTestsPassWithNoMutants: func() bool {
+			panic("not implemented")
+		},
+		testMutations: func() bool {
+			panic("not implemented")
+		},
+		announceEnding: func() {
+			panic("not implemented")
+		},
+		exit: func(passes bool) {
+			panic("not implemented")
 		},
 	})
 }
 
 type (
-	runDeps interface {
-		announceStarting()
-		verifyTestsPassWithNoMutants() bool
-		testMutations() bool
-		announceEnding()
-		exit(bool)
+	runDeps struct {
+		announceStarting             func()
+		verifyTestsPassWithNoMutants func() bool
+		testMutations                func() bool
+		announceEnding               func()
+		exit                         func(bool)
 	}
-	runDepsMain struct {
-		announceStartingDeps announceStartingDeps
-	}
-	announceStartingDeps interface {
-		print(string)
-	}
-	announceStartingDepsMain struct {
-		printfunc func(string)
+	announceStartingDeps struct {
+		print func(string)
 	}
 )
 
-func (rdm *runDepsMain) announceStarting() {
-	rdm.announceStartingDeps.print("Starting Mutation Testing")
-}
-
-func (rdm *runDepsMain) verifyTestsPassWithNoMutants() bool {
-	panic("not implemented")
-}
-
-func (rdm *runDepsMain) testMutations() bool {
-	panic("not implemented")
-}
-
-func (rdm *runDepsMain) announceEnding() {
-	panic("not implemented")
-}
-
-func (rdm *runDepsMain) exit(passes bool) {
-	panic("not implemented")
-}
-
-func (asdm *announceStartingDepsMain) print(m string) {
-	asdm.printfunc(m)
-}
-
-// TODO: since methods can't be generic, if a function was supposed to be generic, it could only be included in deps as a function outright, not a method. Which means deps can't be an interface, it _has_ to just be a struct. Which means that for testing, or any other shared state purposes with such a struct, its initialization needs to handle that state via closure.
-func run(deps runDeps) {
+func run(deps *runDeps) {
 	deps.announceStarting()
 	passes := deps.verifyTestsPassWithNoMutants() && deps.testMutations()
 	deps.announceEnding()
 	deps.exit(passes)
+}
+
+func announceStarting(deps announceStartingDeps) {
+	deps.print("Starting Mutation Testing")
 }

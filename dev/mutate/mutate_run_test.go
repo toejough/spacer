@@ -15,6 +15,7 @@ type (
 	runDepsMock struct {
 		calls *protest.FIFO[interface{}]
 		t     tester
+		deps  *runDeps
 	}
 	announceStartingCall             struct{}
 	verifyTestsPassWithNoMutantsCall struct {
@@ -34,44 +35,43 @@ type (
 	}
 )
 
-func (rdm *runDepsMock) announceStarting() {
-	rdm.calls.Push(announceStartingCall{})
-}
-
-func (rdm *runDepsMock) verifyTestsPassWithNoMutants() bool {
-	returnOneShot := protest.NewOneShotFIFO[bool]("verifyTestsPassWithNoMutantsReturn")
-
-	rdm.calls.Push(verifyTestsPassWithNoMutantsCall{returnOneShot: returnOneShot})
-
-	return returnOneShot.MustPop(rdm.t)
-}
-
-func (rdm *runDepsMock) testMutations() bool {
-	returnOneShot := protest.NewOneShotFIFO[bool]("testMutationsReturn")
-
-	rdm.calls.Push(testMutationsCall{returnOneShot: returnOneShot})
-
-	return returnOneShot.MustPop(rdm.t)
-}
-
-func (rdm *runDepsMock) announceEnding() {
-	rdm.calls.Push(announceEndingCall{})
-}
-
-func (rdm *runDepsMock) exit(passed bool) {
-	rdm.calls.Push(exitCall{args: exitArgs{passed: passed}})
-}
-
 func (rdm *runDepsMock) close() {
 	rdm.calls.Close()
 }
 
-func newMockedDeps(t tester) *runDepsMock {
-	t.Helper()
+func newMockedDeps(test tester) *runDepsMock {
+	test.Helper()
+
+	calls := protest.NewFIFO[any]("calls")
 
 	return &runDepsMock{
-		calls: protest.NewFIFO[any]("calls"),
-		t:     t,
+		calls: calls,
+		t:     test,
+		deps: &runDeps{
+			announceStarting: func() {
+				calls.Push(announceStartingCall{})
+			},
+			verifyTestsPassWithNoMutants: func() bool {
+				returnOneShot := protest.NewOneShotFIFO[bool]("verifyTestsPassWithNoMutantsReturn")
+
+				calls.Push(verifyTestsPassWithNoMutantsCall{returnOneShot: returnOneShot})
+
+				return returnOneShot.MustPop(test)
+			},
+			testMutations: func() bool {
+				returnOneShot := protest.NewOneShotFIFO[bool]("testMutationsReturn")
+
+				calls.Push(testMutationsCall{returnOneShot: returnOneShot})
+
+				return returnOneShot.MustPop(test)
+			},
+			announceEnding: func() {
+				calls.Push(announceEndingCall{})
+			},
+			exit: func(passed bool) {
+				calls.Push(exitCall{args: exitArgs{passed: passed}})
+			},
+		},
 	}
 }
 
@@ -82,7 +82,7 @@ func TestRunHappyPath(t *testing.T) {
 
 	// When the func is run
 	go func() {
-		run(deps)
+		run(deps.deps)
 		deps.close()
 	}()
 
@@ -117,7 +117,7 @@ func TestRunTesterFailsBeforeAnyMutations(t *testing.T) {
 
 	// When the func is run
 	go func() {
-		run(deps)
+		run(deps.deps)
 		deps.close()
 	}()
 
@@ -145,7 +145,7 @@ func TestRunMutationTestsFail(t *testing.T) {
 
 	// When the func is run
 	go func() {
-		run(deps)
+		run(deps.deps)
 		deps.close()
 	}()
 

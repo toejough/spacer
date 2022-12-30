@@ -9,20 +9,24 @@ type (
 	announceStartingDepsMock struct {
 		calls *protest.FIFO[any]
 		t     tester
+		deps  announceStartingDeps
 	}
 	printArgs struct{ message string }
 	printCall struct{ args printArgs }
 )
 
 func newAnnounceStartingDepsMock(t tester) *announceStartingDepsMock {
-	return &announceStartingDepsMock{
-		calls: protest.NewFIFO[any]("calls"),
-		t:     t,
-	}
-}
+	calls := protest.NewFIFO[any]("calls")
 
-func (m *announceStartingDepsMock) print(s string) {
-	m.calls.Push(printCall{args: printArgs{message: s}})
+	return &announceStartingDepsMock{
+		calls: calls,
+		t:     t,
+		deps: announceStartingDeps{
+			print: func(s string) {
+				calls.Push(printCall{args: printArgs{message: s}})
+			},
+		},
+	}
 }
 
 func (m *announceStartingDepsMock) close() {
@@ -36,7 +40,7 @@ func TestAnnounceStartingHappyPath(t *testing.T) {
 
 	// When the func is run
 	go func() {
-		(&runDepsMain{announceStartingDeps: deps}).announceStarting()
+		announceStarting(deps.deps)
 		deps.close()
 	}()
 
