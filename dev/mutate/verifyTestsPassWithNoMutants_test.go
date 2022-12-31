@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"spacer/dev/protest"
 	"testing"
+
+	"pgregory.net/rapid"
 )
 
 type verifyTestsPassWithNoMutantsDepsMock struct {
@@ -11,12 +14,17 @@ type verifyTestsPassWithNoMutantsDepsMock struct {
 }
 
 type fetchTestCommandCall struct {
-	returnOneShot *protest.FIFO[command]
+	returnOneShot *protest.FIFO[fetchTestCommandCallReturn]
 }
 
 type runTestCommandCall struct {
 	args          command
 	returnOneShot *protest.FIFO[bool]
+}
+
+type fetchTestCommandCallReturn struct {
+	command command
+	err     error
 }
 
 func newVerifyTestsPassWithNoMutantsDepsMock(test tester) *verifyTestsPassWithNoMutantsDepsMock {
@@ -25,14 +33,16 @@ func newVerifyTestsPassWithNoMutantsDepsMock(test tester) *verifyTestsPassWithNo
 	return &verifyTestsPassWithNoMutantsDepsMock{
 		calls: calls,
 		deps: verifyTestsPassWithNoMutantsDeps{
-			fetchTestCommand: func() command {
-				returnOneShot := protest.NewOneShotFIFO[command]("fetchTestCommand return")
+			fetchTestCommand: func() (command, error) {
+				returnOneShot := protest.NewOneShotFIFO[fetchTestCommandCallReturn]("fetchTestCommand return")
 
 				calls.Push(fetchTestCommandCall{
 					returnOneShot: returnOneShot,
 				})
 
-				return returnOneShot.MustPop(test)
+				returnVals := returnOneShot.MustPop(test)
+
+				return returnVals.command, returnVals.err
 			},
 			runTestCommand: func(c command) bool {
 				returnOneShot := protest.NewOneShotFIFO[bool]("runTestCommand return")
@@ -48,15 +58,55 @@ func newVerifyTestsPassWithNoMutantsDepsMock(test tester) *verifyTestsPassWithNo
 	}
 }
 
-// TODO: stop using this function.
-func (m *verifyTestsPassWithNoMutantsDepsMock) close() {
-	m.calls.Close()
-}
-
+// TODO some refactoring for how we set up these tests - they're still too tedius.
+// * command types (no args/returns; args; returns; args & returns)
+// * runner goroutine?
+// * easier way to do the "as"
+// TODO announcements from this function? start/stop/error?
 func TestVerifyTestsPassWithNoMutantsHappyPath(t *testing.T) {
 	t.Parallel()
 
-	// Given inputs/outputs...
+	rapid.Check(t, func(test *rapid.T) {
+		// Given inputs/outputs...
+		var result bool
+
+		deps := newVerifyTestsPassWithNoMutantsDepsMock(test)
+
+		// When the function is called
+		go func() {
+			result = verifyTestsPassWithNoMutants(&deps.deps)
+			deps.calls.Close()
+		}()
+
+		// Then the test command is fetched
+		var fetchTestCommand fetchTestCommandCall
+
+		deps.calls.MustPopAs(test, &fetchTestCommand)
+
+		// When the test command is returned
+		testCommand := command(rapid.String().Draw(test, "test command"))
+		fetchTestCommand.returnOneShot.Push(fetchTestCommandCallReturn{command: testCommand, err: nil})
+
+		// Then the test command is run
+		var runTestCommand runTestCommandCall
+
+		deps.calls.MustPopAs(test, &runTestCommand)
+		protest.MustEqual(test, runTestCommand.args, testCommand)
+
+		// When the test command returns passing
+		runTestCommand.returnOneShot.Push(true)
+
+		// Then there are no more calls
+		deps.calls.MustConfirmClosed(test)
+		// And the function returns passing
+		protest.MustEqual(test, true, result)
+	})
+}
+
+func TestVerifyTestsPassWithNoMutantsFetchCommandError(t *testing.T) {
+	t.Parallel()
+
+	// Given inputs/outputs
 	var result bool
 
 	deps := newVerifyTestsPassWithNoMutantsDepsMock(t)
@@ -64,7 +114,7 @@ func TestVerifyTestsPassWithNoMutantsHappyPath(t *testing.T) {
 	// When the function is called
 	go func() {
 		result = verifyTestsPassWithNoMutants(&deps.deps)
-		deps.close()
+		deps.calls.Close()
 	}()
 
 	// Then the test command is fetched
@@ -72,21 +122,19 @@ func TestVerifyTestsPassWithNoMutantsHappyPath(t *testing.T) {
 
 	deps.calls.MustPopAs(t, &fetchTestCommand)
 
-	// When the test command is returned
-	// TODO rapid test this.
-	fetchTestCommand.returnOneShot.Push("some command here")
-
-	// Then the test command is run
-	var runTestCommand runTestCommandCall
-
-	deps.calls.MustPopAs(t, &runTestCommand)
-	protest.MustEqual(t, runTestCommand.args, "some command here")
-
-	// When the test command returns passing
-	runTestCommand.returnOneShot.Push(true)
+	// When an error is returned
+	// TODO rapid test the command & error
+	fetchTestCommand.returnOneShot.Push(fetchTestCommandCallReturn{
+		command: "arbitrary",
+		// chill about dynamic error, this is a test
+		err: fmt.Errorf("arbitrary error"), //nolint: goerr113
+	})
 
 	// Then there are no more calls
 	deps.calls.MustConfirmClosed(t)
-	// And the function returns passing
-	protest.MustEqual(t, true, result)
+	// And the function returns failing
+	protest.MustEqual(t, false, result)
 }
+
+// TODO TestVerifyTestsPassWithNoMutantsRunCommandFailure
+// TODO TestVerifyTestsPassWithNoMutantsRunCommandError

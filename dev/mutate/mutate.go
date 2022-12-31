@@ -21,7 +21,14 @@ func main() {
 			})
 		},
 		verifyTestsPassWithNoMutants: func() bool {
-			panic("verifyTestsPassWithNoMutants not implemented")
+			return verifyTestsPassWithNoMutants(&verifyTestsPassWithNoMutantsDeps{
+				fetchTestCommand: func() (command, error) {
+					panic("fetchTestCommand not implemented")
+				},
+				runTestCommand: func(command) bool {
+					panic("runTestCommand not implemented")
+				},
+			})
 		},
 		testMutations: func() bool {
 			panic("testMutations not implemented")
@@ -48,7 +55,7 @@ type (
 	}
 	command                          string
 	verifyTestsPassWithNoMutantsDeps struct {
-		fetchTestCommand func() command
+		fetchTestCommand func() (command, error)
 		runTestCommand   func(command) bool
 	}
 )
@@ -66,6 +73,10 @@ func announceStarting(deps *announceStartingDeps) {
 }
 
 func verifyTestsPassWithNoMutants(deps *verifyTestsPassWithNoMutantsDeps) bool {
-	c := deps.fetchTestCommand()
+	c, err := deps.fetchTestCommand()
+	if err != nil {
+		return false
+	}
+
 	return deps.runTestCommand(c)
 }

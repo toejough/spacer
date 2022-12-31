@@ -62,6 +62,7 @@ func newMockedDeps(test tester) *runDepsMock {
 				return returnOneShot.MustPop(test)
 			},
 			announceEnding: func() {
+				// TODO include pass/fail in announcement
 				calls.Push(announceEndingCall{})
 			},
 		},
