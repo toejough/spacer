@@ -40,7 +40,7 @@ func TestAnnounceStartingHappyPath(t *testing.T) {
 
 	// When the func is run
 	go func() {
-		announceStarting(deps.deps)
+		announceStarting(&deps.deps)
 		deps.close()
 	}()
 

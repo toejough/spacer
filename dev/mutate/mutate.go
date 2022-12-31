@@ -16,7 +16,7 @@ import (
 func main() {
 	if run(&runDeps{
 		announceStarting: func() {
-			announceStarting(announceStartingDeps{
+			announceStarting(&announceStartingDeps{
 				print: func(s string) { fmt.Println(s) },
 			})
 		},
@@ -56,6 +56,6 @@ func run(deps *runDeps) bool {
 	return passes
 }
 
-func announceStarting(deps announceStartingDeps) {
+func announceStarting(deps *announceStartingDeps) {
 	deps.print("Starting Mutation Testing")
 }
