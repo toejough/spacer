@@ -46,6 +46,11 @@ type (
 	announceStartingDeps struct {
 		print func(string)
 	}
+	command                          string
+	verifyTestsPassWithNoMutantsDeps struct {
+		fetchTestCommand func() command
+		runTestCommand   func(command) bool
+	}
 )
 
 func run(deps *runDeps) bool {
@@ -58,4 +63,9 @@ func run(deps *runDeps) bool {
 
 func announceStarting(deps *announceStartingDeps) {
 	deps.print("Starting Mutation Testing")
+}
+
+func verifyTestsPassWithNoMutants(deps *verifyTestsPassWithNoMutantsDeps) bool {
+	c := deps.fetchTestCommand()
+	return deps.runTestCommand(c)
 }

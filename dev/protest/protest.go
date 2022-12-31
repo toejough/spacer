@@ -222,7 +222,7 @@ func (s *FIFO[I]) ConfirmClosedWithin(duration time.Duration) error {
 		}
 	case <-time.After(duration):
 		return fmt.Errorf(
-			"expected %s to be closed, but it was not after %#v of waiting: %w",
+			"expected %s to be closed, but it was not after %v of waiting: %w",
 			s.name,
 			duration,
 			ErrChannelNotClosed,
