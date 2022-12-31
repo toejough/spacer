@@ -27,12 +27,18 @@ type fetchTestCommandCallReturn struct {
 	err     error
 }
 
+type announcePretestCall struct{}
+
 func newVerifyTestsPassWithNoMutantsDepsMock(test tester) *verifyTestsPassWithNoMutantsDepsMock {
 	calls := protest.NewFIFO[any]("calls")
 
 	return &verifyTestsPassWithNoMutantsDepsMock{
 		calls: calls,
 		deps: verifyTestsPassWithNoMutantsDeps{
+			// TODO: rename all references to this to be pretest - this is a better name
+			announcePretest: func() {
+				calls.Push(announcePretestCall{})
+			},
 			fetchTestCommand: func() (command, error) {
 				returnOneShot := protest.NewOneShotFIFO[fetchTestCommandCallReturn]("fetchTestCommand return")
 
@@ -62,7 +68,7 @@ func newVerifyTestsPassWithNoMutantsDepsMock(test tester) *verifyTestsPassWithNo
 // * command types (no args/returns; args; returns; args & returns)
 // * runner goroutine?
 // * easier way to do the "as"
-// TODO announcements from this function? start/stop/error?
+// TODO announcements from this function? stop/error?
 func TestVerifyTestsPassWithNoMutantsHappyPath(t *testing.T) {
 	t.Parallel()
 
@@ -78,7 +84,9 @@ func TestVerifyTestsPassWithNoMutantsHappyPath(t *testing.T) {
 			deps.calls.Close()
 		}()
 
-		// Then the test command is fetched
+		// Then the pretest is announced
+		deps.calls.MustPopEqualTo(test, announcePretestCall{})
+		// and the test command is fetched
 		var fetchTestCommand fetchTestCommandCall
 
 		deps.calls.MustPopAs(test, &fetchTestCommand)
@@ -117,7 +125,9 @@ func TestVerifyTestsPassWithNoMutantsFetchCommandError(t *testing.T) {
 		deps.calls.Close()
 	}()
 
-	// Then the test command is fetched
+	// Then the pretest is announced
+	deps.calls.MustPopEqualTo(t, announcePretestCall{})
+	// And the test command is fetched
 	var fetchTestCommand fetchTestCommandCall
 
 	deps.calls.MustPopAs(t, &fetchTestCommand)
