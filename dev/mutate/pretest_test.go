@@ -8,8 +8,8 @@ import (
 	"pgregory.net/rapid"
 )
 
-type verifyTestsPassWithNoMutantsDepsMock struct {
-	deps  verifyTestsPassWithNoMutantsDeps
+type pretestDepsMock struct {
+	deps  pretestDeps
 	calls *protest.FIFO[any]
 }
 
@@ -29,13 +29,12 @@ type fetchTestCommandCallReturn struct {
 
 type announcePretestCall struct{}
 
-func newVerifyTestsPassWithNoMutantsDepsMock(test tester) *verifyTestsPassWithNoMutantsDepsMock {
+func newPretestDepsMock(test tester) *pretestDepsMock {
 	calls := protest.NewFIFO[any]("calls")
 
-	return &verifyTestsPassWithNoMutantsDepsMock{
+	return &pretestDepsMock{
 		calls: calls,
-		deps: verifyTestsPassWithNoMutantsDeps{
-			// TODO: rename all references to this to be pretest - this is a better name
+		deps: pretestDeps{
 			announcePretest: func() {
 				calls.Push(announcePretestCall{})
 			},
@@ -76,11 +75,11 @@ func TestVerifyTestsPassWithNoMutantsHappyPath(t *testing.T) {
 		// Given inputs/outputs...
 		var result bool
 
-		deps := newVerifyTestsPassWithNoMutantsDepsMock(test)
+		deps := newPretestDepsMock(test)
 
 		// When the function is called
 		go func() {
-			result = verifyTestsPassWithNoMutants(&deps.deps)
+			result = pretest(&deps.deps)
 			deps.calls.Close()
 		}()
 
@@ -117,11 +116,11 @@ func TestVerifyTestsPassWithNoMutantsFetchCommandError(t *testing.T) {
 	// Given inputs/outputs
 	var result bool
 
-	deps := newVerifyTestsPassWithNoMutantsDepsMock(t)
+	deps := newPretestDepsMock(t)
 
 	// When the function is called
 	go func() {
-		result = verifyTestsPassWithNoMutants(&deps.deps)
+		result = pretest(&deps.deps)
 		deps.calls.Close()
 	}()
 

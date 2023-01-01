@@ -47,7 +47,7 @@ func newMockedDeps(test tester) *runDepsMock {
 			announceStarting: func() {
 				calls.Push(announceStartingCall{})
 			},
-			verifyTestsPassWithNoMutants: func() bool {
+			pretest: func() bool {
 				returnOneShot := protest.NewOneShotFIFO[bool]("verifyTestsPassWithNoMutantsReturn")
 
 				calls.Push(verifyTestsPassWithNoMutantsCall{returnOneShot: returnOneShot})

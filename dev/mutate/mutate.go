@@ -20,8 +20,8 @@ func main() {
 				print: func(s string) { fmt.Println(s) },
 			})
 		},
-		verifyTestsPassWithNoMutants: func() bool {
-			return verifyTestsPassWithNoMutants(&verifyTestsPassWithNoMutantsDeps{
+		pretest: func() bool {
+			return pretest(&pretestDeps{
 				announcePretest: func() {
 					panic("fetchTestCommand not implemented")
 				},
@@ -48,16 +48,16 @@ func main() {
 
 type (
 	runDeps struct {
-		announceStarting             func()
-		verifyTestsPassWithNoMutants func() bool
-		testMutations                func() bool
-		announceEnding               func()
+		announceStarting func()
+		pretest          func() bool
+		testMutations    func() bool
+		announceEnding   func()
 	}
 	announceStartingDeps struct {
 		print func(string)
 	}
-	command                          string
-	verifyTestsPassWithNoMutantsDeps struct {
+	command     string
+	pretestDeps struct {
 		announcePretest  func()
 		fetchTestCommand func() (command, error)
 		runTestCommand   func(command) bool
@@ -66,7 +66,7 @@ type (
 
 func run(deps *runDeps) bool {
 	deps.announceStarting()
-	passes := deps.verifyTestsPassWithNoMutants() && deps.testMutations()
+	passes := deps.pretest() && deps.testMutations()
 	deps.announceEnding()
 
 	return passes
@@ -76,7 +76,7 @@ func announceStarting(deps *announceStartingDeps) {
 	deps.print("Starting Mutation Testing")
 }
 
-func verifyTestsPassWithNoMutants(deps *verifyTestsPassWithNoMutantsDeps) bool {
+func pretest(deps *pretestDeps) bool {
 	deps.announcePretest()
 
 	c, err := deps.fetchTestCommand()
