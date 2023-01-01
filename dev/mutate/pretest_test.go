@@ -13,21 +13,16 @@ type pretestDepsMock struct {
 	calls *protest.FIFO[any]
 }
 
-type fetchTestCommandCall struct {
-	returnOneShot *protest.FIFO[fetchTestCommandCallReturn]
-}
+type fetchTestCommandCall protest.CallWithReturn[fetchTestCommandCallReturn]
 
-type runTestCommandCall struct {
-	args          command
-	returnOneShot *protest.FIFO[bool]
-}
+type runTestCommandCall protest.CallWithArgsAndReturn[command, bool]
 
 type fetchTestCommandCallReturn struct {
 	command command
 	err     error
 }
 
-type announcePretestCall struct{}
+type announcePretestCall protest.CallWithNoArgsNoReturn
 
 func newPretestDepsMock(test tester) *pretestDepsMock {
 	calls := protest.NewFIFO[any]("calls")
@@ -42,7 +37,7 @@ func newPretestDepsMock(test tester) *pretestDepsMock {
 				returnOneShot := protest.NewOneShotFIFO[fetchTestCommandCallReturn]("fetchTestCommand return")
 
 				calls.Push(fetchTestCommandCall{
-					returnOneShot: returnOneShot,
+					ReturnOneShot: returnOneShot,
 				})
 
 				returnVals := returnOneShot.MustPop(test)
@@ -53,8 +48,8 @@ func newPretestDepsMock(test tester) *pretestDepsMock {
 				returnOneShot := protest.NewOneShotFIFO[bool]("runTestCommand return")
 
 				calls.Push(runTestCommandCall{
-					args:          c,
-					returnOneShot: returnOneShot,
+					Args:          c,
+					ReturnOneShot: returnOneShot,
 				})
 
 				return returnOneShot.MustPop(test)
@@ -92,16 +87,16 @@ func TestVerifyTestsPassWithNoMutantsHappyPath(t *testing.T) {
 
 		// When the test command is returned
 		testCommand := command(rapid.String().Draw(test, "test command"))
-		fetchTestCommand.returnOneShot.Push(fetchTestCommandCallReturn{command: testCommand, err: nil})
+		fetchTestCommand.ReturnOneShot.Push(fetchTestCommandCallReturn{command: testCommand, err: nil})
 
 		// Then the test command is run
 		var runTestCommand runTestCommandCall
 
 		deps.calls.MustPopAs(test, &runTestCommand)
-		protest.MustEqual(test, runTestCommand.args, testCommand)
+		protest.MustEqual(test, runTestCommand.Args, testCommand)
 
 		// When the test command returns passing
-		runTestCommand.returnOneShot.Push(true)
+		runTestCommand.ReturnOneShot.Push(true)
 
 		// Then there are no more calls
 		deps.calls.MustConfirmClosed(test)
@@ -133,7 +128,7 @@ func TestVerifyTestsPassWithNoMutantsFetchCommandError(t *testing.T) {
 
 	// When an error is returned
 	// TODO rapid test the command & error
-	fetchTestCommand.returnOneShot.Push(fetchTestCommandCallReturn{
+	fetchTestCommand.ReturnOneShot.Push(fetchTestCommandCallReturn{
 		command: "arbitrary",
 		// chill about dynamic error, this is a test
 		err: fmt.Errorf("arbitrary error"), //nolint: goerr113

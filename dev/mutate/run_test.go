@@ -17,15 +17,11 @@ type (
 		t     tester
 		deps  *runDeps
 	}
-	announceStartingCall             struct{}
-	verifyTestsPassWithNoMutantsCall struct {
-		returnOneShot *protest.FIFO[bool]
-	}
-	testMutationsCall struct {
-		returnOneShot *protest.FIFO[bool]
-	}
-	announceEndingCall struct{}
-	tester             interface {
+	announceStartingCall             protest.CallWithNoArgsNoReturn
+	verifyTestsPassWithNoMutantsCall protest.CallWithReturn[bool]
+	testMutationsCall                protest.CallWithReturn[bool]
+	announceEndingCall               protest.CallWithNoArgsNoReturn
+	tester                           interface {
 		Helper()
 		Fatal(...any)
 	}
@@ -50,14 +46,14 @@ func newMockedDeps(test tester) *runDepsMock {
 			pretest: func() bool {
 				returnOneShot := protest.NewOneShotFIFO[bool]("verifyTestsPassWithNoMutantsReturn")
 
-				calls.Push(verifyTestsPassWithNoMutantsCall{returnOneShot: returnOneShot})
+				calls.Push(verifyTestsPassWithNoMutantsCall{ReturnOneShot: returnOneShot})
 
 				return returnOneShot.MustPop(test)
 			},
 			testMutations: func() bool {
 				returnOneShot := protest.NewOneShotFIFO[bool]("testMutationsReturn")
 
-				calls.Push(testMutationsCall{returnOneShot: returnOneShot})
+				calls.Push(testMutationsCall{ReturnOneShot: returnOneShot})
 
 				return returnOneShot.MustPop(test)
 			},
@@ -90,14 +86,14 @@ func TestRunHappyPath(t *testing.T) {
 	deps.calls.MustPopAs(t, verifyCall)
 
 	// When the tester passes
-	verifyCall.returnOneShot.Push(true)
+	verifyCall.ReturnOneShot.Push(true)
 
 	// Then mutation type testing is performed
 	testMutationsCall := new(testMutationsCall)
 	deps.calls.MustPopAs(t, testMutationsCall)
 
 	// When the testing returns all caught
-	testMutationsCall.returnOneShot.Push(true)
+	testMutationsCall.ReturnOneShot.Push(true)
 
 	// Then program announces it's exiting
 	deps.calls.MustPopEqualTo(t, announceEndingCall{})
@@ -127,7 +123,7 @@ func TestRunTesterFailsBeforeAnyMutations(t *testing.T) {
 	deps.calls.MustPopAs(t, verifyCall)
 
 	// When the tester passes
-	verifyCall.returnOneShot.Push(false)
+	verifyCall.ReturnOneShot.Push(false)
 
 	// Then program announces it's exiting
 	deps.calls.MustPopEqualTo(t, announceEndingCall{})
@@ -157,14 +153,14 @@ func TestRunMutationTestsFail(t *testing.T) {
 	deps.calls.MustPopAs(t, verifyCall)
 
 	// When the tester passes
-	verifyCall.returnOneShot.Push(true)
+	verifyCall.ReturnOneShot.Push(true)
 
 	// Then mutation type testing is performed
 	testMutationsCall := new(testMutationsCall)
 	deps.calls.MustPopAs(t, testMutationsCall)
 
 	// When the testing returns all caught
-	testMutationsCall.returnOneShot.Push(false)
+	testMutationsCall.ReturnOneShot.Push(false)
 
 	// Then program announces it's exiting
 	deps.calls.MustPopEqualTo(t, announceEndingCall{})

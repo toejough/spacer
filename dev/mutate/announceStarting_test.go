@@ -12,7 +12,7 @@ type (
 		deps  announceStartingDeps
 	}
 	printArgs struct{ message string }
-	printCall struct{ args printArgs }
+	printCall protest.CallWithArgs[printArgs]
 )
 
 func newAnnounceStartingDepsMock(t tester) *announceStartingDepsMock {
@@ -23,7 +23,7 @@ func newAnnounceStartingDepsMock(t tester) *announceStartingDepsMock {
 		t:     t,
 		deps: announceStartingDeps{
 			print: func(s string) {
-				calls.Push(printCall{args: printArgs{message: s}})
+				calls.Push(printCall{Args: printArgs{message: s}})
 			},
 		},
 	}
@@ -45,7 +45,7 @@ func TestAnnounceStartingHappyPath(t *testing.T) {
 	}()
 
 	// Then the program announces itself
-	deps.calls.MustPopEqualTo(t, printCall{args: printArgs{message: "Starting Mutation Testing"}})
+	deps.calls.MustPopEqualTo(t, printCall{Args: printArgs{message: "Starting Mutation Testing"}})
 	// and there are no more dependency calls
 	deps.calls.MustConfirmClosed(t)
 }

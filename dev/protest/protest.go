@@ -271,3 +271,19 @@ func MustEqual[I any](t tester, expected, actual I) {
 		t.Fatal(err)
 	}
 }
+
+// Helper Types for testing calls.
+type CallWithNoArgsNoReturn struct{}
+
+type CallWithReturn[R any] struct {
+	ReturnOneShot *FIFO[R]
+}
+
+type CallWithArgs[A any] struct {
+	Args A
+}
+
+type CallWithArgsAndReturn[A, R any] struct {
+	Args          A
+	ReturnOneShot *FIFO[R]
+}
