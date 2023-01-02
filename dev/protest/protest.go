@@ -275,15 +275,76 @@ func MustEqual[I any](t tester, expected, actual I) {
 // Helper Types for testing calls.
 type CallWithNoArgsNoReturn struct{}
 
-type CallWithReturn[R any] struct {
+type CallWithNoArgs[R any] struct {
 	ReturnOneShot *FIFO[R]
 }
 
-type CallWithArgs[A any] struct {
+type CallWithNoReturn[A any] struct {
 	Args A
 }
 
-type CallWithArgsAndReturn[A, R any] struct {
+type Call[A, R any] struct {
 	Args          A
 	ReturnOneShot *FIFO[R]
+}
+
+// ManageCall manages creating a call, setting its args, creating a return oneshot, recording the call, and returning
+// the value popped off of the oneshot. The first type param here would be Call, but go won't allow that with ~.
+func ManageCall[C ~struct {
+	Args          A
+	ReturnOneShot *FIFO[R]
+}, A, R any](test tester, calls *FIFO[any], args A,
+) R {
+	returnOneShot := NewOneShotFIFO[R]("return oneShot")
+
+	// Turns out you can set fields on C, but not access them. So... setting it and pushing it here is fine, but setting
+	// it first and then accessing the ReturnOneShot in the return statement is a compiler error. :shrug:
+	calls.Push(C{
+		Args:          args,
+		ReturnOneShot: returnOneShot,
+	})
+
+	return returnOneShot.MustPop(test)
+}
+
+// ManageCallWithNoArgs manages creating a call, creating a return oneshot, recording the call, and returning the value
+// popped off of the oneshot. The first type param here would be CallWithNoArgs, but go won't allow that with ~.
+func ManageCallWithNoArgs[C ~struct {
+	ReturnOneShot *FIFO[R]
+}, R any](test tester, calls *FIFO[any],
+) R {
+	returnOneShot := NewOneShotFIFO[R]("return oneShot")
+
+	calls.Push(C{
+		ReturnOneShot: returnOneShot,
+	})
+
+	return returnOneShot.MustPop(test)
+}
+
+// ManageCallWithNoArgsNoReturn manages creating a call and recording the call The first type param here would be
+// CallWithNoArgsNoReturn, but go won't allow that with ~. This is not really helpful to reduce caller code, but it is
+// helpful for consistency.
+func ManageCallWithNoArgsNoReturn[C ~struct{}](calls *FIFO[any]) {
+	calls.Push(C{})
+}
+
+type Tuple[V any] struct {
+	Value V
+	Err   error
+}
+
+func (t Tuple[V]) Unwrap() (V, error) {
+	return t.Value, t.Err
+}
+
+// ManageCallWithNoReturn manages creating a call, setting its args, and recording the call. The first type param here
+// would be CallWithNoReturn, but go won't allow that with ~.
+func ManageCallWithNoReturn[C ~struct {
+	Args A
+}, A any](calls *FIFO[any], args A,
+) {
+	// Turns out you can set fields on C, but not access them. So... setting it and pushing it here is fine, but setting
+	// it first and then accessing the ReturnOneShot in the return statement is a compiler error. :shrug:
+	calls.Push(C{Args: args})
 }

@@ -13,16 +13,11 @@ type pretestDepsMock struct {
 	calls *protest.FIFO[any]
 }
 
-type fetchTestCommandCall protest.CallWithReturn[fetchTestCommandCallReturn]
-
-type runTestCommandCall protest.CallWithArgsAndReturn[command, bool]
-
-type fetchTestCommandCallReturn struct {
-	command command
-	err     error
-}
-
-type announcePretestCall protest.CallWithNoArgsNoReturn
+type (
+	announcePretestCall  protest.CallWithNoArgsNoReturn
+	fetchTestCommandCall protest.CallWithNoArgs[protest.Tuple[command]]
+	runTestCommandCall   protest.Call[command, bool]
+)
 
 func newPretestDepsMock(test tester) *pretestDepsMock {
 	calls := protest.NewFIFO[any]("calls")
@@ -30,36 +25,16 @@ func newPretestDepsMock(test tester) *pretestDepsMock {
 	return &pretestDepsMock{
 		calls: calls,
 		deps: pretestDeps{
-			announcePretest: func() {
-				calls.Push(announcePretestCall{})
-			},
+			announcePretest: func() { protest.ManageCallWithNoArgsNoReturn[announcePretestCall](calls) },
 			fetchTestCommand: func() (command, error) {
-				returnOneShot := protest.NewOneShotFIFO[fetchTestCommandCallReturn]("fetchTestCommand return")
-
-				calls.Push(fetchTestCommandCall{
-					ReturnOneShot: returnOneShot,
-				})
-
-				returnVals := returnOneShot.MustPop(test)
-
-				return returnVals.command, returnVals.err
+				return protest.ManageCallWithNoArgs[fetchTestCommandCall](test, calls).Unwrap() //nolint: wrapcheck
 			},
-			runTestCommand: func(c command) bool {
-				returnOneShot := protest.NewOneShotFIFO[bool]("runTestCommand return")
-
-				calls.Push(runTestCommandCall{
-					Args:          c,
-					ReturnOneShot: returnOneShot,
-				})
-
-				return returnOneShot.MustPop(test)
-			},
+			runTestCommand: func(c command) bool { return protest.ManageCall[runTestCommandCall](test, calls, c) },
 		},
 	}
 }
 
 // TODO some refactoring for how we set up these tests - they're still too tedius.
-// * command types (no args/returns; args; returns; args & returns)
 // * runner goroutine?
 // * easier way to do the "as"
 // TODO announcements from this function? stop/error?
@@ -87,7 +62,7 @@ func TestVerifyTestsPassWithNoMutantsHappyPath(t *testing.T) {
 
 		// When the test command is returned
 		testCommand := command(rapid.String().Draw(test, "test command"))
-		fetchTestCommand.ReturnOneShot.Push(fetchTestCommandCallReturn{command: testCommand, err: nil})
+		fetchTestCommand.ReturnOneShot.Push(protest.Tuple[command]{Value: testCommand, Err: nil})
 
 		// Then the test command is run
 		var runTestCommand runTestCommandCall
@@ -128,10 +103,10 @@ func TestVerifyTestsPassWithNoMutantsFetchCommandError(t *testing.T) {
 
 	// When an error is returned
 	// TODO rapid test the command & error
-	fetchTestCommand.ReturnOneShot.Push(fetchTestCommandCallReturn{
-		command: "arbitrary",
+	fetchTestCommand.ReturnOneShot.Push(protest.Tuple[command]{
+		Value: "arbitrary",
 		// chill about dynamic error, this is a test
-		err: fmt.Errorf("arbitrary error"), //nolint: goerr113
+		Err: fmt.Errorf("arbitrary error"), //nolint: goerr113
 	})
 
 	// Then there are no more calls

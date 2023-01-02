@@ -11,8 +11,9 @@ type (
 		t     tester
 		deps  announceStartingDeps
 	}
+	// TODO: is this really necessary? seems like overkill to have this printargs struct at this point
 	printArgs struct{ message string }
-	printCall protest.CallWithArgs[printArgs]
+	printCall protest.CallWithNoReturn[printArgs]
 )
 
 func newAnnounceStartingDepsMock(t tester) *announceStartingDepsMock {
@@ -23,7 +24,7 @@ func newAnnounceStartingDepsMock(t tester) *announceStartingDepsMock {
 		t:     t,
 		deps: announceStartingDeps{
 			print: func(s string) {
-				calls.Push(printCall{Args: printArgs{message: s}})
+				protest.ManageCallWithNoReturn[printCall](calls, printArgs{message: s})
 			},
 		},
 	}

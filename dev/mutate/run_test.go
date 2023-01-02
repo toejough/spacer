@@ -18,8 +18,8 @@ type (
 		deps  *runDeps
 	}
 	announceStartingCall             protest.CallWithNoArgsNoReturn
-	verifyTestsPassWithNoMutantsCall protest.CallWithReturn[bool]
-	testMutationsCall                protest.CallWithReturn[bool]
+	verifyTestsPassWithNoMutantsCall protest.CallWithNoArgs[bool]
+	testMutationsCall                protest.CallWithNoArgs[bool]
 	announceEndingCall               protest.CallWithNoArgsNoReturn
 	tester                           interface {
 		Helper()
@@ -40,27 +40,13 @@ func newMockedDeps(test tester) *runDepsMock {
 		calls: calls,
 		t:     test,
 		deps: &runDeps{
-			announceStarting: func() {
-				calls.Push(announceStartingCall{})
-			},
+			announceStarting: func() { protest.ManageCallWithNoArgsNoReturn[announceStartingCall](calls) },
 			pretest: func() bool {
-				returnOneShot := protest.NewOneShotFIFO[bool]("verifyTestsPassWithNoMutantsReturn")
-
-				calls.Push(verifyTestsPassWithNoMutantsCall{ReturnOneShot: returnOneShot})
-
-				return returnOneShot.MustPop(test)
+				return protest.ManageCallWithNoArgs[verifyTestsPassWithNoMutantsCall](test, calls)
 			},
-			testMutations: func() bool {
-				returnOneShot := protest.NewOneShotFIFO[bool]("testMutationsReturn")
-
-				calls.Push(testMutationsCall{ReturnOneShot: returnOneShot})
-
-				return returnOneShot.MustPop(test)
-			},
-			announceEnding: func() {
-				// TODO include pass/fail in announcement
-				calls.Push(announceEndingCall{})
-			},
+			testMutations: func() bool { return protest.ManageCallWithNoArgs[testMutationsCall](test, calls) },
+			// TODO include pass/fail in announcement
+			announceEnding: func() { protest.ManageCallWithNoArgsNoReturn[announceEndingCall](calls) },
 		},
 	}
 }
