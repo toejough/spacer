@@ -11,9 +11,7 @@ type (
 		t     tester
 		deps  announceStartingDeps
 	}
-	// TODO: is this really necessary? seems like overkill to have this printargs struct at this point
-	printArgs struct{ message string }
-	printCall protest.CallWithNoReturn[printArgs]
+	printCall protest.CallWithNoReturn[string]
 )
 
 func newAnnounceStartingDepsMock(t tester) *announceStartingDepsMock {
@@ -23,9 +21,7 @@ func newAnnounceStartingDepsMock(t tester) *announceStartingDepsMock {
 		calls: calls,
 		t:     t,
 		deps: announceStartingDeps{
-			print: func(s string) {
-				protest.ManageCallWithNoReturn[printCall](calls, printArgs{message: s})
-			},
+			print: func(s string) { protest.ManageCallWithNoReturn[printCall](calls, s) },
 		},
 	}
 }
@@ -46,7 +42,7 @@ func TestAnnounceStartingHappyPath(t *testing.T) {
 	}()
 
 	// Then the program announces itself
-	deps.calls.MustPopEqualTo(t, printCall{Args: printArgs{message: "Starting Mutation Testing"}})
+	deps.calls.MustPopEqualTo(t, printCall{Args: "Starting Mutation Testing"})
 	// and there are no more dependency calls
 	deps.calls.MustConfirmClosed(t)
 }
