@@ -34,9 +34,6 @@ func newPretestDepsMock(test tester) *pretestDepsMock {
 	}
 }
 
-// TODO some refactoring for how we set up these tests - they're still too tedius.
-// * runner goroutine?
-// * easier way to do the "as"
 // TODO announcements from this function? stop/error?
 func TestVerifyTestsPassWithNoMutantsHappyPath(t *testing.T) {
 	t.Parallel()
