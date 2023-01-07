@@ -84,36 +84,37 @@ func TestVerifyTestsPassWithNoMutantsHappyPath(t *testing.T) {
 func TestVerifyTestsPassWithNoMutantsFetchCommandError(t *testing.T) {
 	t.Parallel()
 
-	// Given inputs/outputs
-	var result bool
+	rapid.Check(t, func(test *rapid.T) {
+		// Given inputs/outputs
+		var result bool
 
-	deps := newPretestDepsMock(t)
+		deps := newPretestDepsMock(test)
 
-	// When the function is called
-	go func() {
-		result = pretest(&deps.deps)
-		deps.calls.Close()
-	}()
+		// When the function is called
+		go func() {
+			result = pretest(&deps.deps)
+			deps.calls.Close()
+		}()
 
-	// Then the pretest is announced
-	deps.calls.MustPopEqualTo(t, announcePretestCall{})
-	// And the test command is fetched
-	var fetchTestCommand fetchTestCommandCall
+		// Then the pretest is announced
+		deps.calls.MustPopEqualTo(test, announcePretestCall{})
+		// And the test command is fetched
+		var fetchTestCommand fetchTestCommandCall
 
-	deps.calls.MustPopAs(t, &fetchTestCommand)
+		deps.calls.MustPopAs(test, &fetchTestCommand)
 
-	// When an error is returned
-	// TODO rapid test the command & error
-	fetchTestCommand.ReturnOneShot.Push(protest.Tuple[command]{
-		Value: "arbitrary",
-		// chill about dynamic error, this is a test
-		Err: fmt.Errorf("arbitrary error"), //nolint: goerr113
+		// When an error is returned
+		fetchTestCommand.ReturnOneShot.Push(protest.Tuple[command]{
+			Value: command(rapid.String().Draw(test, "test command")),
+			// chill about dynamic error, this is a test
+			Err: fmt.Errorf(rapid.String().Draw(test, "test error")), //nolint: goerr113
+		})
+
+		// Then there are no more calls
+		deps.calls.MustConfirmClosed(test)
+		// And the function returns failing
+		protest.MustEqual(test, false, result)
 	})
-
-	// Then there are no more calls
-	deps.calls.MustConfirmClosed(t)
-	// And the function returns failing
-	protest.MustEqual(t, false, result)
 }
 
 // TODO TestVerifyTestsPassWithNoMutantsRunCommandFailure
