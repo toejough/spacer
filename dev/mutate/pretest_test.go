@@ -14,9 +14,10 @@ type pretestDepsMock struct {
 }
 
 type (
-	announcePretestCall  protest.CallWithNoArgsNoReturn
-	fetchTestCommandCall protest.CallWithNoArgs[protest.Tuple[command]]
-	runTestCommandCall   protest.Call[command, bool]
+	announcePretestCall        protest.CallWithNoArgsNoReturn
+	fetchTestCommandCall       protest.CallWithNoArgs[protest.Tuple[command]]
+	runTestCommandCall         protest.Call[command, bool]
+	announcePretestResultsCall protest.CallWithNoReturn[bool]
 )
 
 func newPretestDepsMock(test tester) *pretestDepsMock {
@@ -29,12 +30,12 @@ func newPretestDepsMock(test tester) *pretestDepsMock {
 			fetchTestCommand: func() (command, error) {
 				return protest.ManageCallWithNoArgs[fetchTestCommandCall](test, calls).Unwrap() //nolint: wrapcheck
 			},
-			runTestCommand: func(c command) bool { return protest.ManageCall[runTestCommandCall](test, calls, c) },
+			runTestCommand:         func(c command) bool { return protest.ManageCall[runTestCommandCall](test, calls, c) },
+			announcePretestResults: func(b bool) { protest.ManageCallWithNoReturn[announcePretestResultsCall](calls, b) },
 		},
 	}
 }
 
-// TODO announcements from this function? stop/error?
 func TestVerifyTestsPassWithNoMutantsHappyPath(t *testing.T) {
 	t.Parallel()
 
@@ -69,6 +70,9 @@ func TestVerifyTestsPassWithNoMutantsHappyPath(t *testing.T) {
 
 		// When the test command returns passing
 		runTestCommand.ReturnOneShot.Push(true)
+
+		// Then the pretest result is announced
+		deps.calls.MustPopEqualTo(test, announcePretestResultsCall{Args: true})
 
 		// Then there are no more calls
 		deps.calls.MustConfirmClosed(test)

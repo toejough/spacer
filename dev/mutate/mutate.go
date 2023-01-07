@@ -23,13 +23,16 @@ func main() {
 		pretest: func() bool {
 			return pretest(&pretestDeps{
 				announcePretest: func() {
-					panic("fetchTestCommand not implemented")
+					panic("announcePretest not implemented")
 				},
 				fetchTestCommand: func() (command, error) {
 					panic("fetchTestCommand not implemented")
 				},
 				runTestCommand: func(command) bool {
 					panic("runTestCommand not implemented")
+				},
+				announcePretestResults: func(bool) {
+					panic("announcePretestResults not implemented")
 				},
 			})
 		},
@@ -58,9 +61,10 @@ type (
 	}
 	command     string
 	pretestDeps struct {
-		announcePretest  func()
-		fetchTestCommand func() (command, error)
-		runTestCommand   func(command) bool
+		announcePretest        func()
+		fetchTestCommand       func() (command, error)
+		runTestCommand         func(command) bool
+		announcePretestResults func(bool)
 	}
 )
 
@@ -84,5 +88,8 @@ func pretest(deps *pretestDeps) bool {
 		return false
 	}
 
-	return deps.runTestCommand(c)
+	result := deps.runTestCommand(c)
+	deps.announcePretestResults(result)
+
+	return result
 }
