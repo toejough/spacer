@@ -20,7 +20,7 @@ type (
 	announceStartingCall             protest.CallWithNoArgsNoReturn
 	verifyTestsPassWithNoMutantsCall protest.CallWithNoArgs[bool]
 	testMutationsCall                protest.CallWithNoArgs[bool]
-	announceEndingCall               protest.CallWithNoArgsNoReturn
+	announceEndingCall               protest.CallWithNoReturn[bool]
 	tester                           interface {
 		Helper()
 		Fatal(...any)
@@ -44,9 +44,8 @@ func newMockedDeps(test tester) *runDepsMock {
 			pretest: func() bool {
 				return protest.ManageCallWithNoArgs[verifyTestsPassWithNoMutantsCall](test, calls)
 			},
-			testMutations: func() bool { return protest.ManageCallWithNoArgs[testMutationsCall](test, calls) },
-			// TODO include pass/fail in announcement
-			announceEnding: func() { protest.ManageCallWithNoArgsNoReturn[announceEndingCall](calls) },
+			testMutations:  func() bool { return protest.ManageCallWithNoArgs[testMutationsCall](test, calls) },
+			announceEnding: func(b bool) { protest.ManageCallWithNoReturn[announceEndingCall](calls, b) },
 		},
 	}
 }
@@ -82,7 +81,7 @@ func TestRunHappyPath(t *testing.T) {
 	testMutationsCall.ReturnOneShot.Push(true)
 
 	// Then program announces it's exiting
-	deps.calls.MustPopEqualTo(t, announceEndingCall{})
+	deps.calls.MustPopEqualTo(t, announceEndingCall{Args: true})
 	// and there are no more dependency calls
 	deps.calls.MustConfirmClosed(t)
 	// and the return value is as expected
@@ -108,11 +107,11 @@ func TestRunTesterFailsBeforeAnyMutations(t *testing.T) {
 	verifyCall := new(verifyTestsPassWithNoMutantsCall)
 	deps.calls.MustPopAs(t, verifyCall)
 
-	// When the tester passes
+	// When the tester fails
 	verifyCall.ReturnOneShot.Push(false)
 
 	// Then program announces it's exiting
-	deps.calls.MustPopEqualTo(t, announceEndingCall{})
+	deps.calls.MustPopEqualTo(t, announceEndingCall{Args: false})
 	// and there are no more dependency calls
 	deps.calls.MustConfirmClosed(t)
 	// and the return value is as expected
@@ -149,7 +148,7 @@ func TestRunMutationTestsFail(t *testing.T) {
 	testMutationsCall.ReturnOneShot.Push(false)
 
 	// Then program announces it's exiting
-	deps.calls.MustPopEqualTo(t, announceEndingCall{})
+	deps.calls.MustPopEqualTo(t, announceEndingCall{Args: false})
 	// and there are no more dependency calls
 	deps.calls.MustConfirmClosed(t)
 	// and the return value is as expected

@@ -39,7 +39,7 @@ func main() {
 		testMutations: func() bool {
 			panic("testMutations not implemented")
 		},
-		announceEnding: func() {
+		announceEnding: func(bool) {
 			panic("announceEnding not implemented")
 		},
 	}) {
@@ -54,7 +54,7 @@ type (
 		announceStarting func()
 		pretest          func() bool
 		testMutations    func() bool
-		announceEnding   func()
+		announceEnding   func(bool)
 	}
 	announceStartingDeps struct {
 		print func(string)
@@ -71,7 +71,7 @@ type (
 func run(deps *runDeps) bool {
 	deps.announceStarting()
 	passes := deps.pretest() && deps.testMutations()
-	deps.announceEnding()
+	deps.announceEnding(passes)
 
 	return passes
 }
