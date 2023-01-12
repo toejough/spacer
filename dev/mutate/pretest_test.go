@@ -20,43 +20,12 @@ type (
 	announcePretestResultsCall protest.CallWithNoReturn[bool]
 )
 
-func newPretestDepsMock(test tester) *pretestDepsMock {
-	calls := protest.NewFIFO[any]("calls")
-
-	return &pretestDepsMock{
-		calls: calls,
-		deps: pretestDeps{
-			announcePretest: func() { protest.ManageCallWithNoArgsNoReturn[announcePretestCall](calls) },
-			fetchTestCommand: func() (command, error) {
-				return protest.ManageCallWithNoArgs[fetchTestCommandCall](test, calls).Unwrap() //nolint: wrapcheck
-			},
-			runTestCommand:         func(c command) bool { return protest.ManageCall[runTestCommandCall](test, calls, c) },
-			announcePretestResults: func(b bool) { protest.ManageCallWithNoReturn[announcePretestResultsCall](calls, b) },
-		},
-	}
-}
-
-func TestVerifyTestsPassWithNoMutantsHappyPath(t *testing.T) {
+func TestPretestHappyPath(t *testing.T) {
 	t.Parallel()
 
 	rapid.Check(t, func(test *rapid.T) {
-		// Given inputs/outputs...
-		var result bool
-
-		deps := newPretestDepsMock(test)
-
-		// When the function is called
-		go func() {
-			result = pretest(&deps.deps)
-			deps.calls.Close()
-		}()
-
-		// Then the pretest is announced
-		deps.calls.MustPopEqualTo(test, announcePretestCall{})
-		// and the test command is fetched
-		var fetchTestCommand fetchTestCommandCall
-
-		deps.calls.MustPopAs(test, &fetchTestCommand)
+		// Given test setup
+		result, deps, fetchTestCommand := pretestTestSetup(test)
 
 		// When the test command is returned
 		testCommand := command(rapid.String().Draw(test, "test command"))
@@ -77,31 +46,16 @@ func TestVerifyTestsPassWithNoMutantsHappyPath(t *testing.T) {
 		// Then there are no more calls
 		deps.calls.MustConfirmClosed(test)
 		// And the function returns passing
-		protest.MustEqual(test, true, result)
+		protest.MustEqual(test, true, *result)
 	})
 }
 
-func TestVerifyTestsPassWithNoMutantsFetchCommandError(t *testing.T) {
+func TestPretestFetchCommandError(t *testing.T) {
 	t.Parallel()
 
 	rapid.Check(t, func(test *rapid.T) {
-		// Given inputs/outputs
-		var result bool
-
-		deps := newPretestDepsMock(test)
-
-		// When the function is called
-		go func() {
-			result = pretest(&deps.deps)
-			deps.calls.Close()
-		}()
-
-		// Then the pretest is announced
-		deps.calls.MustPopEqualTo(test, announcePretestCall{})
-		// And the test command is fetched
-		var fetchTestCommand fetchTestCommandCall
-
-		deps.calls.MustPopAs(test, &fetchTestCommand)
+		// Given test setup
+		result, deps, fetchTestCommand := pretestTestSetup(test)
 
 		// When an error is returned
 		fetchTestCommand.ReturnOneShot.Push(protest.Tuple[command]{
@@ -113,9 +67,75 @@ func TestVerifyTestsPassWithNoMutantsFetchCommandError(t *testing.T) {
 		// Then there are no more calls
 		deps.calls.MustConfirmClosed(test)
 		// And the function returns failing
-		protest.MustEqual(test, false, result)
+		protest.MustEqual(test, false, *result)
 	})
 }
 
-// TODO TestVerifyTestsPassWithNoMutantsRunCommandFailure
-// TODO TestVerifyTestsPassWithNoMutantsRunCommandError
+func TestPretestCommandFailure(t *testing.T) {
+	t.Parallel()
+
+	rapid.Check(t, func(test *rapid.T) {
+		// Given test setup
+		result, deps, fetchTestCommand := pretestTestSetup(test)
+
+		// When the test command is returned
+		testCommand := command(rapid.String().Draw(test, "test command"))
+		fetchTestCommand.ReturnOneShot.Push(protest.Tuple[command]{Value: testCommand, Err: nil})
+
+		// Then the test command is run
+		var runTestCommand runTestCommandCall
+
+		deps.calls.MustPopAs(test, &runTestCommand)
+		protest.MustEqual(test, runTestCommand.Args, testCommand)
+
+		// When the test command returns failing
+		runTestCommand.ReturnOneShot.Push(false)
+
+		// Then the pretest result is announced
+		deps.calls.MustPopEqualTo(test, announcePretestResultsCall{Args: false})
+
+		// Then there are no more calls
+		deps.calls.MustConfirmClosed(test)
+		// And the function returns failing
+		protest.MustEqual(test, false, *result)
+	})
+}
+
+func newPretestDepsMock(test tester) *pretestDepsMock {
+	calls := protest.NewFIFO[any]("calls")
+
+	return &pretestDepsMock{
+		calls: calls,
+		deps: pretestDeps{
+			announcePretest: func() { protest.ManageCallWithNoArgsNoReturn[announcePretestCall](calls) },
+			fetchTestCommand: func() (command, error) {
+				return protest.ManageCallWithNoArgs[fetchTestCommandCall](test, calls).Unwrap() //nolint: wrapcheck
+			},
+			runTestCommand:         func(c command) bool { return protest.ManageCall[runTestCommandCall](test, calls, c) },
+			announcePretestResults: func(b bool) { protest.ManageCallWithNoReturn[announcePretestResultsCall](calls, b) },
+		},
+	}
+}
+
+func pretestTestSetup(test *rapid.T) (*bool, *pretestDepsMock, fetchTestCommandCall) {
+	// Given inputs/outputs
+	var result bool
+
+	deps := newPretestDepsMock(test)
+
+	// When the function is called
+	go func() {
+		result = pretest(&deps.deps)
+		deps.calls.Close()
+	}()
+
+	// Then the pretest is announced
+	deps.calls.MustPopEqualTo(test, announcePretestCall{})
+
+	// And the test command is fetched
+	var fetchTestCommand fetchTestCommandCall
+
+	deps.calls.MustPopAs(test, &fetchTestCommand)
+
+	return &result, deps, fetchTestCommand
+}
