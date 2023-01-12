@@ -17,7 +17,7 @@ func main() {
 	if run(&runDeps{
 		announceStarting: func() {
 			announceStarting(&announceStartingDeps{
-				print: func(s string) { fmt.Println(s) },
+				assumePrint: func(s string) { fmt.Println(s) },
 			})
 		},
 		pretest: func() bool {
@@ -57,7 +57,7 @@ type (
 		announceEnding   func(bool)
 	}
 	announceStartingDeps struct {
-		print func(string)
+		assumePrint func(string)
 	}
 	command     string
 	pretestDeps struct {
@@ -77,7 +77,7 @@ func run(deps *runDeps) bool {
 }
 
 func announceStarting(deps *announceStartingDeps) {
-	deps.print("Starting Mutation Testing")
+	deps.assumePrint("Starting Mutation Testing")
 }
 
 func pretest(deps *pretestDeps) bool {

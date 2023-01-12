@@ -21,7 +21,7 @@ func newAnnounceStartingDepsMock(t tester) *announceStartingDepsMock {
 		calls: calls,
 		t:     t,
 		deps: announceStartingDeps{
-			print: func(s string) { protest.ManageCallWithNoReturn[printCall](calls, s) },
+			assumePrint: func(s string) { protest.ManageCallWithNoReturn[printCall](calls, s) },
 		},
 	}
 }
