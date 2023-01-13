@@ -23,7 +23,9 @@ func main() {
 		pretest: func() bool {
 			return pretest(&pretestDeps{
 				announcePretest: func() {
-					panic("announcePretest not implemented")
+					announcePretest(&announcePretestDeps{
+						assumePrint: func(s string) { fmt.Println(s) },
+					})
 				},
 				fetchTestCommand: func() (command, error) {
 					panic("fetchTestCommand not implemented")
@@ -49,6 +51,10 @@ func main() {
 	}
 }
 
+func announcePretest(announcePretestDeps *announcePretestDeps) {
+	announcePretestDeps.assumePrint("Starting Pretesting")
+}
+
 type (
 	runDeps struct {
 		announceStarting func()
@@ -57,6 +63,9 @@ type (
 		announceEnding   func(bool)
 	}
 	announceStartingDeps struct {
+		assumePrint func(string)
+	}
+	announcePretestDeps struct {
 		assumePrint func(string)
 	}
 	command     string
