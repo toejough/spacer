@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"spacer/dev/protest"
 	"testing"
 
@@ -14,7 +13,7 @@ type pretestDepsMock struct {
 }
 
 type (
-	fetchTestCommandCall protest.CallWithNoArgs[protest.Tuple[command]]
+	fetchTestCommandCall protest.CallWithNoArgs[command]
 	runTestCommandCall   protest.Call[command, bool]
 )
 
@@ -26,8 +25,8 @@ func TestPretestHappyPath(t *testing.T) {
 		result, deps, fetchTestCommand := pretestTestSetup(test)
 
 		// When the test command is returned
-		testCommand := command(rapid.String().Draw(test, "test command"))
-		fetchTestCommand.ReturnOneShot.Push(protest.Tuple[command]{Value: testCommand, Err: nil})
+		testCommand := command(rapid.StringN(1, -1, -1).Draw(test, "test command"))
+		fetchTestCommand.ReturnOneShot.Push(testCommand)
 
 		// Then the test command is run
 		var runTestCommand runTestCommandCall
@@ -48,22 +47,16 @@ func TestPretestHappyPath(t *testing.T) {
 func TestPretestFetchCommandError(t *testing.T) {
 	t.Parallel()
 
-	rapid.Check(t, func(test *rapid.T) {
-		// Given test setup
-		result, deps, fetchTestCommand := pretestTestSetup(test)
+	// Given test setup
+	result, deps, fetchTestCommand := pretestTestSetup(t)
 
-		// When an error is returned
-		fetchTestCommand.ReturnOneShot.Push(protest.Tuple[command]{
-			Value: command(rapid.String().Draw(test, "test command")),
-			// chill about dynamic error, this is a test
-			Err: fmt.Errorf(rapid.String().Draw(test, "test error")), //nolint: goerr113
-		})
+	// When no command can be fetched
+	fetchTestCommand.ReturnOneShot.Push("")
 
-		// Then there are no more calls
-		deps.calls.MustConfirmClosed(test)
-		// And the function returns failing
-		protest.MustEqual(test, false, *result)
-	})
+	// Then there are no more calls
+	deps.calls.MustConfirmClosed(t)
+	// And the function returns failing
+	protest.MustEqual(t, false, *result)
 }
 
 func TestPretestCommandFailure(t *testing.T) {
@@ -74,8 +67,8 @@ func TestPretestCommandFailure(t *testing.T) {
 		result, deps, fetchTestCommand := pretestTestSetup(test)
 
 		// When the test command is returned
-		testCommand := command(rapid.String().Draw(test, "test command"))
-		fetchTestCommand.ReturnOneShot.Push(protest.Tuple[command]{Value: testCommand, Err: nil})
+		testCommand := command(rapid.StringN(1, -1, -1).Draw(test, "test command"))
+		fetchTestCommand.ReturnOneShot.Push(testCommand)
 
 		// Then the test command is run
 		var runTestCommand runTestCommandCall
@@ -99,15 +92,15 @@ func newPretestDepsMock(test tester) *pretestDepsMock {
 	return &pretestDepsMock{
 		calls: calls,
 		deps: pretestDeps{
-			fetchTestCommand: func() (command, error) {
-				return protest.ManageCallWithNoArgs[fetchTestCommandCall](test, calls).Unwrap() //nolint: wrapcheck
+			fetchTestCommand: func() command {
+				return protest.ManageCallWithNoArgs[fetchTestCommandCall](test, calls)
 			},
 			runTestCommand: func(c command) bool { return protest.ManageCall[runTestCommandCall](test, calls, c) },
 		},
 	}
 }
 
-func pretestTestSetup(test *rapid.T) (*bool, *pretestDepsMock, fetchTestCommandCall) {
+func pretestTestSetup(test protest.Tester) (*bool, *pretestDepsMock, fetchTestCommandCall) {
 	// Given inputs/outputs
 	var result bool
 

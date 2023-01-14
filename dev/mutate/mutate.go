@@ -22,15 +22,16 @@ func main() {
 		pretest: func() bool {
 			fmt.Println("Starting pretesting")
 			results := pretest(&pretestDeps{
-				fetchTestCommand: func() (command, error) {
+				fetchTestCommand: func() command {
 					fmt.Println("Fetching test command")
 					if len(os.Args) < 2 { //nolint:gomnd
-						return "", fmt.Errorf("no test command provided on CLI") //nolint:goerr113
+						fmt.Println("no test command provided on CLI")
+						return ""
 					}
 					c := os.Args[1]
 					fmt.Printf("Fetched '%s' as the command\n", c)
 
-					return command(c), nil
+					return command(c)
 				},
 				runTestCommand: func(comm command) bool {
 					fmt.Println("Running test command")
@@ -68,8 +69,8 @@ func run(deps *runDeps) bool {
 }
 
 func pretest(deps *pretestDeps) bool {
-	c, err := deps.fetchTestCommand()
-	if err != nil {
+	c := deps.fetchTestCommand()
+	if len(c) == 0 {
 		return false
 	}
 
@@ -83,7 +84,7 @@ type (
 	}
 	command     string
 	pretestDeps struct {
-		fetchTestCommand func() (command, error)
+		fetchTestCommand func() command
 		runTestCommand   func(command) bool
 	}
 )
