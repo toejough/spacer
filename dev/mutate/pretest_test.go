@@ -14,10 +14,8 @@ type pretestDepsMock struct {
 }
 
 type (
-	announcePretestCall        protest.CallWithNoArgsNoReturn
-	fetchTestCommandCall       protest.CallWithNoArgs[protest.Tuple[command]]
-	runTestCommandCall         protest.Call[command, bool]
-	announcePretestResultsCall protest.CallWithNoReturn[bool]
+	fetchTestCommandCall protest.CallWithNoArgs[protest.Tuple[command]]
+	runTestCommandCall   protest.Call[command, bool]
 )
 
 func TestPretestHappyPath(t *testing.T) {
@@ -39,9 +37,6 @@ func TestPretestHappyPath(t *testing.T) {
 
 		// When the test command returns passing
 		runTestCommand.ReturnOneShot.Push(true)
-
-		// Then the pretest result is announced
-		deps.calls.MustPopEqualTo(test, announcePretestResultsCall{Args: true})
 
 		// Then there are no more calls
 		deps.calls.MustConfirmClosed(test)
@@ -91,9 +86,6 @@ func TestPretestCommandFailure(t *testing.T) {
 		// When the test command returns failing
 		runTestCommand.ReturnOneShot.Push(false)
 
-		// Then the pretest result is announced
-		deps.calls.MustPopEqualTo(test, announcePretestResultsCall{Args: false})
-
 		// Then there are no more calls
 		deps.calls.MustConfirmClosed(test)
 		// And the function returns failing
@@ -107,12 +99,10 @@ func newPretestDepsMock(test tester) *pretestDepsMock {
 	return &pretestDepsMock{
 		calls: calls,
 		deps: pretestDeps{
-			announcePretest: func() { protest.ManageCallWithNoArgsNoReturn[announcePretestCall](calls) },
 			fetchTestCommand: func() (command, error) {
 				return protest.ManageCallWithNoArgs[fetchTestCommandCall](test, calls).Unwrap() //nolint: wrapcheck
 			},
-			runTestCommand:         func(c command) bool { return protest.ManageCall[runTestCommandCall](test, calls, c) },
-			announcePretestResults: func(b bool) { protest.ManageCallWithNoReturn[announcePretestResultsCall](calls, b) },
+			runTestCommand: func(c command) bool { return protest.ManageCall[runTestCommandCall](test, calls, c) },
 		},
 	}
 }
@@ -129,10 +119,7 @@ func pretestTestSetup(test *rapid.T) (*bool, *pretestDepsMock, fetchTestCommandC
 		deps.calls.Close()
 	}()
 
-	// Then the pretest is announced
-	deps.calls.MustPopEqualTo(test, announcePretestCall{})
-
-	// And the test command is fetched
+	// Then the test command is fetched
 	var fetchTestCommand fetchTestCommandCall
 
 	deps.calls.MustPopAs(test, &fetchTestCommand)

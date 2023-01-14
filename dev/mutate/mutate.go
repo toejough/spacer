@@ -16,11 +16,12 @@ import (
 // Would like to cache candidates and results
 
 func main() {
+	fmt.Println("Starting mutation testing")
+
 	if run(&runDeps{
-		announceStarting: func() { fmt.Println("Starting mutation testing") },
 		pretest: func() bool {
-			return pretest(&pretestDeps{
-				announcePretest: func() { fmt.Println("Starting pretesting") },
+			fmt.Println("Starting pretesting")
+			results := pretest(&pretestDeps{
 				fetchTestCommand: func() (command, error) {
 					fmt.Println("Fetching test command")
 					if len(os.Args) < 2 { //nolint:gomnd
@@ -45,54 +46,44 @@ func main() {
 
 					return true
 				},
-				announcePretestResults: func(b bool) { fmt.Printf("Pretest passed? %t\n", b) },
 			})
+			fmt.Printf("Pretest passed? %t\n", results)
+
+			return results
 		},
 		testMutations: func() bool {
 			panic("testMutations not implemented")
 		},
-		announceEnding: func(b bool) { fmt.Printf("Mutation testing passed? %t\n", b) },
 	}) {
+		fmt.Println("Mutation testing passed")
 		os.Exit(0)
 	} else {
+		fmt.Println("Mutation testing failed")
 		os.Exit(1)
 	}
 }
 
 func run(deps *runDeps) bool {
-	deps.announceStarting()
-	passes := deps.pretest() && deps.testMutations()
-	deps.announceEnding(passes)
-
-	return passes
+	return deps.pretest() && deps.testMutations()
 }
 
 func pretest(deps *pretestDeps) bool {
-	deps.announcePretest()
-
 	c, err := deps.fetchTestCommand()
 	if err != nil {
 		return false
 	}
 
-	result := deps.runTestCommand(c)
-	deps.announcePretestResults(result)
-
-	return result
+	return deps.runTestCommand(c)
 }
 
 type (
 	runDeps struct {
-		announceStarting func()
-		pretest          func() bool
-		testMutations    func() bool
-		announceEnding   func(bool)
+		pretest       func() bool
+		testMutations func() bool
 	}
 	command     string
 	pretestDeps struct {
-		announcePretest        func()
-		fetchTestCommand       func() (command, error)
-		runTestCommand         func(command) bool
-		announcePretestResults func(bool)
+		fetchTestCommand func() (command, error)
+		runTestCommand   func(command) bool
 	}
 )

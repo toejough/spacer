@@ -17,10 +17,8 @@ type (
 		t     tester
 		deps  *runDeps
 	}
-	announceStartingCall             protest.CallWithNoArgsNoReturn
 	verifyTestsPassWithNoMutantsCall protest.CallWithNoArgs[bool]
 	testMutationsCall                protest.CallWithNoArgs[bool]
-	announceEndingCall               protest.CallWithNoReturn[bool]
 	tester                           interface {
 		Helper()
 		Fatal(...any)
@@ -40,12 +38,10 @@ func newMockedDeps(test tester) *runDepsMock {
 		calls: calls,
 		t:     test,
 		deps: &runDeps{
-			announceStarting: func() { protest.ManageCallWithNoArgsNoReturn[announceStartingCall](calls) },
 			pretest: func() bool {
 				return protest.ManageCallWithNoArgs[verifyTestsPassWithNoMutantsCall](test, calls)
 			},
-			testMutations:  func() bool { return protest.ManageCallWithNoArgs[testMutationsCall](test, calls) },
-			announceEnding: func(b bool) { protest.ManageCallWithNoReturn[announceEndingCall](calls, b) },
+			testMutations: func() bool { return protest.ManageCallWithNoArgs[testMutationsCall](test, calls) },
 		},
 	}
 }
@@ -64,9 +60,7 @@ func TestRunHappyPath(t *testing.T) {
 		deps.close()
 	}()
 
-	// Then the program announces itself
-	deps.calls.MustPopEqualTo(t, announceStartingCall{})
-	// And the tester is run to ensure it passes prior to applying mutations
+	// Then the tester is run to ensure it passes prior to applying mutations
 	verifyCall := new(verifyTestsPassWithNoMutantsCall)
 	deps.calls.MustPopAs(t, verifyCall)
 
@@ -80,9 +74,7 @@ func TestRunHappyPath(t *testing.T) {
 	// When the testing returns all caught
 	testMutationsCall.ReturnOneShot.Push(true)
 
-	// Then program announces it's exiting
-	deps.calls.MustPopEqualTo(t, announceEndingCall{Args: true})
-	// and there are no more dependency calls
+	// Then there are no more dependency calls
 	deps.calls.MustConfirmClosed(t)
 	// and the return value is as expected
 	protest.MustEqual(t, true, passes)
@@ -101,18 +93,14 @@ func TestRunTesterFailsBeforeAnyMutations(t *testing.T) {
 		deps.close()
 	}()
 
-	// Then the program announces itself
-	deps.calls.MustPopEqualTo(t, announceStartingCall{})
-	// And the tester is run to ensure it passes prior to applying mutations
+	// Then the tester is run to ensure it passes prior to applying mutations
 	verifyCall := new(verifyTestsPassWithNoMutantsCall)
 	deps.calls.MustPopAs(t, verifyCall)
 
 	// When the tester fails
 	verifyCall.ReturnOneShot.Push(false)
 
-	// Then program announces it's exiting
-	deps.calls.MustPopEqualTo(t, announceEndingCall{Args: false})
-	// and there are no more dependency calls
+	// Then there are no more dependency calls
 	deps.calls.MustConfirmClosed(t)
 	// and the return value is as expected
 	protest.MustEqual(t, false, passes)
@@ -131,9 +119,7 @@ func TestRunMutationTestsFail(t *testing.T) {
 		deps.close()
 	}()
 
-	// Then the program announces itself
-	deps.calls.MustPopEqualTo(t, announceStartingCall{})
-	// And the tester is run to ensure it passes prior to applying mutations
+	// Then the tester is run to ensure it passes prior to applying mutations
 	verifyCall := new(verifyTestsPassWithNoMutantsCall)
 	deps.calls.MustPopAs(t, verifyCall)
 
@@ -147,9 +133,7 @@ func TestRunMutationTestsFail(t *testing.T) {
 	// When the testing returns all caught
 	testMutationsCall.ReturnOneShot.Push(false)
 
-	// Then program announces it's exiting
-	deps.calls.MustPopEqualTo(t, announceEndingCall{Args: false})
-	// and there are no more dependency calls
+	// Then there are no more dependency calls
 	deps.calls.MustConfirmClosed(t)
 	// and the return value is as expected
 	protest.MustEqual(t, false, passes)
