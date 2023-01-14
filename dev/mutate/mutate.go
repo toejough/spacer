@@ -4,6 +4,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 )
 
 // Mutate. Based loosely on:
@@ -29,16 +31,27 @@ func main() {
 
 					return command(c), nil
 				},
-				runTestCommand: func(command) bool {
-					panic("runTestCommand not implemented")
+				runTestCommand: func(comm command) bool {
+					fmt.Println("Running test command")
+					parts := strings.Split(string(comm), " ")
+					commObj := exec.Command(parts[0], parts[1:]...) //nolint:gosec
+					output, err := commObj.Output()
+					if err != nil {
+						fmt.Printf("Test command failed: %v\n", err)
+						return false
+					}
+
+					fmt.Printf("Test command passed: %s\n", output)
+
+					return true
 				},
-				announcePretestResults: func(b bool) { fmt.Printf("Pretest passed? %T\n", b) },
+				announcePretestResults: func(b bool) { fmt.Printf("Pretest passed? %t\n", b) },
 			})
 		},
 		testMutations: func() bool {
 			panic("testMutations not implemented")
 		},
-		announceEnding: func(b bool) { fmt.Printf("Mutation testing passed? %T\n", b) },
+		announceEnding: func(b bool) { fmt.Printf("Mutation testing passed? %t\n", b) },
 	}) {
 		os.Exit(0)
 	} else {
