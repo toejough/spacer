@@ -82,9 +82,16 @@ type (
 		pretest       func() bool
 		testMutations func() bool
 	}
-	command     string
 	pretestDeps struct {
 		fetchTestCommand func() command
 		runTestCommand   func(command) bool
 	}
+	command     string
+    testMutationsDeps struct {
+        fetchMutationTypes func() []mutationType
+        fetchFilesToMutate func() []filepath
+        testFileMutation func(filepath, mutationType) bool
+    }
+    mutationType struct{}
+    filepath string
 )
