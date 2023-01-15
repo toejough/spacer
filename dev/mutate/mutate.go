@@ -77,6 +77,10 @@ func pretest(deps *pretestDeps) bool {
 	return deps.runTestCommand(c)
 }
 
+func testMutations(deps *testMutationsDeps) bool {
+    return false
+}
+
 type (
 	runDeps struct {
 		pretest       func() bool
