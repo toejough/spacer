@@ -29,6 +29,7 @@ type FIFO[I any] struct {
 
 var (
 	ErrChannelNotClosed     = fmt.Errorf("the channel isn't closed")
+	ErrFIFOClosed     = fmt.Errorf("the FIFO is closed")
 	ErrChannelNotEmpty      = fmt.Errorf("the channel isn't empty")
 	ErrNilPointerTarget     = fmt.Errorf("target must be a non-nil pointer")
 	ErrNotEqual             = fmt.Errorf("values not equal")
@@ -83,8 +84,12 @@ func (s *FIFO[I]) PopAs(target I) (err error) {
 // PopWithin pops the next thing from the FIFO, waiting up to the given duration for it to be available. If it is
 // available, it returns the value and a nil error. If it is not available within the timeout, it returns ErrTimedOut.
 func (s *FIFO[I]) PopWithin(duration time.Duration) (next I, err error) {
+    var open bool
 	select {
-	case next = <-s.items:
+	case next, open = <-s.items:
+        if !open {
+            return next, fmt.Errorf("could not pop an item from %s: %w", s.name, ErrFIFOClosed)
+        }
 		if s.oneShot {
 			err = s.ConfirmClosedWithin(duration)
 		}

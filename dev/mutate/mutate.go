@@ -94,7 +94,7 @@ type (
     testMutationsDeps struct {
         fetchMutationTypes func() []mutationType
         fetchFilesToMutate func() []filepath
-        testFileMutation func(filepath, mutationType) bool
+        testFileMutation func(filepath, []mutationType) bool
     }
     mutationType struct{}
     filepath string

@@ -8,6 +8,7 @@ import (
 
 func TestTestMutationsHappyPath(t *testing.T) {
 	t.Parallel()
+
 	// Given inputs/outputs
 	var result bool
 
@@ -77,7 +78,11 @@ func TestTestMutationsHappyPath(t *testing.T) {
 func newTestMutationsMock(test tester) (*protest.FIFO[any], *testMutationsDeps) {
 	calls := protest.NewFIFO[any]("calls")
 
-	return calls, &testMutationsDeps{}
+	return calls, &testMutationsDeps{
+        fetchMutationTypes: func() []mutationType { return protest.ManageCallWithNoArgs[fetchMutationTypesCall](test, calls)},
+        fetchFilesToMutate: func() []filepath {return protest.ManageCallWithNoArgs[fetchSourceFilesCall](test, calls)},
+        testFileMutation: func(f filepath, m []mutationType) bool {return protest.ManageCall[testFileMutationsCall](test, calls, testFileMutationsArgs{mutationTypes: m, path: f})},
+    }
 }
 
 func contains[I any](slice []I, item I) bool {
