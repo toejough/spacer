@@ -90,6 +90,7 @@ func (s *FIFO[I]) PopWithin(duration time.Duration) (next I, err error) {
 		if !open {
 			return next, fmt.Errorf("could not pop an item from %s: %w", s.name, ErrFIFOClosed)
 		}
+
 		if s.oneShot {
 			err = s.ConfirmClosedWithin(duration)
 		}

@@ -80,11 +80,13 @@ func pretest(deps *pretestDeps) bool {
 func testMutations(deps *testMutationsDeps) bool {
 	mutationTypes := deps.fetchMutationTypes()
 	filepaths := deps.fetchFilesToMutate()
+
 	for _, fp := range filepaths {
 		if !deps.testFileMutation(fp, mutationTypes) {
 			return false
 		}
 	}
+
 	return true
 }
 
