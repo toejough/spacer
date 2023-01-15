@@ -1,9 +1,8 @@
 package main
 
 import (
-	"testing"
-
 	"spacer/dev/protest"
+	"testing"
 )
 
 func TestTestMutationsHappyPath(t *testing.T) {
@@ -20,38 +19,19 @@ func TestTestMutationsHappyPath(t *testing.T) {
 		calls.Close()
 	}()
 
-	// Then the mutation inputs are fetched:
-	// * the mutation types
-	// * the source files to mutate
-	first := calls.MustPop(t)
-	second := calls.MustPop(t)
+	// Then the mutation types are fetched
 	var mutationTypesCall fetchMutationTypesCall
-	var sourceFilesCall fetchSourceFilesCall
-	var ok bool
+	calls.MustPopAs(t, &mutationTypesCall)
 
-	// TODO this is the most naive way to do this - make a function that:
-	// * takes a slice of any and a target
-	// * sets the target if it can from something in the slice
-	// * returns a slice of the remaining items and an OK indicating whether or not the target was set.
-	mutationTypesCall, ok = first.(fetchMutationTypesCall)
-	if !ok {
-		mutationTypesCall, ok = second.(fetchMutationTypesCall)
-		if !ok {
-			t.Fatalf("neither of the popped calls were for fetching the mutation types: %v, %v", first, second)
-		}
-	}
-
-	sourceFilesCall, ok = first.(fetchSourceFilesCall)
-	if !ok {
-		sourceFilesCall, ok = second.(fetchSourceFilesCall)
-		if !ok {
-			t.Fatalf("neither of the popped calls were for fetching the source files: %v, %v", first, second)
-		}
-	}
-
-	// When the inputs have been fetched
+	// When the mutation types are returned
 	mutationTypes := []mutationType{} // TODO rapid test this
 	mutationTypesCall.ReturnOneShot.Push(mutationTypes)
+
+	// Then the source file paths are fetched
+	var sourceFilesCall fetchSourceFilesCall
+	calls.MustPopAs(t, &sourceFilesCall)
+
+	// When the source file paths are returned
 	sourceFiles := []filepath{} // TODO rapid test this
 	sourceFilesCall.ReturnOneShot.Push(sourceFiles)
 
@@ -69,20 +49,22 @@ func TestTestMutationsHappyPath(t *testing.T) {
 		testCall.ReturnOneShot.Push(true)
 	}
 
-	// Then passing status is returned
-	protest.MustEqual(t, true, result)
-	// and there are no more calls
+	// Then there are no more calls
 	calls.MustConfirmClosed(t)
+	// and a passing status is returned
+	protest.MustEqual(t, true, result)
 }
 
 func newTestMutationsMock(test tester) (*protest.FIFO[any], *testMutationsDeps) {
 	calls := protest.NewFIFO[any]("calls")
 
 	return calls, &testMutationsDeps{
-        fetchMutationTypes: func() []mutationType { return protest.ManageCallWithNoArgs[fetchMutationTypesCall](test, calls)},
-        fetchFilesToMutate: func() []filepath {return protest.ManageCallWithNoArgs[fetchSourceFilesCall](test, calls)},
-        testFileMutation: func(f filepath, m []mutationType) bool {return protest.ManageCall[testFileMutationsCall](test, calls, testFileMutationsArgs{mutationTypes: m, path: f})},
-    }
+		fetchMutationTypes: func() []mutationType { return protest.ManageCallWithNoArgs[fetchMutationTypesCall](test, calls) },
+		fetchFilesToMutate: func() []filepath { return protest.ManageCallWithNoArgs[fetchSourceFilesCall](test, calls) },
+		testFileMutation: func(f filepath, m []mutationType) bool {
+			return protest.ManageCall[testFileMutationsCall](test, calls, testFileMutationsArgs{mutationTypes: m, path: f})
+		},
+	}
 }
 
 func contains[I any](slice []I, item I) bool {

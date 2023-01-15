@@ -78,7 +78,14 @@ func pretest(deps *pretestDeps) bool {
 }
 
 func testMutations(deps *testMutationsDeps) bool {
-    return false
+	mutationTypes := deps.fetchMutationTypes()
+	filepaths := deps.fetchFilesToMutate()
+	for _, fp := range filepaths {
+		if !deps.testFileMutation(fp, mutationTypes) {
+			return false
+		}
+	}
+	return true
 }
 
 type (
@@ -90,12 +97,12 @@ type (
 		fetchTestCommand func() command
 		runTestCommand   func(command) bool
 	}
-	command     string
-    testMutationsDeps struct {
-        fetchMutationTypes func() []mutationType
-        fetchFilesToMutate func() []filepath
-        testFileMutation func(filepath, []mutationType) bool
-    }
-    mutationType struct{}
-    filepath string
+	command           string
+	testMutationsDeps struct {
+		fetchMutationTypes func() []mutationType
+		fetchFilesToMutate func() []filepath
+		testFileMutation   func(filepath, []mutationType) bool
+	}
+	mutationType struct{}
+	filepath     string
 )
