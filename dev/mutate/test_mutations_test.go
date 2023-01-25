@@ -3,57 +3,68 @@ package main
 import (
 	"spacer/dev/protest"
 	"testing"
+
+	"pgregory.net/rapid"
 )
 
 func TestTestMutationsHappyPath(t *testing.T) {
 	t.Parallel()
 
-	// Given inputs/outputs
-	var result bool
+	rapid.Check(t, func(test *rapid.T) {
+		// Given inputs/outputs
+		var result bool
 
-	calls, deps := newTestMutationsMock(t)
+		calls, deps := newTestMutationsMock(test)
 
-	// When the function is called
-	go func() {
-		result = testMutations(deps)
+		// When the function is called
+		go func() {
+			result = testMutations(deps)
 
-		calls.Close()
-	}()
+			calls.Close()
+		}()
 
-	// Then the mutation types are fetched
-	var mutationTypesCall fetchMutationTypesCall
+		// Then the mutation types are fetched
+		var mutationTypesCall fetchMutationTypesCall
 
-	calls.MustPopAs(t, &mutationTypesCall)
+		calls.MustPopAs(test, &mutationTypesCall)
 
-	// When the mutation types are returned
-	mutationTypes := []mutationType{} // TODO rapid test this
-	mutationTypesCall.ReturnOneShot.Push(mutationTypes)
+		// When the mutation types are returned
+		// TODO come back and make this real when we know what the type actually is
+		mutationTypes := rapid.SliceOfN(rapid.Just(mutationType{}), 1, -1).Draw(test, "mutationTypes")
+		mutationTypesCall.ReturnOneShot.Push(mutationTypes)
 
-	// Then the source file paths are fetched
-	var sourceFilesCall fetchSourceFilesCall
+		// Then the source file paths are fetched
+		var sourceFilesCall fetchSourceFilesCall
 
-	calls.MustPopAs(t, &sourceFilesCall)
+		calls.MustPopAs(test, &sourceFilesCall)
 
-	// When the source file paths are returned
-	sourceFiles := []filepath{} // TODO rapid test this
-	sourceFilesCall.ReturnOneShot.Push(sourceFiles)
+		// When the source file paths are returned
+		// TODO come back and make this real when we know what the type actually is
+		sourceFiles := rapid.SliceOfN(rapid.Just(filepath("")), 1, -1).Draw(test, "filepaths")
+		sourceFilesCall.ReturnOneShot.Push(sourceFiles)
 
-	// Then each file is tested for all mutation types
-	for _, fp := range sourceFiles {
-		var testCall testFileMutationsCall
+		// Then each file is tested for all mutation types
+		for _, fp := range sourceFiles {
+			var testCall testFileMutationsCall
 
-		calls.MustPopAs(t, testCall)
-		protest.MustEqual(t, testCall.Args, testFileMutationsArgs{mutationTypes: mutationTypes, path: fp})
+			calls.MustPopAs(test, &testCall)
+			protest.MustEqual(test, testCall.Args, testFileMutationsArgs{mutationTypes: mutationTypes, path: fp})
 
-		// When all tests pass
-		testCall.ReturnOneShot.Push(true)
-	}
+			// When all tests pass
+			testCall.ReturnOneShot.Push(true)
+		}
 
-	// Then there are no more calls
-	calls.MustConfirmClosed(t)
-	// and a passing status is returned
-	protest.MustEqual(t, true, result)
+		// Then there are no more calls
+		calls.MustConfirmClosed(test)
+		// and a passing status is returned
+		protest.MustEqual(test, true, result)
+	})
 }
+
+// TODO: non-happy paths
+// * no filepaths
+// * no mutation types found
+// * any mutation check fails
 
 func newTestMutationsMock(test tester) (*protest.FIFO[any], *testMutationsDeps) {
 	calls := protest.NewFIFO[any]("calls")
