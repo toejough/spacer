@@ -61,6 +61,48 @@ func TestTestMutationsHappyPath(t *testing.T) {
 	})
 }
 
+func TestTestMutationsNoFiles(t *testing.T) {
+	t.Parallel()
+
+	rapid.Check(t, func(test *rapid.T) {
+		// Given inputs/outputs
+		var result bool
+
+		calls, deps := newTestMutationsMock(test)
+
+		// When the function is called
+		go func() {
+			result = testMutations(deps)
+
+			calls.Close()
+		}()
+
+		// Then the mutation types are fetched
+		var mutationTypesCall fetchMutationTypesCall
+
+		calls.MustPopAs(test, &mutationTypesCall)
+
+		// When the mutation types are returned
+		// TODO come back and make this real when we know what the type actually is
+		mutationTypes := rapid.SliceOfN(rapid.Just(mutationType{}), 1, -1).Draw(test, "mutationTypes")
+		mutationTypesCall.ReturnOneShot.Push(mutationTypes)
+
+		// Then the source file paths are fetched
+		var sourceFilesCall fetchSourceFilesCall
+
+		calls.MustPopAs(test, &sourceFilesCall)
+
+		// When no source file paths are returned
+		sourceFiles := []filepath{}
+		sourceFilesCall.ReturnOneShot.Push(sourceFiles)
+
+		// Then there are no more calls
+		calls.MustConfirmClosed(test)
+		// and a failing status is returned
+		protest.MustEqual(test, false, result)
+	})
+}
+
 // TODO: non-happy paths
 // * no filepaths
 // * no mutation types found

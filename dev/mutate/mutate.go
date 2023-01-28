@@ -81,6 +81,10 @@ func testMutations(deps *testMutationsDeps) bool {
 	mutationTypes := deps.fetchMutationTypes()
 	filepaths := deps.fetchFilesToMutate()
 
+	if len(filepaths) == 0 {
+		return false
+	}
+
 	for _, fp := range filepaths {
 		if !deps.testFileMutation(fp, mutationTypes) {
 			return false
