@@ -135,8 +135,76 @@ func TestTestMutationsNoMutationTypes(t *testing.T) {
 	})
 }
 
-// TODO: non-happy paths
-// * any mutation check fails
+func TestTestMutationsUncaught(t *testing.T) {
+	t.Parallel()
+
+	rapid.Check(t, func(test *rapid.T) {
+		// Given inputs/outputs
+		var result bool
+
+		calls, deps := newTestMutationsMock(test)
+
+		// When the function is called
+		go func() {
+			result = testMutations(deps)
+
+			calls.Close()
+		}()
+
+		// Then the mutation types are fetched
+		var mutationTypesCall fetchMutationTypesCall
+
+		calls.MustPopAs(test, &mutationTypesCall)
+
+		// When the mutation types are returned
+		// TODO come back and make this real when we know what the type actually is
+		mutationTypes := rapid.SliceOfN(rapid.Just(mutationType{}), 1, -1).Draw(test, "mutationTypes")
+		mutationTypesCall.ReturnOneShot.Push(mutationTypes)
+
+		// Then the source file paths are fetched
+		var sourceFilesCall fetchSourceFilesCall
+
+		calls.MustPopAs(test, &sourceFilesCall)
+
+		// When the source file paths are returned
+		// TODO come back and make this real when we know what the type actually is
+		sourceFiles := rapid.SliceOfN(rapid.Just(filepath("")), 1, -1).Draw(test, "filepaths")
+		sourceFilesCall.ReturnOneShot.Push(sourceFiles)
+		numSourceFiles := len(sourceFiles)
+		testResults := rapid.SliceOfN(
+			rapid.SampledFrom([]bool{true, false}),
+			numSourceFiles,
+			numSourceFiles,
+		).Filter(func(items []bool) bool {
+			for _, i := range items {
+				if !i {
+					return true
+				}
+			}
+			return false
+		}).Draw(test, "mutation test result")
+
+		// Then each file is tested for all mutation types
+		for i, fp := range sourceFiles {
+			var testCall testFileMutationsCall
+
+			calls.MustPopAs(test, &testCall)
+			protest.MustEqual(test, testCall.Args, testFileMutationsArgs{mutationTypes: mutationTypes, path: fp})
+
+			// When all tests pass
+			testCall.ReturnOneShot.Push(testResults[i])
+
+			if !testResults[i] {
+				break
+			}
+		}
+
+		// Then there are no more calls
+		calls.MustConfirmClosed(test)
+		// and a passing status is returned
+		protest.MustEqual(test, false, result)
+	})
+}
 
 func newTestMutationsMock(test tester) (*protest.FIFO[any], *testMutationsDeps) {
 	calls := protest.NewFIFO[any]("calls")
