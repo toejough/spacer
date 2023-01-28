@@ -79,6 +79,11 @@ func pretest(deps *pretestDeps) bool {
 
 func testMutations(deps *testMutationsDeps) bool {
 	mutationTypes := deps.fetchMutationTypes()
+
+	if len(mutationTypes) == 0 {
+		return false
+	}
+
 	filepaths := deps.fetchFilesToMutate()
 
 	if len(filepaths) == 0 {

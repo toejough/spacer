@@ -103,9 +103,39 @@ func TestTestMutationsNoFiles(t *testing.T) {
 	})
 }
 
+func TestTestMutationsNoMutationTypes(t *testing.T) {
+	t.Parallel()
+
+	rapid.Check(t, func(test *rapid.T) {
+		// Given inputs/outputs
+		var result bool
+
+		calls, deps := newTestMutationsMock(test)
+
+		// When the function is called
+		go func() {
+			result = testMutations(deps)
+
+			calls.Close()
+		}()
+
+		// Then the mutation types are fetched
+		var mutationTypesCall fetchMutationTypesCall
+
+		calls.MustPopAs(test, &mutationTypesCall)
+
+		// When no mutation types are returned
+		mutationTypes := []mutationType{}
+		mutationTypesCall.ReturnOneShot.Push(mutationTypes)
+
+		// Then there are no more calls
+		calls.MustConfirmClosed(test)
+		// and a failing status is returned
+		protest.MustEqual(test, false, result)
+	})
+}
+
 // TODO: non-happy paths
-// * no filepaths
-// * no mutation types found
 // * any mutation check fails
 
 func newTestMutationsMock(test tester) (*protest.FIFO[any], *testMutationsDeps) {
