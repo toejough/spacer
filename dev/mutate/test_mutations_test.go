@@ -29,8 +29,7 @@ func TestTestMutationsHappyPath(t *testing.T) {
 		calls.MustPopAs(test, &mutationTypesCall)
 
 		// When the mutation types are returned
-		// TODO come back and make this real when we know what the type actually is
-		mutationTypes := rapid.SliceOfN(rapid.Just(mutationType{}), 1, -1).Draw(test, "mutationTypes")
+		mutationTypes := rapid.SliceOfN(rapid.Make[mutationType](), 1, -1).Draw(test, "mutationTypes")
 		mutationTypesCall.ReturnOneShot.Push(mutationTypes)
 
 		// Then the source file paths are fetched
@@ -39,8 +38,7 @@ func TestTestMutationsHappyPath(t *testing.T) {
 		calls.MustPopAs(test, &sourceFilesCall)
 
 		// When the source file paths are returned
-		// TODO come back and make this real when we know what the type actually is
-		sourceFiles := rapid.SliceOfN(rapid.Just(filepath("")), 1, -1).Draw(test, "filepaths")
+		sourceFiles := rapid.SliceOfN(rapid.Custom(drawFilePath), 1, -1).Draw(test, "filepaths")
 		sourceFilesCall.ReturnOneShot.Push(sourceFiles)
 
 		// Then each file is tested for all mutation types
@@ -59,6 +57,10 @@ func TestTestMutationsHappyPath(t *testing.T) {
 		// and a passing status is returned
 		protest.MustEqual(test, true, result)
 	})
+}
+
+func drawFilePath(t *rapid.T) filepath {
+	return filepath(rapid.String().Draw(t, "filepath"))
 }
 
 func TestTestMutationsNoFiles(t *testing.T) {
@@ -83,8 +85,7 @@ func TestTestMutationsNoFiles(t *testing.T) {
 		calls.MustPopAs(test, &mutationTypesCall)
 
 		// When the mutation types are returned
-		// TODO come back and make this real when we know what the type actually is
-		mutationTypes := rapid.SliceOfN(rapid.Just(mutationType{}), 1, -1).Draw(test, "mutationTypes")
+		mutationTypes := rapid.SliceOfN(rapid.Make[mutationType](), 1, -1).Draw(test, "mutationTypes")
 		mutationTypesCall.ReturnOneShot.Push(mutationTypes)
 
 		// Then the source file paths are fetched
@@ -157,8 +158,7 @@ func TestTestMutationsUncaught(t *testing.T) {
 		calls.MustPopAs(test, &mutationTypesCall)
 
 		// When the mutation types are returned
-		// TODO come back and make this real when we know what the type actually is
-		mutationTypes := rapid.SliceOfN(rapid.Just(mutationType{}), 1, -1).Draw(test, "mutationTypes")
+		mutationTypes := rapid.SliceOfN(rapid.Make[mutationType](), 1, -1).Draw(test, "mutationTypes")
 		mutationTypesCall.ReturnOneShot.Push(mutationTypes)
 
 		// Then the source file paths are fetched
@@ -167,34 +167,24 @@ func TestTestMutationsUncaught(t *testing.T) {
 		calls.MustPopAs(test, &sourceFilesCall)
 
 		// When the source file paths are returned
-		// TODO come back and make this real when we know what the type actually is
-		sourceFiles := rapid.SliceOfN(rapid.Just(filepath("")), 1, -1).Draw(test, "filepaths")
+		sourceFiles := rapid.SliceOfN(rapid.Custom(drawFilePath), 1, -1).Draw(test, "filepaths")
 		sourceFilesCall.ReturnOneShot.Push(sourceFiles)
 		numSourceFiles := len(sourceFiles)
 		testResults := rapid.SliceOfN(
-			rapid.SampledFrom([]bool{true, false}),
-			numSourceFiles,
-			numSourceFiles,
-		).Filter(func(items []bool) bool {
-			for _, i := range items {
-				if !i {
-					return true
-				}
-			}
-			return false
-		}).Draw(test, "mutation test result")
+			rapid.SampledFrom([]bool{true, false}), numSourceFiles, numSourceFiles,
+		).Filter(atLeastOneFalse).Draw(test, "mutation test result")
 
 		// Then each file is tested for all mutation types
-		for i, fp := range sourceFiles {
+		for index, fp := range sourceFiles {
 			var testCall testFileMutationsCall
 
 			calls.MustPopAs(test, &testCall)
 			protest.MustEqual(test, testCall.Args, testFileMutationsArgs{mutationTypes: mutationTypes, path: fp})
 
 			// When all tests pass
-			testCall.ReturnOneShot.Push(testResults[i])
+			testCall.ReturnOneShot.Push(testResults[index])
 
-			if !testResults[i] {
+			if !testResults[index] {
 				break
 			}
 		}
@@ -204,6 +194,16 @@ func TestTestMutationsUncaught(t *testing.T) {
 		// and a passing status is returned
 		protest.MustEqual(test, false, result)
 	})
+}
+
+func atLeastOneFalse(items []bool) bool {
+	for _, i := range items {
+		if !i {
+			return true
+		}
+	}
+
+	return false
 }
 
 func newTestMutationsMock(test tester) (*protest.FIFO[any], *testMutationsDeps) {

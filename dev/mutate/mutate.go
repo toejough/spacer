@@ -18,7 +18,17 @@ import (
 func main() {
 	fmt.Println("Starting mutation testing")
 
-	if run(&runDeps{
+	if run(prodRunDeps()) {
+		fmt.Println("Mutation testing passed")
+		os.Exit(0)
+	} else {
+		fmt.Println("Mutation testing failed")
+		os.Exit(1)
+	}
+}
+
+func prodRunDeps() *runDeps {
+	return &runDeps{
 		pretest: func() bool {
 			fmt.Println("Starting pretesting")
 			results := pretest(&pretestDeps{
@@ -53,14 +63,26 @@ func main() {
 			return results
 		},
 		testMutations: func() bool {
-			panic("testMutations not implemented")
+			fmt.Println("Testing mutations")
+			if !testMutations(&testMutationsDeps{
+				fetchMutationTypes: func() []mutationType {
+					panic("fetchMutationTypes is undefined")
+				},
+				fetchFilesToMutate: func() []filepath {
+					panic("fetchFilesToMutate is undefined")
+				},
+				testFileMutation: func(filepath, []mutationType) bool {
+					panic("testFileMutation is undefined")
+				},
+			}) {
+				fmt.Println("testing mutations failed")
+				return false
+			}
+
+			fmt.Println("testing mutations passed")
+
+			return true
 		},
-	}) {
-		fmt.Println("Mutation testing passed")
-		os.Exit(0)
-	} else {
-		fmt.Println("Mutation testing failed")
-		os.Exit(1)
 	}
 }
 
@@ -114,6 +136,8 @@ type (
 		fetchFilesToMutate func() []filepath
 		testFileMutation   func(filepath, []mutationType) bool
 	}
-	mutationType struct{}
-	filepath     string
+	mutationType struct {
+		Name string
+	}
+	filepath string
 )
