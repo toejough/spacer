@@ -26,8 +26,10 @@ func TestFetchFilesHappyPath(t *testing.T) {
 		// Then the paths to include are fetched
         call := calls.MustPop(test)
         protest.MustEqual(test, "fetchPathsToMutate", call.Name)
+        protest.MustEqual(test, []any{}, call.PullArgs())
 
         // When paths are returned
+        call.PushReturns(generatedPaths)
         // Then the paths are split into files and directories
         // When the files and directories are returned
         // Then the directories are expanded recursively to the files they contain
