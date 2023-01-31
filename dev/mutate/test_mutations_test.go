@@ -46,6 +46,12 @@ func TestTestMutationsHappyPath(t *testing.T) {
 			var testCall testFileMutationsCall
 
 			calls.MustPopAs(test, &testCall)
+			// TODO: experiment with a more raw call/args/return type. Under the covers, we already just do
+			// reflect.DeepEqual, so a call like the following could work just as well, with the same error messages if
+			// data was mismatched:
+			// protest.MustEqual(test, testCall.Name, "TestFileMutations")
+			// protest.MustEqual(test, testCall.PullArgs(), mutationTypes, fp)
+			// testCall.PushReturns(true)
 			protest.MustEqual(test, testCall.Args, testFileMutationsArgs{mutationTypes: mutationTypes, path: fp})
 
 			// When all tests pass
@@ -215,6 +221,7 @@ func newTestMutationsMock(test tester) (*protest.FIFO[any], *testMutationsDeps) 
 		},
 		fetchFilesToMutate: func() []filepath { return protest.ManageCallWithNoArgs[fetchSourceFilesCall](test, calls) },
 		testFileMutation: func(f filepath, m []mutationType) bool {
+			// return protest.ProxyCall(test, calls, "testFileMutation", f, m).(bool)
 			return protest.ManageCall[testFileMutationsCall](test, calls, testFileMutationsArgs{mutationTypes: m, path: f})
 		},
 	}
