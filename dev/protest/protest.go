@@ -354,3 +354,34 @@ func ManageCallWithNoReturn[C ~struct {
 	// it first and then accessing the ReturnOneShot in the return statement is a compiler error. :shrug:
 	calls.Push(C{Args: args})
 }
+
+// ProxyCall proxies a call, creating oneshots for args and return, recording the call, pushing the args, and pulling & returning
+// the value pulled for return. The first type param here would be Call, but go won't allow that with ~.
+func ProxyCall(test Tester, calls *FIFO[AnyCall], name string, args ...any) any {
+	argsOneShot := NewOneShotFIFO[[]any]("args oneShot")
+	returnOneShot := NewOneShotFIFO[any]("return oneShot")
+
+	calls.Push(AnyCall{
+        Name: name,
+		Args:          argsOneShot,
+		Returns: returnOneShot,
+	})
+
+    argsOneShot.Push(args)
+
+	return returnOneShot.MustPop(test)
+}
+
+type AnyCall struct {
+    Name string
+    Args *FIFO[[]any]
+    Returns *FIFO[any]
+}
+
+func (ac *AnyCall) MustPullArgs(t Tester) []any {
+    return ac.Args.MustPop(t)
+}
+
+func (ac *AnyCall) PushReturns(returns ...any) {
+    ac.Returns.Push(returns)
+}
