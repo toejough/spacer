@@ -154,6 +154,28 @@ func (s *FIFO[I]) MustPop(t Tester) (next I) {
 	return s.MustPopWithin(t, 1*time.Second)
 }
 
+// MustPopNamed pops the next thing from the FIFO, waiting up to 1s for it to be available. If it is available within the
+// timeout, and it's an AnyCall with the expected name, it returns the value. If it is not available within the timeout,
+// it triggers a fatal test failure. If it is not an AnyCall, it triggers a fatal test error. If it is not the expected
+// name, it triggers a fatal test error.
+func (s *FIFO[I]) MustPopNamed(t Tester, name string) (next I) {
+	t.Helper()
+
+	call, err := s.PopWithin(1 * time.Second)
+	if err != nil {
+		t.Fatal(fmt.Errorf("didn't find the expected call to %s: %w", name, err))
+	}
+	anyCall, ok := any(call).(AnyCall)
+
+	if !ok {
+		t.Fatal(fmt.Errorf("didn't find the expected call to %s: value popped in MustPopNamed was not an AnyCall", name))
+	}
+
+	MustEqual(t, name, anyCall.Name)
+
+	return call
+}
+
 // MustPopEqualTo pops the next thing from the FIFO, waiting up to 1s for it to be available. If it is available within
 // the timeout and equal to the expected value, it returns. Equality is tested with reflect.DeepEqual. If it is not
 // available within the timeout, it triggers a fatal test failure. If it is not equal, it triggers a fatal test failure.
@@ -357,31 +379,31 @@ func ManageCallWithNoReturn[C ~struct {
 
 // ProxyCall proxies a call, creating oneshots for args and return, recording the call, pushing the args, and pulling & returning
 // the value pulled for return. The first type param here would be Call, but go won't allow that with ~.
-func ProxyCall(test Tester, calls *FIFO[AnyCall], name string, args ...any) any {
+func ProxyCall(test Tester, calls *FIFO[AnyCall], name string, args ...any) []any {
 	argsOneShot := NewOneShotFIFO[[]any]("args oneShot")
-	returnOneShot := NewOneShotFIFO[any]("return oneShot")
+	returnOneShot := NewOneShotFIFO[[]any]("return oneShot")
 
 	calls.Push(AnyCall{
-        Name: name,
-		Args:          argsOneShot,
+		Name:    name,
+		Args:    argsOneShot,
 		Returns: returnOneShot,
 	})
 
-    argsOneShot.Push(args)
+	argsOneShot.Push(args)
 
 	return returnOneShot.MustPop(test)
 }
 
 type AnyCall struct {
-    Name string
-    Args *FIFO[[]any]
-    Returns *FIFO[any]
+	Name    string
+	Args    *FIFO[[]any]
+	Returns *FIFO[[]any]
 }
 
 func (ac *AnyCall) MustPullArgs(t Tester) []any {
-    return ac.Args.MustPop(t)
+	return ac.Args.MustPop(t)
 }
 
 func (ac *AnyCall) PushReturns(returns ...any) {
-    ac.Returns.Push(returns)
+	ac.Returns.Push(returns)
 }
