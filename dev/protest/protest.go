@@ -283,7 +283,7 @@ func (s *FIFO[I]) MustConfirmClosedWithin(t Tester, d time.Duration) {
 // reflect.DeepEqual. If it is not equal, it returns ErrNotEqual.
 func Equal[I any](expected, actual I) (err error) {
 	if !reflect.DeepEqual(expected, actual) {
-		return fmt.Errorf("expected %T(%v) but found %T(%v) instead: %w", expected, expected, actual, actual, ErrNotEqual)
+		return fmt.Errorf("expected %T(%#v) but found %T(%#v) instead: %w", expected, expected, actual, actual, ErrNotEqual)
 	}
 
 	return nil
