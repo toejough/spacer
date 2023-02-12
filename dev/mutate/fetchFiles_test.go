@@ -47,7 +47,7 @@ func TestFetchFilesHappyPath(t *testing.T) {
 		call.PushReturns(generatedRecursiveFiles)
 		// Then the files are filtered for just .go files
 		call = calls.MustPopNamed(test, "filterToGoFiles")
-		combinedFiles := append(generatedFiles, generatedRecursiveFiles...)
+		combinedFiles := combine(generatedFiles, generatedRecursiveFiles)
 		protest.MustEqual(test, []any{combinedFiles}, call.MustPullArgs(test))
 
 		// When the filtered files are returned
@@ -60,11 +60,23 @@ func TestFetchFilesHappyPath(t *testing.T) {
 	})
 }
 
+func combine(a, b []filepath) []filepath {
+	combined := make([]filepath, len(a)+len(b))
+	copy(combined, a)
+
+	for i, item := range b {
+		combined[len(a)+i] = item
+	}
+
+	return combined
+}
+
 func fetchFilesToMutate(deps *fetchFilesDeps) (filesToMutate []filepath) {
 	paths := deps.fetchPathsToMutate()
 	files, dirs := deps.splitFilesAndDirs(paths)
 	expandedFiles := deps.recursivelyExpandDirectories(dirs)
-	allFiles := append(files, expandedFiles...)
+	allFiles := combine(files, expandedFiles)
+
 	return deps.filterToGoFiles(allFiles)
 }
 
@@ -73,17 +85,18 @@ func newFetchFilesMock(test tester) (*protest.FIFO[protest.AnyCall], *fetchFiles
 
 	return calls, &fetchFilesDeps{
 		fetchPathsToMutate: func() []filepath {
-			return protest.ProxyCall(test, calls, "fetchPathsToMutate")[0].([]filepath)
+			return protest.ProxyCall(test, calls, "fetchPathsToMutate")[0].([]filepath) //nolint:forcetypeassert
+			// this is a test, and I want a panic if this is invalid
 		},
 		splitFilesAndDirs: func(paths []filepath) (files, dirs []filepath) {
 			returns := protest.ProxyCall(test, calls, "splitFilesAndDirs", paths)
-			return returns[0].([]filepath), returns[1].([]filepath)
+			return returns[0].([]filepath), returns[1].([]filepath) //nolint:forcetypeassert
 		},
 		recursivelyExpandDirectories: func(dirs []filepath) (files []filepath) {
-			return protest.ProxyCall(test, calls, "recursivelyExpandDirectories", dirs)[0].([]filepath)
+			return protest.ProxyCall(test, calls, "recursivelyExpandDirectories", dirs)[0].([]filepath) //nolint:forcetypeassert
 		},
 		filterToGoFiles: func(files []filepath) (goFiles []filepath) {
-			return protest.ProxyCall(test, calls, "filterToGoFiles", files)[0].([]filepath)
+			return protest.ProxyCall(test, calls, "filterToGoFiles", files)[0].([]filepath) //nolint:forcetypeassert
 		},
 	}
 }

@@ -154,24 +154,24 @@ func (s *FIFO[I]) MustPop(t Tester) (next I) {
 	return s.MustPopWithin(t, 1*time.Second)
 }
 
-// MustPopNamed pops the next thing from the FIFO, waiting up to 1s for it to be available. If it is available within the
-// timeout, and it's an AnyCall with the expected name, it returns the value. If it is not available within the timeout,
-// it triggers a fatal test failure. If it is not an AnyCall, it triggers a fatal test error. If it is not the expected
-// name, it triggers a fatal test error.
-func (s *FIFO[I]) MustPopNamed(t Tester, name string) (next I) {
-	t.Helper()
+// MustPopNamed pops the next thing from the FIFO, waiting up to 1s for it to be available. If it is available within
+// the timeout, and it's an AnyCall with the expected name, it returns the value. If it is not available within the
+// timeout, it triggers a fatal test failure. If it is not an AnyCall, it triggers a fatal test error. If it is not the
+// expected name, it triggers a fatal test error.
+func (s *FIFO[I]) MustPopNamed(test Tester, name string) (next I) {
+	test.Helper()
 
 	call, err := s.PopWithin(1 * time.Second)
 	if err != nil {
-		t.Fatal(fmt.Errorf("didn't find the expected call to %s: %w", name, err))
+		test.Fatal(fmt.Errorf("didn't find the expected call to %s: %w", name, err))
 	}
+
 	anyCall, ok := any(call).(AnyCall)
-
 	if !ok {
-		t.Fatal(fmt.Errorf("didn't find the expected call to %s: value popped in MustPopNamed was not an AnyCall", name))
+		test.Fatal(fmt.Sprintf("didn't find the expected call to %s: value popped in MustPopNamed was not an AnyCall", name))
 	}
 
-	MustEqual(t, name, anyCall.Name)
+	MustEqual(test, name, anyCall.Name)
 
 	return call
 }
@@ -377,8 +377,8 @@ func ManageCallWithNoReturn[C ~struct {
 	calls.Push(C{Args: args})
 }
 
-// ProxyCall proxies a call, creating oneshots for args and return, recording the call, pushing the args, and pulling & returning
-// the value pulled for return. The first type param here would be Call, but go won't allow that with ~.
+// ProxyCall proxies a call, creating oneshots for args and return, recording the call, pushing the args, and pulling &
+// returning the value pulled for return. The first type param here would be Call, but go won't allow that with ~.
 func ProxyCall(test Tester, calls *FIFO[AnyCall], name string, args ...any) []any {
 	argsOneShot := NewOneShotFIFO[[]any]("args oneShot")
 	returnOneShot := NewOneShotFIFO[[]any]("return oneShot")
