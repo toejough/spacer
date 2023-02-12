@@ -85,18 +85,20 @@ func newFetchFilesMock(test tester) (*protest.FIFO[protest.AnyCall], *fetchFiles
 
 	return calls, &fetchFilesDeps{
 		fetchPathsToMutate: func() []filepath {
-			return protest.ProxyCall(test, calls, "fetchPathsToMutate")[0].([]filepath) //nolint:forcetypeassert
-			// this is a test, and I want a panic if this is invalid
+			returns := protest.ProxyCall(test, calls, "fetchPathsToMutate")
+			return protest.MustUnwrapTo1[[]filepath](test, returns)
 		},
 		splitFilesAndDirs: func(paths []filepath) (files, dirs []filepath) {
 			returns := protest.ProxyCall(test, calls, "splitFilesAndDirs", paths)
-			return returns[0].([]filepath), returns[1].([]filepath) //nolint:forcetypeassert
+			return protest.MustUnwrapTo2[[]filepath, []filepath](test, returns)
 		},
 		recursivelyExpandDirectories: func(dirs []filepath) (files []filepath) {
-			return protest.ProxyCall(test, calls, "recursivelyExpandDirectories", dirs)[0].([]filepath) //nolint:forcetypeassert
+			returns := protest.ProxyCall(test, calls, "recursivelyExpandDirectories", dirs)
+			return protest.MustUnwrapTo1[[]filepath](test, returns)
 		},
 		filterToGoFiles: func(files []filepath) (goFiles []filepath) {
-			return protest.ProxyCall(test, calls, "filterToGoFiles", files)[0].([]filepath) //nolint:forcetypeassert
+			returns := protest.ProxyCall(test, calls, "filterToGoFiles", files)
+			return protest.MustUnwrapTo1[[]filepath](test, returns)
 		},
 	}
 }

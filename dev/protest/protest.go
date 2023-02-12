@@ -407,3 +407,35 @@ func (ac *AnyCall) MustPullArgs(t Tester) []any {
 func (ac *AnyCall) PushReturns(returns ...any) {
 	ac.Returns.Push(returns)
 }
+
+// MustUnwrapTo1 checks that the input array has exactly 1 value of the specified generic type, and returns that.
+func MustUnwrapTo1[R any](t Tester, returns []any) R {
+	MustEqual(t, 1, len(returns))
+
+	first, ok := returns[0].(R)
+	if !ok {
+		t.Fatal(fmt.Sprintf("failed type assertion of %#v to %T", returns[0], first))
+	}
+
+	return first
+}
+
+// MustUnwrapTo2 checks that the input array has exactly 2 values of the specified generic types, and returns them.
+func MustUnwrapTo2[R1 any, R2 any](test Tester, returns []any) (first R1, second R2) {
+	expectedNumValues := 2
+	MustEqual(test, expectedNumValues, len(returns))
+
+	var typeAssertionOk bool
+
+	first, typeAssertionOk = returns[0].(R1)
+	if !typeAssertionOk {
+		test.Fatal(fmt.Sprintf("failed type assertion of item 0 (%#v) to %T", returns[0], first))
+	}
+
+	second, typeAssertionOk = returns[1].(R2)
+	if !typeAssertionOk {
+		test.Fatal(fmt.Sprintf("failed type assertion of item 1 (%#v) to %T", returns[1], second))
+	}
+
+	return first, second
+}
