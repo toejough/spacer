@@ -85,20 +85,16 @@ func newFetchFilesMock(test tester) (*protest.FIFO[protest.AnyCall], *fetchFiles
 
 	return calls, &fetchFilesDeps{
 		fetchPathsToMutate: func() []filepath {
-			returns := protest.ProxyCall(test, calls, "fetchPathsToMutate")
-			return protest.MustUnwrapTo1[[]filepath](test, returns)
+			return protest.ProxyCallR1[[]filepath](test, calls, "fetchPathsToMutate")
 		},
 		splitFilesAndDirs: func(paths []filepath) (files, dirs []filepath) {
-			returns := protest.ProxyCall(test, calls, "splitFilesAndDirs", paths)
-			return protest.MustUnwrapTo2[[]filepath, []filepath](test, returns)
+			return protest.ProxyCallR2[[]filepath, []filepath](test, calls, "splitFilesAndDirs", paths)
 		},
 		recursivelyExpandDirectories: func(dirs []filepath) (files []filepath) {
-			returns := protest.ProxyCall(test, calls, "recursivelyExpandDirectories", dirs)
-			return protest.MustUnwrapTo1[[]filepath](test, returns)
+			return protest.ProxyCallR1[[]filepath](test, calls, "recursivelyExpandDirectories", dirs)
 		},
 		filterToGoFiles: func(files []filepath) (goFiles []filepath) {
-			returns := protest.ProxyCall(test, calls, "filterToGoFiles", files)
-			return protest.MustUnwrapTo1[[]filepath](test, returns)
+			return protest.ProxyCallR1[[]filepath](test, calls, "filterToGoFiles", files)
 		},
 	}
 }

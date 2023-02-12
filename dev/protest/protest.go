@@ -401,6 +401,7 @@ type AnyCall struct {
 }
 
 func (ac *AnyCall) MustPullArgs(t Tester) []any {
+	t.Helper()
 	return ac.Args.MustPop(t)
 }
 
@@ -410,32 +411,45 @@ func (ac *AnyCall) PushReturns(returns ...any) {
 
 // MustUnwrapTo1 checks that the input array has exactly 1 value of the specified generic type, and returns that.
 func MustUnwrapTo1[R any](t Tester, returns []any) R {
+	t.Helper()
 	MustEqual(t, 1, len(returns))
 
-	first, ok := returns[0].(R)
-	if !ok {
-		t.Fatal(fmt.Sprintf("failed type assertion of %#v to %T", returns[0], first))
-	}
-
-	return first
+	return MustBeType[R](t, returns[0])
 }
 
 // MustUnwrapTo2 checks that the input array has exactly 2 values of the specified generic types, and returns them.
 func MustUnwrapTo2[R1 any, R2 any](test Tester, returns []any) (first R1, second R2) {
+	test.Helper()
+
 	expectedNumValues := 2
 	MustEqual(test, expectedNumValues, len(returns))
 
-	var typeAssertionOk bool
+	return MustBeType[R1](test, returns[0]), MustBeType[R2](test, returns[1])
+}
 
-	first, typeAssertionOk = returns[0].(R1)
-	if !typeAssertionOk {
-		test.Fatal(fmt.Sprintf("failed type assertion of item 0 (%#v) to %T", returns[0], first))
+// MustBeType checks that the is a value of the specified generic type, and returns that. If it is not, it fails the
+// test with an error message.
+func MustBeType[R any](t Tester, value any) R {
+	t.Helper()
+
+	typed, ok := value.(R)
+	if !ok {
+		t.Fatal(fmt.Sprintf("failed type assertion of %#v to %T", value, typed))
 	}
 
-	second, typeAssertionOk = returns[1].(R2)
-	if !typeAssertionOk {
-		test.Fatal(fmt.Sprintf("failed type assertion of item 1 (%#v) to %T", returns[1], second))
-	}
+	return typed
+}
 
-	return first, second
+// ProxyCallR1 proxies a call, creating oneshots for args and return, recording the call, pushing the args, and pulling
+// & type-asserting & returning the value pulled for return.
+func ProxyCallR1[R1 any](t Tester, calls *FIFO[AnyCall], name string, args ...any) R1 {
+	t.Helper()
+	return MustUnwrapTo1[R1](t, ProxyCall(t, calls, name, args...))
+}
+
+// ProxyCallR2 proxies a call, creating oneshots for args and return, recording the call, pushing the args, and pulling
+// & type-asserting & returning the values pulled for return.
+func ProxyCallR2[R1, R2 any](t Tester, calls *FIFO[AnyCall], name string, args ...any) (R1, R2) {
+	t.Helper()
+	return MustUnwrapTo2[R1, R2](t, ProxyCall(t, calls, name, args...))
 }
