@@ -7,6 +7,14 @@ import (
 	"pgregory.net/rapid"
 )
 
+// TODO - refactor all old tests to use the new protest funcs
+// TODO - kill off the unused protest funcs
+// TODO - tidy vertical call flows across all files.
+// TODO - instead of MustPopNamed on all Fifos that has a type assertion, make a special calls FIFO with a MustPop.
+// TODO - actually make one-shots their own type.
+// TODO - test getting mutation types
+// name, AST predicate func, AST modification func. Check out https://eli.thegreenplace.net/2021/rewriting-go-source-code-with-ast-tooling/
+// TODO - test running mutation types.
 func TestFetchFilesHappyPath(t *testing.T) {
 	t.Parallel()
 
@@ -60,26 +68,6 @@ func TestFetchFilesHappyPath(t *testing.T) {
 	})
 }
 
-func combine(a, b []filepath) []filepath {
-	combined := make([]filepath, len(a)+len(b))
-	copy(combined, a)
-
-	for i, item := range b {
-		combined[len(a)+i] = item
-	}
-
-	return combined
-}
-
-func fetchFilesToMutate(deps *fetchFilesDeps) (filesToMutate []filepath) {
-	paths := deps.fetchPathsToMutate()
-	files, dirs := deps.splitFilesAndDirs(paths)
-	expandedFiles := deps.recursivelyExpandDirectories(dirs)
-	allFiles := combine(files, expandedFiles)
-
-	return deps.filterToGoFiles(allFiles)
-}
-
 func newFetchFilesMock(test tester) (*protest.FIFO[protest.AnyCall], *fetchFilesDeps) {
 	calls := protest.NewFIFO[protest.AnyCall]("calls")
 
@@ -97,11 +85,4 @@ func newFetchFilesMock(test tester) (*protest.FIFO[protest.AnyCall], *fetchFiles
 			return protest.ProxyCallR1[[]filepath](test, calls, "filterToGoFiles", files)
 		},
 	}
-}
-
-type fetchFilesDeps struct {
-	fetchPathsToMutate           func() []filepath
-	splitFilesAndDirs            func(paths []filepath) (files, dirs []filepath)
-	recursivelyExpandDirectories func(dirs []filepath) (files []filepath)
-	filterToGoFiles              func(files []filepath) (goFiles []filepath)
 }

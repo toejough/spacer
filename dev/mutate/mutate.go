@@ -27,7 +27,8 @@ func main() {
 	}
 }
 
-func prodRunDeps() *runDeps {
+// this function is going to be long... it has all the dependencies.
+func prodRunDeps() *runDeps { //nolint:funlen
 	return &runDeps{
 		pretest: func() bool {
 			fmt.Println("Starting pretesting")
@@ -69,7 +70,22 @@ func prodRunDeps() *runDeps {
 					panic("fetchMutationTypes is undefined")
 				},
 				fetchFilesToMutate: func() []filepath {
-					panic("fetchFilesToMutate is undefined")
+					fmt.Println("Fetching files to mutate")
+					filepaths := fetchFilesToMutate(&fetchFilesDeps{
+						fetchPathsToMutate: func() []filepath { panic("fetchPathsToMutate is undefined") },
+						splitFilesAndDirs: func(paths []filepath) (files, dirs []filepath) {
+							panic("splitFilesAndDirs is undefined")
+						},
+						recursivelyExpandDirectories: func(dirs []filepath) (files []filepath) {
+							panic("recursivelyExpandDirectories is undefined")
+						},
+						filterToGoFiles: func(files []filepath) (goFiles []filepath) {
+							panic("filterToGoFiles is undefined")
+						},
+					})
+					fmt.Printf("Files to mutate: %v\n", filepaths)
+
+					return filepaths
 				},
 				testFileMutation: func(filepath, []mutationType) bool {
 					panic("testFileMutation is undefined")
@@ -121,6 +137,26 @@ func testMutations(deps *testMutationsDeps) bool {
 	return true
 }
 
+func fetchFilesToMutate(deps *fetchFilesDeps) (filesToMutate []filepath) {
+	paths := deps.fetchPathsToMutate()
+	files, dirs := deps.splitFilesAndDirs(paths)
+	expandedFiles := deps.recursivelyExpandDirectories(dirs)
+	allFiles := combine(files, expandedFiles)
+
+	return deps.filterToGoFiles(allFiles)
+}
+
+func combine(a, b []filepath) []filepath {
+	combined := make([]filepath, len(a)+len(b))
+	copy(combined, a)
+
+	for i, item := range b {
+		combined[len(a)+i] = item
+	}
+
+	return combined
+}
+
 type (
 	runDeps struct {
 		pretest       func() bool
@@ -139,5 +175,11 @@ type (
 	mutationType struct {
 		Name string
 	}
-	filepath string
+	filepath       string
+	fetchFilesDeps struct {
+		fetchPathsToMutate           func() []filepath
+		splitFilesAndDirs            func(paths []filepath) (files, dirs []filepath)
+		recursivelyExpandDirectories func(dirs []filepath) (files []filepath)
+		filterToGoFiles              func(files []filepath) (goFiles []filepath)
+	}
 )
