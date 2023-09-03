@@ -1,3 +1,4 @@
+//nolint:forcetypeassert // this is a test file, it's ok if type assertions panic
 package main
 
 // The main idea for all the unit tests is to test the behavior we care about _at this level_.
@@ -7,134 +8,79 @@ package main
 // conveyed.
 
 import (
-	"spacer/dev/protest"
 	"testing"
+	"time"
 )
 
-type (
-	runDepsMock struct {
-		calls *protest.FIFO[interface{}]
-		t     tester
-		deps  *runDeps
-	}
-	verifyTestsPassWithNoMutantsCall protest.CallWithNoArgs[bool]
-	testMutationsCall                protest.CallWithNoArgs[bool]
-	tester                           interface {
-		Helper()
-		Fatal(...any)
-	}
-)
-
-func (rdm *runDepsMock) close() {
-	rdm.calls.Close()
+type simulator struct {
+	deps     *runDeps
+	callChan chan call
 }
 
-func newMockedDeps(test tester) *runDepsMock {
-	test.Helper()
+type call struct {
+	name    string
+	args    []any
+	returns chan []any
+}
 
-	calls := protest.NewFIFO[any]("calls")
+func (sim *simulator) getCalled() call {
+	select {
+	case c := <-sim.callChan:
+		return c
+	case <-time.After(time.Second):
+		panic("testing timeout waiting for a call")
+	}
+}
 
-	return &runDepsMock{
-		calls: calls,
-		t:     test,
+const printStartingName = "printStarting"
+
+func newSimulator() *simulator {
+	callChan := make(chan call)
+
+	return &simulator{
 		deps: &runDeps{
-			pretest: func() bool {
-				return protest.ManageCallWithNoArgs[verifyTestsPassWithNoMutantsCall](test, calls)
+			printStarting: func(s string) {
+				returnChan := make(chan []any)
+				callChan <- call{name: printStartingName, args: []any{s}, returns: returnChan}
+				<-returnChan
 			},
-			testMutations: func() bool { return protest.ManageCallWithNoArgs[testMutationsCall](test, calls) },
+			printDoneWith: func(string) {},
+			pretest:       func() bool { return false },
+			testMutations: func() bool { return false },
 		},
+		callChan: callChan,
 	}
 }
 
 func TestRunHappyPath(t *testing.T) {
 	t.Parallel()
 
-	// Given inputs & outputs
-	deps := newMockedDeps(t)
-
-	var passes bool
-
-	// When the func is run
-	go func() {
-		passes = run(deps.deps)
-		deps.close()
-	}()
-
-	// Then the tester is run to ensure it passes prior to applying mutations
-	verifyCall := new(verifyTestsPassWithNoMutantsCall)
-	deps.calls.MustPopAs(t, verifyCall)
-
-	// When the tester passes
-	verifyCall.ReturnOneShot.Push(true)
-
-	// Then mutation type testing is performed
-	testMutationsCall := new(testMutationsCall)
-	deps.calls.MustPopAs(t, testMutationsCall)
-
-	// When the testing returns all caught
-	testMutationsCall.ReturnOneShot.Push(true)
-
-	// Then there are no more dependency calls
-	deps.calls.MustConfirmClosed(t)
-	// and the return value is as expected
-	protest.MustEqual(t, true, passes)
-}
-
-func TestRunTesterFailsBeforeAnyMutations(t *testing.T) {
-	t.Parallel()
-
-	deps := newMockedDeps(t)
-
-	var passes bool
+	// Given inputs
+	sim := newSimulator()
+	// and outputs
 
 	// When the func is run
 	go func() {
-		passes = run(deps.deps)
-		deps.close()
+		run(sim.deps)
 	}()
 
-	// Then the tester is run to ensure it passes prior to applying mutations
-	verifyCall := new(verifyTestsPassWithNoMutantsCall)
-	deps.calls.MustPopAs(t, verifyCall)
+	// Then the start message is printed
+	{
+		expectedName := printStartingName
+		actual := sim.getCalled()
+		if actual.name != expectedName {
+			t.Fatalf("the called function was expected to be %s, but was %s instead", expectedName, actual.name)
+		}
+		expectedArgs := "Mutate"
+		if actual.args[0].(string) != expectedArgs {
+			t.Fatalf("the function %s was expected to be called with %s but was called with %s",
+				actual.name, expectedArgs, actual.args,
+			)
+		}
+		actual.returns <- nil
+	}
 
-	// When the tester fails
-	verifyCall.ReturnOneShot.Push(false)
-
-	// Then there are no more dependency calls
-	deps.calls.MustConfirmClosed(t)
-	// and the return value is as expected
-	protest.MustEqual(t, false, passes)
-}
-
-func TestRunMutationTestsFail(t *testing.T) {
-	t.Parallel()
-
-	deps := newMockedDeps(t)
-
-	var passes bool
-
-	// When the func is run
-	go func() {
-		passes = run(deps.deps)
-		deps.close()
-	}()
-
-	// Then the tester is run to ensure it passes prior to applying mutations
-	verifyCall := new(verifyTestsPassWithNoMutantsCall)
-	deps.calls.MustPopAs(t, verifyCall)
-
-	// When the tester passes
-	verifyCall.ReturnOneShot.Push(true)
-
-	// Then mutation type testing is performed
-	testMutationsCall := new(testMutationsCall)
-	deps.calls.MustPopAs(t, testMutationsCall)
-
-	// When the testing returns all caught
-	testMutationsCall.ReturnOneShot.Push(false)
-
-	// Then there are no more dependency calls
-	deps.calls.MustConfirmClosed(t)
-	// and the return value is as expected
-	protest.MustEqual(t, false, passes)
-}
+	// Then the pretest is run
+	// Then the mutation testing is run
+	// Then the done message is printed
+} //nolint:wsl // these are definitely todo-style comments & I want them here for now

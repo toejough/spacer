@@ -1,0 +1,3 @@
+[main]
+  files = ["$all", "$test"]
+  allow = ["$gostd"]
