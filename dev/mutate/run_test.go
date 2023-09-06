@@ -45,7 +45,11 @@ func newSimulator() *simulator {
 				<-returnChan
 			},
 			printDoneWith: func(string) {},
-			pretest:       func() bool { return false },
+			pretest: func() bool {
+				returnChan := make(chan []any)
+				callChan <- call{name: "pretest", args: []any{}, returns: returnChan}
+				return (<-returnChan)[0].(bool)
+			},
 			testMutations: func() bool { return false },
 		},
 		callChan: callChan,
@@ -81,6 +85,21 @@ func TestRunHappyPath(t *testing.T) {
 	}
 
 	// Then the pretest is run
+	{
+		expectedName := "pretest"
+		actual := sim.getCalled()
+		if actual.name != expectedName {
+			t.Fatalf("the called function was expected to be %s, but was %s instead", expectedName, actual.name)
+		}
+		expectedArgs := []any{}
+		if actual.args != expectedArgs {
+			t.Fatalf("the function %s was expected to be called with %s but was called with %s",
+				actual.name, expectedArgs, actual.args,
+			)
+		}
+		actual.returns <- nil
+	}
+
 	// Then the mutation testing is run
 	// Then the done message is printed
 } //nolint:wsl // these are definitely todo-style comments & I want them here for now
