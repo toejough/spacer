@@ -50,7 +50,11 @@ func newSimulator() *simulator {
 				callChan <- call{name: "pretest", args: []any{}, returns: returnChan}
 				return (<-returnChan)[0].(bool)
 			},
-			testMutations: func() bool { return false },
+			testMutations: func() bool {
+				returnChan := make(chan []any)
+				callChan <- call{name: "testMutations", args: []any{}, returns: returnChan}
+				return (<-returnChan)[0].(bool)
+			},
 		},
 		callChan: callChan,
 	}
@@ -92,14 +96,28 @@ func TestRunHappyPath(t *testing.T) {
 			t.Fatalf("the called function was expected to be %s, but was %s instead", expectedName, actual.name)
 		}
 		expectedArgs := []any{}
-		if actual.args != expectedArgs {
-			t.Fatalf("the function %s was expected to be called with %s but was called with %s",
-				actual.name, expectedArgs, actual.args,
+		if len(actual.args) != len(expectedArgs) {
+			t.Fatalf("the function %s was expected to be called with %d args but was called with %d args instead",
+				actual.name, len(expectedArgs), len(actual.args),
 			)
 		}
-		actual.returns <- nil
+		actual.returns <- []any{true}
 	}
 
 	// Then the mutation testing is run
+	{
+		expectedName := "testMutations"
+		actual := sim.getCalled()
+		if actual.name != expectedName {
+			t.Fatalf("the called function was expected to be %s, but was %s instead", expectedName, actual.name)
+		}
+		expectedArgs := []any{}
+		if len(actual.args) != len(expectedArgs) {
+			t.Fatalf("the function %s was expected to be called with %d args but was called with %d args instead",
+				actual.name, len(expectedArgs), len(actual.args),
+			)
+		}
+		actual.returns <- []any{true}
+	}
 	// Then the done message is printed
 } //nolint:wsl // these are definitely todo-style comments & I want them here for now
