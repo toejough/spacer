@@ -83,12 +83,12 @@ func Monitor() error {
 func Check() error {
 	fmt.Println("Checking...")
 	for _, cmd := range []func() error{
-        Tidy, // clean up the module dependencies
-        Test, // verify the stuff you explicitly care about works
-        Lint, // make it follow the standards you care about
-        Fuzz, // suss out unsafe assumptions about your function inputs
-        Mutate, // suss out untested logic
-    } {
+		Tidy,   // clean up the module dependencies
+		Test,   // verify the stuff you explicitly care about works
+		Lint,   // make it follow the standards you care about
+		Fuzz,   // suss out unsafe assumptions about your function inputs
+		Mutate, // suss out untested logic
+	} {
 		err := cmd()
 		if err != nil {
 			return fmt.Errorf("unable to finish checking: %w", err)
@@ -139,7 +139,7 @@ func LintForFail() error {
 // Run the unit tests
 func Test() error {
 	fmt.Println("Running unit tests...")
-	return sh.RunV("go", "test", "./...")
+	return sh.RunV("go", "test", "-timeout", "5s", "./...")
 }
 
 // Run the unit tests purely to find out whether any fail

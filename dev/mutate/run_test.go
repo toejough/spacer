@@ -1,15 +1,17 @@
 //nolint:forcetypeassert // this is a test file, it's ok if type assertions panic
 package main
 
-// The main idea for all the unit tests is to test the behavior we care about _at this level_.
-// This means we validate the calls to dependencies _at this level_ (critically, _not_ subdependency calls).
-// Leave "and now xyz is happening" testing to the thing that is making it happen.
-// For example, for "run", we do _not_ care where the test command is coming from, how it is run, or how its output is
-// conveyed.
+// The main idea for all the unit tests is to test the behavior we care about
+// _at this level_. This means we validate the calls to dependencies _at this
+// level_ (critically, _not_ subdependency calls). Leave "and now xyz is
+// happening" testing to the thing that is making it happen. For example, for
+// "run", we do _not_ care where the pretest command is coming from, how it is
+// run, or how its output is conveyed.
 
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -57,35 +59,65 @@ func (sim *simulator) waitForShutdown() error {
 	}
 }
 
+func newCall(name string, args ...any) call {
+	return call{name: name, args: args, returns: make(chan []any)}
+}
+
+func newCallNoReturn(name string, args ...any) call {
+	return call{name: name, args: args, returns: nil}
+}
+
+func (c call) injectReturn(returnValues ...any) {
+	c.returns <- returnValues
+}
+
 func newSimulator() *simulator {
 	callChan := make(chan call)
 
 	return &simulator{
+		// TODO: separate the deps from the simulator.
+		// TODO: hide the return channel stuff behind a function/method call.
 		deps: &runDeps{
 			printStarting: func(s string) {
-				returnChan := make(chan []any)
-				callChan <- call{name: "printStarting", args: []any{s}, returns: returnChan}
-				<-returnChan
+				// no return channel for a func with no return
+				callChan <- newCallNoReturn("printStarting", s)
 			},
 			printDoneWith: func(s string) {
-				returnChan := make(chan []any)
-				callChan <- call{name: "printDoneWith", args: []any{s}, returns: returnChan}
-				<-returnChan
+				// no return channel for a func with no return
+				callChan <- newCallNoReturn("printDoneWith", s)
 			},
 			pretest: func() bool {
-				returnChan := make(chan []any)
-				callChan <- call{name: "pretest", args: []any{}, returns: returnChan}
+				c := newCall("pretest")
+				callChan <- c
 
-				return (<-returnChan)[0].(bool)
+				return (<-c.returns)[0].(bool)
 			},
 			testMutations: func() bool {
-				returnChan := make(chan []any)
-				callChan <- call{name: "testMutations", args: []any{}, returns: returnChan}
+				c := newCall("testMutations")
+				callChan <- c
 
-				return (<-returnChan)[0].(bool)
+				return (<-c.returns)[0].(bool)
 			},
 		},
 		callChan: callChan,
+	}
+}
+
+func assertCalledNameIs(t *testing.T, c call, expectedName string) {
+	t.Helper()
+
+	if c.name != expectedName {
+		t.Fatalf("the called function was expected to be %s, but was %s instead", expectedName, c.name)
+	}
+}
+
+func assertArgsAre(t *testing.T, c call, expectedArgs ...any) {
+	t.Helper()
+
+	if !reflect.DeepEqual(c.args, expectedArgs) {
+		t.Fatalf("the function %s was expected to be called with %#v but was called with %#v",
+			c.name, expectedArgs, c.args,
+		)
 	}
 }
 
@@ -105,66 +137,30 @@ func TestRunHappyPath(t *testing.T) {
 
 	// Then the start message is printed
 	{
-		expectedName := "printStarting"
 		actual := sim.getCalled()
-		if actual.name != expectedName {
-			t.Fatalf("the called function was expected to be %s, but was %s instead", expectedName, actual.name)
-		}
-		expectedArgs := "Mutate"
-		if actual.args[0].(string) != expectedArgs {
-			t.Fatalf("the function %s was expected to be called with %s but was called with %s",
-				actual.name, expectedArgs, actual.args,
-			)
-		}
-		actual.returns <- nil
+		assertCalledNameIs(t, actual, "printStarting")
+		assertArgsAre(t, actual, "Mutate")
 	}
 
 	// Then the pretest is run
 	{
-		expectedName := "pretest"
 		actual := sim.getCalled()
-		if actual.name != expectedName {
-			t.Fatalf("the called function was expected to be %s, but was %s instead", expectedName, actual.name)
-		}
-		expectedArgs := []any{}
-		if len(actual.args) != len(expectedArgs) {
-			t.Fatalf("the function %s was expected to be called with %d args but was called with %d args instead",
-				actual.name, len(expectedArgs), len(actual.args),
-			)
-		}
-		actual.returns <- []any{true}
+		assertCalledNameIs(t, actual, "pretest")
+		actual.injectReturn(true)
 	}
 
 	// Then the mutation testing is run
 	{
-		expectedName := "testMutations"
 		actual := sim.getCalled()
-		if actual.name != expectedName {
-			t.Fatalf("the called function was expected to be %s, but was %s instead", expectedName, actual.name)
-		}
-		expectedArgs := []any{}
-		if len(actual.args) != len(expectedArgs) {
-			t.Fatalf("the function %s was expected to be called with %d args but was called with %d args instead",
-				actual.name, len(expectedArgs), len(actual.args),
-			)
-		}
-		actual.returns <- []any{true}
+		assertCalledNameIs(t, actual, "testMutations")
+		actual.injectReturn(true)
 	}
 
 	// Then the done message is printed
 	{
-		expectedName := "printDoneWith"
 		actual := sim.getCalled()
-		if actual.name != expectedName {
-			t.Fatalf("the called function was expected to be %s, but was %s instead", expectedName, actual.name)
-		}
-		expectedArgs := "Mutate"
-		if actual.args[0].(string) != expectedArgs {
-			t.Fatalf("the function %s was expected to be called with %s but was called with %s",
-				actual.name, expectedArgs, actual.args,
-			)
-		}
-		actual.returns <- nil
+		assertCalledNameIs(t, actual, "printDoneWith")
+		assertArgsAre(t, actual, "Mutate")
 	}
 
 	// Then expect that the simulator is done
