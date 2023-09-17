@@ -8,6 +8,8 @@ package main
 // conveyed.
 
 import (
+	"errors"
+	"fmt"
 	"testing"
 	"time"
 )
@@ -32,7 +34,28 @@ func (sim *simulator) getCalled() call {
 	}
 }
 
-const printStartingName = "printStarting"
+func (sim *simulator) shutdown() {
+	close(sim.callChan)
+}
+
+var (
+	errSimulatorNotShutDown     = errors.New("simulator was not shut down")
+	errSimulatorShutdownTimeout = errors.New("simulator timed out waiting for shutdown")
+)
+
+func (sim *simulator) waitForShutdown() error {
+	select {
+	case thisCall, ok := <-sim.callChan:
+		if !ok {
+			// channel is closed
+			return nil
+		}
+
+		return fmt.Errorf("had a call queued: %v: %w", thisCall, errSimulatorNotShutDown)
+	case <-time.After(time.Second):
+		return errSimulatorShutdownTimeout
+	}
+}
 
 func newSimulator() *simulator {
 	callChan := make(chan call)
@@ -41,18 +64,24 @@ func newSimulator() *simulator {
 		deps: &runDeps{
 			printStarting: func(s string) {
 				returnChan := make(chan []any)
-				callChan <- call{name: printStartingName, args: []any{s}, returns: returnChan}
+				callChan <- call{name: "printStarting", args: []any{s}, returns: returnChan}
 				<-returnChan
 			},
-			printDoneWith: func(string) {},
+			printDoneWith: func(s string) {
+				returnChan := make(chan []any)
+				callChan <- call{name: "printDoneWith", args: []any{s}, returns: returnChan}
+				<-returnChan
+			},
 			pretest: func() bool {
 				returnChan := make(chan []any)
 				callChan <- call{name: "pretest", args: []any{}, returns: returnChan}
+
 				return (<-returnChan)[0].(bool)
 			},
 			testMutations: func() bool {
 				returnChan := make(chan []any)
 				callChan <- call{name: "testMutations", args: []any{}, returns: returnChan}
+
 				return (<-returnChan)[0].(bool)
 			},
 		},
@@ -66,15 +95,17 @@ func TestRunHappyPath(t *testing.T) {
 	// Given inputs
 	sim := newSimulator()
 	// and outputs
+	var result bool
 
 	// When the func is run
 	go func() {
-		run(sim.deps)
+		result = run(sim.deps)
+		sim.shutdown()
 	}()
 
 	// Then the start message is printed
 	{
-		expectedName := printStartingName
+		expectedName := "printStarting"
 		actual := sim.getCalled()
 		if actual.name != expectedName {
 			t.Fatalf("the called function was expected to be %s, but was %s instead", expectedName, actual.name)
@@ -119,5 +150,30 @@ func TestRunHappyPath(t *testing.T) {
 		}
 		actual.returns <- []any{true}
 	}
+
 	// Then the done message is printed
-} //nolint:wsl // these are definitely todo-style comments & I want them here for now
+	{
+		expectedName := "printDoneWith"
+		actual := sim.getCalled()
+		if actual.name != expectedName {
+			t.Fatalf("the called function was expected to be %s, but was %s instead", expectedName, actual.name)
+		}
+		expectedArgs := "Mutate"
+		if actual.args[0].(string) != expectedArgs {
+			t.Fatalf("the function %s was expected to be called with %s but was called with %s",
+				actual.name, expectedArgs, actual.args,
+			)
+		}
+		actual.returns <- nil
+	}
+
+	// Then expect that the simulator is done
+	if err := sim.waitForShutdown(); err != nil {
+		t.Fatalf("the simulator is not done yet at the end of the test: %s", err)
+	}
+
+	// Then the result is true
+	if result != true {
+		t.Fatal("The result was false")
+	}
+}

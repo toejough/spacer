@@ -17,13 +17,7 @@ import (
 func main() {
 	fmt.Println("Starting mutation testing")
 
-	pass, err := run(prodRunDeps())
-	if err != nil {
-		fmt.Printf("Mutation testing encountered unresolvable error: %s\n", err)
-		os.Exit(2) //nolint:gomnd // this is a standard return value. using a variable here would only obscure
-		// meaning, not enhance it
-	} //nolint:wsl // sorry not sorry, the comment on the line above wrapped.
-
+	pass := run(prodRunDeps())
 	if !pass {
 		fmt.Println("Mutation testing failed")
 		os.Exit(1)
@@ -56,11 +50,14 @@ func prodRunDeps() *runDeps {
 // Testing the mutations involves performing mutations one at a time, running the test command, and then
 // checking for pass/fail. If the test command passes, that is a failure - it means the mutant was uncaught.
 // If the test command fails or errors, we treat that as the mutant being caught.
-func run(deps *runDeps) (bool, error) {
+//
+// In either failure case, there's nothing we want to do besides treat it like
+// a failure, so the signature of these types is restricted to bools.
+func run(deps *runDeps) bool {
 	deps.printStarting("Mutate")
 	defer deps.printDoneWith("Mutate")
 
-	return deps.pretest() && deps.testMutations(), nil
+	return deps.pretest() && deps.testMutations()
 }
 
 type (
