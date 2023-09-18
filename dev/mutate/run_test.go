@@ -27,7 +27,11 @@ type call struct {
 
 func (cr *callRelay) getCall() call {
 	select {
-	case c := <-cr.callChan:
+	case c, ok := <-cr.callChan:
+		if !ok {
+			panic("expected a call, but the relay was already shut down")
+		}
+
 		return c
 	case <-time.After(time.Second):
 		panic("testing timeout waiting for a call")
@@ -100,8 +104,8 @@ func newCallRelay() *callRelay {
 
 func newDeps(relay *callRelay) *runDeps {
 	return &runDeps{
-		printStarting: func(s string) func() {
-			var f func()
+		printStarting: func(s string) func(string) {
+			var f func(string)
 			relay.putCall(newCall("printStarting", s)).fillReturns(&f)
 
 			return f
@@ -118,6 +122,9 @@ func newDeps(relay *callRelay) *runDeps {
 
 			return b
 		},
+		exit: func(code int) {
+			relay.putCall(newCallNoReturn("exit", code))
+		},
 	}
 }
 
@@ -129,12 +136,28 @@ func assertCalledNameIs(t *testing.T, c call, expectedName string) {
 	}
 }
 
-func assertArgsAre(t *testing.T, c call, expectedArgs ...any) {
+func assertArgsAre(t *testing.T, theCall call, expectedArgs ...any) {
 	t.Helper()
 
-	if !reflect.DeepEqual(c.args, expectedArgs) {
+	if theCall.args == nil && expectedArgs != nil {
+		t.Fatalf(
+			"the function %s was expected to be called with %#v, but was called without args",
+			theCall.name,
+			expectedArgs,
+		)
+	}
+
+	if theCall.args != nil && expectedArgs == nil {
+		t.Fatalf(
+			"the function %s was expected to be called without args, but was called with %#v",
+			theCall.name,
+			theCall.args,
+		)
+	}
+
+	if !reflect.DeepEqual(theCall.args, expectedArgs) {
 		t.Fatalf("the function %s was expected to be called with %#v but was called with %#v",
-			c.name, expectedArgs, c.args,
+			theCall.name, expectedArgs, theCall.args,
 		)
 	}
 }
@@ -151,7 +174,7 @@ func assertRelayShutsDownWithin(t *testing.T, relay *callRelay, waitTime time.Du
 	t.Helper()
 
 	if err := relay.waitForShutdown(waitTime); err != nil {
-		t.Fatalf("the simulator is not done yet: %s", err)
+		t.Fatalf("the relay has not shut down yet: %s", err)
 	}
 }
 
@@ -161,13 +184,11 @@ func TestRunHappyPath(t *testing.T) {
 	// Given inputs
 	relay := newCallRelay()
 	deps := newDeps(relay)
-	mockDoneFunc := func() { relay.putCall(newCallNoReturn("printDone")) }
-	// and outputs
-	var result bool
+	mockDoneFunc := func(message string) { relay.putCall(newCallNoReturn("printDone", message)) }
 
 	// When the func is run
 	go func() {
-		result = run(deps)
+		run(deps)
 
 		relay.shutdown()
 	}()
@@ -179,15 +200,12 @@ func TestRunHappyPath(t *testing.T) {
 	// Then the mutation testing is run
 	assertCallIs(t, relay.getCall(), "testMutations").injectReturn(true)
 	// Then the done message is printed
-	assertCallIs(t, relay.getCall(), "printDone")
+	assertCallIs(t, relay.getCall(), "printDone", "Success")
+	// Then the program exits with 0
+	assertCallIs(t, relay.getCall(), "exit", 0)
 
 	// Then the relay is shut down
 	assertRelayShutsDownWithin(t, relay, time.Second)
-
-	// Then the result is true
-	if result != true {
-		t.Fatal("The result was false")
-	}
 }
 
 func TestRunPretestFailure(t *testing.T) {
@@ -196,13 +214,13 @@ func TestRunPretestFailure(t *testing.T) {
 	// Given inputs
 	relay := newCallRelay()
 	deps := newDeps(relay)
-	mockDoneFunc := func() { relay.putCall(newCallNoReturn("printDone")) }
+	mockDoneFunc := func(message string) { relay.putCall(newCallNoReturn("printDone", message)) }
 	// and outputs
 	var result bool
 
 	// When the func is run
 	go func() {
-		result = run(deps)
+		run(deps)
 
 		relay.shutdown()
 	}()
@@ -212,7 +230,9 @@ func TestRunPretestFailure(t *testing.T) {
 	// Then the pretest is run
 	assertCallIs(t, relay.getCall(), "pretest").injectReturn(false)
 	// Then the done message is printed
-	assertCallIs(t, relay.getCall(), "printDone")
+	assertCallIs(t, relay.getCall(), "printDone", "Failure")
+	// Then the program exits with 1
+	assertCallIs(t, relay.getCall(), "exit", 1)
 
 	// Then the relay is shut down
 	assertRelayShutsDownWithin(t, relay, time.Second)
@@ -229,13 +249,13 @@ func TestRunMutationFailure(t *testing.T) {
 	// Given inputs
 	relay := newCallRelay()
 	deps := newDeps(relay)
-	mockDoneFunc := func() { relay.putCall(newCallNoReturn("printDone")) }
+	mockDoneFunc := func(message string) { relay.putCall(newCallNoReturn("printDone", message)) }
 	// and outputs
 	var result bool
 
 	// When the func is run
 	go func() {
-		result = run(deps)
+		run(deps)
 
 		relay.shutdown()
 	}()
@@ -247,7 +267,9 @@ func TestRunMutationFailure(t *testing.T) {
 	// Then the mutation testing is run
 	assertCallIs(t, relay.getCall(), "testMutations").injectReturn(false)
 	// Then the done message is printed
-	assertCallIs(t, relay.getCall(), "printDone")
+	assertCallIs(t, relay.getCall(), "printDone", "Failure")
+	// Then the program exits with 1
+	assertCallIs(t, relay.getCall(), "exit", 1)
 
 	// Then the relay is shut down
 	assertRelayShutsDownWithin(t, relay, time.Second)

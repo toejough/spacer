@@ -1,10 +1,7 @@
 // Package mutate provides mutation testing functionality.
 package main
 
-import (
-	"fmt"
-	"os"
-)
+import "os"
 
 // Mutate. Based loosely on:
 // * https://mutmut.readthedocs.io/en/latest/
@@ -15,28 +12,20 @@ import (
 
 // main runs the program and exits with 0 on success, 1 on failure, 2 on any kind of runtime failure.
 func main() {
-	fmt.Println("Starting mutation testing")
-
-	pass := run(prodRunDeps())
-	if !pass {
-		fmt.Println("Mutation testing failed")
-		os.Exit(1)
-	}
-
-	fmt.Println("Mutation testing passed")
-	os.Exit(0)
+	run(prodRunDeps())
 }
 
 // this function is going to be long... it has all the dependencies.
 func prodRunDeps() *runDeps {
 	return &runDeps{
-		printStarting: func(string) func() { return func() {} },
+		printStarting: func(string) func(string) { return func(string) {} },
 		pretest: func() bool {
 			return true
 		},
 		testMutations: func() bool {
 			return true
 		},
+		exit: func(code int) { os.Exit(code) },
 	}
 }
 
@@ -52,17 +41,23 @@ func prodRunDeps() *runDeps {
 //
 // In either failure case, there's nothing we want to do besides treat it like
 // a failure, so the signature of these types is restricted to bools.
-func run(deps *runDeps) bool {
+func run(deps *runDeps) {
 	doneFunc := deps.printStarting("Mutate")
-	defer doneFunc()
 
-	return deps.pretest() && deps.testMutations()
+	if deps.pretest() && deps.testMutations() {
+		doneFunc("Success")
+		deps.exit(0)
+	} else {
+		doneFunc("Failure")
+		deps.exit(1)
+	}
 }
 
 type (
 	runDeps struct {
-		printStarting func(what string) func()
+		printStarting func(what string) func(string)
 		pretest       func() bool
 		testMutations func() bool
+		exit          func(int)
 	}
 )
