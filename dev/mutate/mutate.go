@@ -30,8 +30,7 @@ func main() {
 // this function is going to be long... it has all the dependencies.
 func prodRunDeps() *runDeps {
 	return &runDeps{
-		printStarting: func(string) {},
-		printDoneWith: func(string) {},
+		printStarting: func(string) func() { return func() {} },
 		pretest: func() bool {
 			return true
 		},
@@ -54,16 +53,15 @@ func prodRunDeps() *runDeps {
 // In either failure case, there's nothing we want to do besides treat it like
 // a failure, so the signature of these types is restricted to bools.
 func run(deps *runDeps) bool {
-	deps.printStarting("Mutate")
-	defer deps.printDoneWith("Mutate")
+	doneFunc := deps.printStarting("Mutate")
+	defer doneFunc()
 
 	return deps.pretest() && deps.testMutations()
 }
 
 type (
 	runDeps struct {
-		printStarting func(what string)
-		printDoneWith func(what string)
+		printStarting func(what string) func()
 		pretest       func() bool
 		testMutations func() bool
 	}

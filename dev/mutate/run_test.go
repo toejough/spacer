@@ -71,6 +71,9 @@ func newCallNoReturn(name string, args ...any) call {
 }
 
 func (c call) injectReturn(returnValues ...any) {
+	if c.returns == nil {
+		panic("cannot inject a return on a call with no returns")
+	}
 	c.returns <- returnValues
 }
 
@@ -97,11 +100,11 @@ func newCallRelay() *callRelay {
 
 func newDeps(relay *callRelay) *runDeps {
 	return &runDeps{
-		printStarting: func(s string) {
-			relay.putCall(newCallNoReturn("printStarting", s))
-		},
-		printDoneWith: func(s string) {
-			relay.putCall(newCallNoReturn("printDoneWith", s))
+		printStarting: func(s string) func() {
+			var f func()
+			relay.putCall(newCall("printStarting", s)).fillReturns(&f)
+
+			return f
 		},
 		pretest: func() bool {
 			var b bool
@@ -158,6 +161,7 @@ func TestRunHappyPath(t *testing.T) {
 	// Given inputs
 	relay := newCallRelay()
 	deps := newDeps(relay)
+	mockDoneFunc := func() { relay.putCall(newCallNoReturn("printDone")) }
 	// and outputs
 	var result bool
 
@@ -169,13 +173,13 @@ func TestRunHappyPath(t *testing.T) {
 	}()
 
 	// Then the start message is printed
-	assertCallIs(t, relay.getCall(), "printStarting", "Mutate")
+	assertCallIs(t, relay.getCall(), "printStarting", "Mutate").injectReturn(mockDoneFunc)
 	// Then the pretest is run
 	assertCallIs(t, relay.getCall(), "pretest").injectReturn(true)
 	// Then the mutation testing is run
 	assertCallIs(t, relay.getCall(), "testMutations").injectReturn(true)
 	// Then the done message is printed
-	assertCallIs(t, relay.getCall(), "printDoneWith", "Mutate")
+	assertCallIs(t, relay.getCall(), "printDone")
 
 	// Then the relay is shut down
 	assertRelayShutsDownWithin(t, relay, time.Second)
@@ -192,6 +196,7 @@ func TestRunPretestFailure(t *testing.T) {
 	// Given inputs
 	relay := newCallRelay()
 	deps := newDeps(relay)
+	mockDoneFunc := func() { relay.putCall(newCallNoReturn("printDone")) }
 	// and outputs
 	var result bool
 
@@ -203,11 +208,11 @@ func TestRunPretestFailure(t *testing.T) {
 	}()
 
 	// Then the start message is printed
-	assertCallIs(t, relay.getCall(), "printStarting", "Mutate")
+	assertCallIs(t, relay.getCall(), "printStarting", "Mutate").injectReturn(mockDoneFunc)
 	// Then the pretest is run
 	assertCallIs(t, relay.getCall(), "pretest").injectReturn(false)
 	// Then the done message is printed
-	assertCallIs(t, relay.getCall(), "printDoneWith", "Mutate")
+	assertCallIs(t, relay.getCall(), "printDone")
 
 	// Then the relay is shut down
 	assertRelayShutsDownWithin(t, relay, time.Second)
@@ -224,6 +229,7 @@ func TestRunMutationFailure(t *testing.T) {
 	// Given inputs
 	relay := newCallRelay()
 	deps := newDeps(relay)
+	mockDoneFunc := func() { relay.putCall(newCallNoReturn("printDone")) }
 	// and outputs
 	var result bool
 
@@ -235,13 +241,13 @@ func TestRunMutationFailure(t *testing.T) {
 	}()
 
 	// Then the start message is printed
-	assertCallIs(t, relay.getCall(), "printStarting", "Mutate")
+	assertCallIs(t, relay.getCall(), "printStarting", "Mutate").injectReturn(mockDoneFunc)
 	// Then the pretest is run
 	assertCallIs(t, relay.getCall(), "pretest").injectReturn(true)
 	// Then the mutation testing is run
 	assertCallIs(t, relay.getCall(), "testMutations").injectReturn(false)
 	// Then the done message is printed
-	assertCallIs(t, relay.getCall(), "printDoneWith", "Mutate")
+	assertCallIs(t, relay.getCall(), "printDone")
 
 	// Then the relay is shut down
 	assertRelayShutsDownWithin(t, relay, time.Second)
