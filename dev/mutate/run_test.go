@@ -1,4 +1,3 @@
-//nolint:forcetypeassert // this is a test file, it's ok if type assertions panic
 package main
 
 // The main idea for all the unit tests is to test the behavior we care about
@@ -16,8 +15,7 @@ import (
 	"time"
 )
 
-type simulator struct {
-	deps     *runDeps
+type callRelay struct {
 	callChan chan call
 }
 
@@ -27,36 +25,41 @@ type call struct {
 	returns chan []any
 }
 
-func (sim *simulator) getCalled() call {
+func (cr *callRelay) getCall() call {
 	select {
-	case c := <-sim.callChan:
+	case c := <-cr.callChan:
 		return c
 	case <-time.After(time.Second):
 		panic("testing timeout waiting for a call")
 	}
 }
 
-func (sim *simulator) shutdown() {
-	close(sim.callChan)
+func (cr *callRelay) shutdown() {
+	close(cr.callChan)
 }
 
 var (
-	errSimulatorNotShutDown     = errors.New("simulator was not shut down")
-	errSimulatorShutdownTimeout = errors.New("simulator timed out waiting for shutdown")
+	errCallRelayNotShutDown     = errors.New("call relay was not shut down")
+	errCallRelayShutdownTimeout = errors.New("call relay timed out waiting for shutdown")
 )
 
-func (sim *simulator) waitForShutdown() error {
+func (cr *callRelay) waitForShutdown(waitTime time.Duration) error {
 	select {
-	case thisCall, ok := <-sim.callChan:
+	case thisCall, ok := <-cr.callChan:
 		if !ok {
 			// channel is closed
 			return nil
 		}
 
-		return fmt.Errorf("had a call queued: %v: %w", thisCall, errSimulatorNotShutDown)
-	case <-time.After(time.Second):
-		return errSimulatorShutdownTimeout
+		return fmt.Errorf("had a call queued: %v: %w", thisCall, errCallRelayNotShutDown)
+	case <-time.After(waitTime):
+		return errCallRelayShutdownTimeout
 	}
+}
+
+func (cr *callRelay) putCall(c call) call {
+	cr.callChan <- c
+	return c
 }
 
 func newCall(name string, args ...any) call {
@@ -71,35 +74,47 @@ func (c call) injectReturn(returnValues ...any) {
 	c.returns <- returnValues
 }
 
-func newSimulator() *simulator {
-	callChan := make(chan call)
+func (c call) fillReturns(returnPointers ...any) {
+	returnValues := <-c.returns
+	for index := range returnValues {
+		// USEFUL SNIPPETS FROM JSON.UNMARSHAL
+		// if rv.Kind() != reflect.Pointer || rv.IsNil() {
+		// 	return &InvalidUnmarshalError{reflect.TypeOf(v)}
+		// }
+		// v.Set(reflect.ValueOf(oi))
+		rv := reflect.ValueOf(returnPointers[index])
+		if rv.Kind() != reflect.Pointer || rv.IsNil() {
+			panic("cannot fill value into non-pointer")
+		}
+		// Use Elem instead of directly using Set for setting pointers
+		rv.Elem().Set(reflect.ValueOf(returnValues[index]))
+	}
+}
 
-	return &simulator{
-		// TODO: separate the deps from the simulator.
-		// TODO: hide the return channel stuff behind a function/method call.
-		deps: &runDeps{
-			printStarting: func(s string) {
-				// no return channel for a func with no return
-				callChan <- newCallNoReturn("printStarting", s)
-			},
-			printDoneWith: func(s string) {
-				// no return channel for a func with no return
-				callChan <- newCallNoReturn("printDoneWith", s)
-			},
-			pretest: func() bool {
-				c := newCall("pretest")
-				callChan <- c
+func newCallRelay() *callRelay {
+	return &callRelay{callChan: make(chan call)}
+}
 
-				return (<-c.returns)[0].(bool)
-			},
-			testMutations: func() bool {
-				c := newCall("testMutations")
-				callChan <- c
-
-				return (<-c.returns)[0].(bool)
-			},
+func newDeps(relay *callRelay) *runDeps {
+	return &runDeps{
+		printStarting: func(s string) {
+			relay.putCall(newCallNoReturn("printStarting", s))
 		},
-		callChan: callChan,
+		printDoneWith: func(s string) {
+			relay.putCall(newCallNoReturn("printDoneWith", s))
+		},
+		pretest: func() bool {
+			var b bool
+			relay.putCall(newCall("pretest")).fillReturns(&b)
+
+			return b
+		},
+		testMutations: func() bool {
+			var b bool
+			relay.putCall(newCall("testMutations")).fillReturns(&b)
+
+			return b
+		},
 	}
 }
 
@@ -121,55 +136,118 @@ func assertArgsAre(t *testing.T, c call, expectedArgs ...any) {
 	}
 }
 
+func assertCallIs(t *testing.T, c call, name string, expectedArgs ...any) call {
+	t.Helper()
+	assertCalledNameIs(t, c, name)
+	assertArgsAre(t, c, expectedArgs...)
+
+	return c
+}
+
+func assertRelayShutsDownWithin(t *testing.T, relay *callRelay, waitTime time.Duration) {
+	t.Helper()
+
+	if err := relay.waitForShutdown(waitTime); err != nil {
+		t.Fatalf("the simulator is not done yet: %s", err)
+	}
+}
+
 func TestRunHappyPath(t *testing.T) {
 	t.Parallel()
 
 	// Given inputs
-	sim := newSimulator()
+	relay := newCallRelay()
+	deps := newDeps(relay)
 	// and outputs
 	var result bool
 
 	// When the func is run
 	go func() {
-		result = run(sim.deps)
-		sim.shutdown()
+		result = run(deps)
+
+		relay.shutdown()
 	}()
 
 	// Then the start message is printed
-	{
-		actual := sim.getCalled()
-		assertCalledNameIs(t, actual, "printStarting")
-		assertArgsAre(t, actual, "Mutate")
-	}
-
+	assertCallIs(t, relay.getCall(), "printStarting", "Mutate")
 	// Then the pretest is run
-	{
-		actual := sim.getCalled()
-		assertCalledNameIs(t, actual, "pretest")
-		actual.injectReturn(true)
-	}
-
+	assertCallIs(t, relay.getCall(), "pretest").injectReturn(true)
 	// Then the mutation testing is run
-	{
-		actual := sim.getCalled()
-		assertCalledNameIs(t, actual, "testMutations")
-		actual.injectReturn(true)
-	}
-
+	assertCallIs(t, relay.getCall(), "testMutations").injectReturn(true)
 	// Then the done message is printed
-	{
-		actual := sim.getCalled()
-		assertCalledNameIs(t, actual, "printDoneWith")
-		assertArgsAre(t, actual, "Mutate")
-	}
+	assertCallIs(t, relay.getCall(), "printDoneWith", "Mutate")
 
-	// Then expect that the simulator is done
-	if err := sim.waitForShutdown(); err != nil {
-		t.Fatalf("the simulator is not done yet at the end of the test: %s", err)
-	}
+	// Then the relay is shut down
+	assertRelayShutsDownWithin(t, relay, time.Second)
 
 	// Then the result is true
 	if result != true {
 		t.Fatal("The result was false")
+	}
+}
+
+func TestRunPretestFailure(t *testing.T) {
+	t.Parallel()
+
+	// Given inputs
+	relay := newCallRelay()
+	deps := newDeps(relay)
+	// and outputs
+	var result bool
+
+	// When the func is run
+	go func() {
+		result = run(deps)
+
+		relay.shutdown()
+	}()
+
+	// Then the start message is printed
+	assertCallIs(t, relay.getCall(), "printStarting", "Mutate")
+	// Then the pretest is run
+	assertCallIs(t, relay.getCall(), "pretest").injectReturn(false)
+	// Then the done message is printed
+	assertCallIs(t, relay.getCall(), "printDoneWith", "Mutate")
+
+	// Then the relay is shut down
+	assertRelayShutsDownWithin(t, relay, time.Second)
+
+	// Then the result is true
+	if result != false {
+		t.Fatal("The result was unexpectedly true")
+	}
+}
+
+func TestRunMutationFailure(t *testing.T) {
+	t.Parallel()
+
+	// Given inputs
+	relay := newCallRelay()
+	deps := newDeps(relay)
+	// and outputs
+	var result bool
+
+	// When the func is run
+	go func() {
+		result = run(deps)
+
+		relay.shutdown()
+	}()
+
+	// Then the start message is printed
+	assertCallIs(t, relay.getCall(), "printStarting", "Mutate")
+	// Then the pretest is run
+	assertCallIs(t, relay.getCall(), "pretest").injectReturn(true)
+	// Then the mutation testing is run
+	assertCallIs(t, relay.getCall(), "testMutations").injectReturn(false)
+	// Then the done message is printed
+	assertCallIs(t, relay.getCall(), "printDoneWith", "Mutate")
+
+	// Then the relay is shut down
+	assertRelayShutsDownWithin(t, relay, time.Second)
+
+	// Then the result is true
+	if result != false {
+		t.Fatal("The result was unexpectedly true")
 	}
 }
