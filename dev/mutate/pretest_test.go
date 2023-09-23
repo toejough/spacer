@@ -12,7 +12,13 @@ import (
 	"time"
 )
 
-func newPretestDeps(relay *callRelay) *runDeps {
+type pretestDeps struct{}
+
+func pretest(deps *pretestDeps) bool {
+	return true
+}
+
+func newPretestDeps(relay *callRelay) *pretestDeps {
 	return &pretestDeps{}
 }
 
