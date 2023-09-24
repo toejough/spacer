@@ -15,12 +15,24 @@ func main() {
 	run(prodRunDeps())
 }
 
+type prodPretestDeps struct{}
+
+func (pd *prodPretestDeps) printStarting(string) func(string) {
+	return func(string) {}
+}
+
+func (pd *prodPretestDeps) fetchPretestCommand() []string {
+	return []string{}
+}
+
+func (pd *prodPretestDeps) runSubprocess([]string) {}
+
 // this function is going to be long... it has all the dependencies.
 func prodRunDeps() *runDeps {
 	return &runDeps{
 		printStarting: func(string) func(string) { return func(string) {} },
 		pretest: func() bool {
-			return true
+			return pretest(&prodPretestDeps{})
 		},
 		testMutations: func() bool {
 			return true

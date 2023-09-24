@@ -25,7 +25,7 @@ type call struct {
 	returns chan []any
 }
 
-func (cr *callRelay) getCall() call {
+func (cr *callRelay) getCall() callTester {
 	select {
 	case c, ok := <-cr.callChan:
 		if !ok {
@@ -61,7 +61,25 @@ func (cr *callRelay) waitForShutdown(waitTime time.Duration) error {
 	}
 }
 
-func (cr *callRelay) putCall(c call) call {
+type callReader interface {
+	Name() string
+	Args() []any
+}
+
+type returnWriter interface {
+	injectReturn(...any)
+}
+
+type callTester interface {
+	callReader
+	returnWriter
+}
+
+type returnReader interface {
+	fillReturns(...any)
+}
+
+func (cr *callRelay) putCall(c call) returnReader {
 	cr.callChan <- c
 	return c
 }
@@ -72,6 +90,14 @@ func newCall(name string, args ...any) call {
 
 func newCallNoReturn(name string, args ...any) call {
 	return call{name: name, args: args, returns: nil}
+}
+
+func (c call) Name() string {
+	return c.name
+}
+
+func (c call) Args() []any {
+	return c.args
 }
 
 func (c call) injectReturn(returnValues ...any) {
@@ -133,41 +159,41 @@ func newDeps(relay *callRelay) *runDeps {
 	}
 }
 
-func assertCalledNameIs(t *testing.T, c call, expectedName string) {
+func assertCalledNameIs(t *testing.T, c callReader, expectedName string) {
 	t.Helper()
 
-	if c.name != expectedName {
-		t.Fatalf("the called function was expected to be %s, but was %s instead", expectedName, c.name)
+	if c.Name() != expectedName {
+		t.Fatalf("the called function was expected to be %s, but was %s instead", expectedName, c.Name())
 	}
 }
 
-func assertArgsAre(t *testing.T, theCall call, expectedArgs ...any) {
+func assertArgsAre(t *testing.T, theCall callReader, expectedArgs ...any) {
 	t.Helper()
 
-	if theCall.args == nil && expectedArgs != nil {
+	if theCall.Args() == nil && expectedArgs != nil {
 		t.Fatalf(
 			"the function %s was expected to be called with %#v, but was called without args",
-			theCall.name,
+			theCall.Name(),
 			expectedArgs,
 		)
 	}
 
-	if theCall.args != nil && expectedArgs == nil {
+	if theCall.Args() != nil && expectedArgs == nil {
 		t.Fatalf(
 			"the function %s was expected to be called without args, but was called with %#v",
-			theCall.name,
-			theCall.args,
+			theCall.Name(),
+			theCall.Args(),
 		)
 	}
 
-	if !reflect.DeepEqual(theCall.args, expectedArgs) {
+	if !reflect.DeepEqual(theCall.Args(), expectedArgs) {
 		t.Fatalf("the function %s was expected to be called with %#v but was called with %#v",
-			theCall.name, expectedArgs, theCall.args,
+			theCall.Name(), expectedArgs, theCall.Args(),
 		)
 	}
 }
 
-func assertCallIs(t *testing.T, c call, name string, expectedArgs ...any) call {
+func assertCallIs(t *testing.T, c callTester, name string, expectedArgs ...any) returnWriter {
 	t.Helper()
 	assertCalledNameIs(t, c, name)
 	assertArgsAre(t, c, expectedArgs...)
@@ -175,6 +201,7 @@ func assertCallIs(t *testing.T, c call, name string, expectedArgs ...any) call {
 	return c
 }
 
+// TODO: move these functions to their own package so that the linter stops yelling about how the only uses _now_ pass a 1s delay.
 func assertRelayShutsDownWithin(t *testing.T, relay *callRelay, waitTime time.Duration) {
 	t.Helper()
 

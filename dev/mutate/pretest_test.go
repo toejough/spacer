@@ -21,18 +21,20 @@ type pretestDeps interface {
 type mockPretestDeps struct{ relay *callRelay }
 
 func (d *mockPretestDeps) printStarting(message string) func(string) {
-	var f func(string)
-	// TODO: make directional calls, so that you can't both inject & fill returns from the same object/interface
+	var returnFunc func(string)
 	// TODO: relay.putNewCall() ?? no... this is not something we're doing to relay, it's something we're doing with it...
 	// make it putNewCall(relay, ...)
 	// TODO: make directional relay, so that you can't both put & get calls from the same object/interface
-	d.relay.putCall(newCall("printStarting", message)).fillReturns(&f)
-	return f
+	d.relay.putCall(newCall("printStarting", message)).fillReturns(&returnFunc)
+
+	return returnFunc
 }
 
 func (d *mockPretestDeps) fetchPretestCommand() []string {
 	var c []string
+
 	d.relay.putCall(newCall("fetchPretestCommand")).fillReturns(&c)
+
 	return c
 }
 
@@ -44,8 +46,10 @@ func (d *mockPretestDeps) runSubprocess(command []string) {
 func pretest(deps pretestDeps) bool {
 	done := deps.printStarting("Pretest")
 	defer done("Success")
+
 	command := deps.fetchPretestCommand()
 	deps.runSubprocess(command)
+
 	return true
 }
 
