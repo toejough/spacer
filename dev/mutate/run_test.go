@@ -78,7 +78,12 @@ func (c call) injectReturn(returnValues ...any) {
 	if c.returns == nil {
 		panic("cannot inject a return on a call with no returns")
 	}
-	c.returns <- returnValues
+	select {
+	case c.returns <- returnValues:
+		return
+	case <-time.After(1 * time.Second):
+		panic("timed out waiting for " + c.name + " to read the injected return values")
+	}
 }
 
 func (c call) fillReturns(returnPointers ...any) {
