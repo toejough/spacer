@@ -12,14 +12,45 @@ import (
 	"time"
 )
 
-type pretestDeps struct{}
+type pretestDeps interface {
+	printStarting(string) func(string)
+	fetchPretestCommand() []string
+	runSubprocess([]string)
+}
 
-func pretest(deps *pretestDeps) bool {
+type mockPretestDeps struct{ relay *callRelay }
+
+func (d *mockPretestDeps) printStarting(message string) func(string) {
+	var f func(string)
+	// TODO: make directional calls, so that you can't both inject & fill returns from the same object/interface
+	// TODO: relay.putNewCall() ?? no... this is not something we're doing to relay, it's something we're doing with it...
+	// make it putNewCall(relay, ...)
+	// TODO: make directional relay, so that you can't both put & get calls from the same object/interface
+	d.relay.putCall(newCall("printStarting", message)).fillReturns(&f)
+	return f
+}
+
+func (d *mockPretestDeps) fetchPretestCommand() []string {
+	var c []string
+	d.relay.putCall(newCall("fetchPretestCommand")).fillReturns(&c)
+	return c
+}
+
+func (d *mockPretestDeps) runSubprocess(command []string) {
+	d.relay.putCall(newCall("runSubprocess", command))
+}
+
+// TODO: move non-test functions out to their own file.
+func pretest(deps pretestDeps) bool {
+	done := deps.printStarting("Pretest")
+	defer done("Success")
+	command := deps.fetchPretestCommand()
+	deps.runSubprocess(command)
 	return true
 }
 
-func newPretestDeps(relay *callRelay) *pretestDeps {
-	return &pretestDeps{}
+func newPretestDeps(relay *callRelay) *mockPretestDeps {
+	return &mockPretestDeps{relay: relay}
 }
 
 func TestPretestHappyPath(t *testing.T) {
@@ -41,15 +72,15 @@ func TestPretestHappyPath(t *testing.T) {
 	}()
 
 	// Then the start message is printed
+	// TODO: create assertNextCallIs(t, relay, ...)
+	// TODO: create tester. newTester(t, relay).assertNextCallIs(...)
 	assertCallIs(t, relay.getCall(), "printStarting", "Pretest").injectReturn(mockDoneFunc)
 	// Then the pretest is fetched
 	assertCallIs(t, relay.getCall(), "fetchPretestCommand").injectReturn(pretestCommand)
 	// Then the pretest command is run
-	assertCallIs(t, relay.getCall(), "runSubprocess", pretestCommand).injectReturn(true)
+	assertCallIs(t, relay.getCall(), "runSubprocess", pretestCommand)
 	// Then the done message is printed
 	assertCallIs(t, relay.getCall(), "printDone", "Success")
-	// Then the program exits with 0
-	assertCallIs(t, relay.getCall(), "exit", 0)
 
 	// Then the relay is shut down
 	assertRelayShutsDownWithin(t, relay, time.Second)
