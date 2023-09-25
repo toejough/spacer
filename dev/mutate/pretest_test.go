@@ -8,24 +8,17 @@ package main
 // run, or how its output is conveyed.
 
 import (
+	"spacer/dev/protest"
 	"testing"
 	"time"
 )
 
-type pretestDeps interface {
-	printStarting(string) func(string)
-	fetchPretestCommand() []string
-	runSubprocess([]string)
-}
-
-type mockPretestDeps struct{ relay *callRelay }
+type mockPretestDeps struct{ relay protest.RelayWriter }
 
 func (d *mockPretestDeps) printStarting(message string) func(string) {
 	var returnFunc func(string)
-	// TODO: relay.putNewCall() ?? no... this is not something we're doing to relay, it's something we're doing with it...
-	// make it putNewCall(relay, ...)
-	// TODO: make directional relay, so that you can't both put & get calls from the same object/interface
-	d.relay.putCall(newCall("printStarting", message)).fillReturns(&returnFunc)
+
+	d.relay.Put(protest.NewCall("printStarting", message)).FillReturns(&returnFunc)
 
 	return returnFunc
 }
@@ -33,37 +26,28 @@ func (d *mockPretestDeps) printStarting(message string) func(string) {
 func (d *mockPretestDeps) fetchPretestCommand() []string {
 	var c []string
 
-	d.relay.putCall(newCall("fetchPretestCommand")).fillReturns(&c)
+	d.relay.Put(protest.NewCall("fetchPretestCommand")).FillReturns(&c)
 
 	return c
 }
 
 func (d *mockPretestDeps) runSubprocess(command []string) {
-	d.relay.putCall(newCall("runSubprocess", command))
+	d.relay.Put(protest.NewCall("runSubprocess", command))
 }
 
-// TODO: move non-test functions out to their own file.
-func pretest(deps pretestDeps) bool {
-	done := deps.printStarting("Pretest")
-	defer done("Success")
-
-	command := deps.fetchPretestCommand()
-	deps.runSubprocess(command)
-
-	return true
-}
-
-func newPretestDeps(relay *callRelay) *mockPretestDeps {
+func newPretestDeps(relay protest.RelayWriter) *mockPretestDeps {
 	return &mockPretestDeps{relay: relay}
 }
 
 func TestPretestHappyPath(t *testing.T) {
 	t.Parallel()
 
+	// Given test needs
+	relay := protest.NewCallRelay()
+	tester := &protest.RelayTester{T: t, Relay: relay}
 	// Given inputs
-	relay := newCallRelay()
 	deps := newPretestDeps(relay)
-	mockDoneFunc := func(message string) { relay.putCall(newCallNoReturn("printDone", message)) }
+	mockDoneFunc := func(message string) { relay.Put(protest.NewCallNoReturn("printDone", message)) }
 	pretestCommand := []string{"this", "is", "a", "test", "command"}
 	// and outputs
 	passed := false
@@ -72,22 +56,20 @@ func TestPretestHappyPath(t *testing.T) {
 	go func() {
 		passed = pretest(deps)
 
-		relay.shutdown()
+		relay.Shutdown()
 	}()
 
 	// Then the start message is printed
-	// TODO: create assertNextCallIs(t, relay, ...)
-	// TODO: create tester. newTester(t, relay).assertNextCallIs(...)
-	assertCallIs(t, relay.getCall(), "printStarting", "Pretest").injectReturn(mockDoneFunc)
+	tester.AssertNextCallIs("printStarting", "Pretest").InjectReturn(mockDoneFunc)
 	// Then the pretest is fetched
-	assertCallIs(t, relay.getCall(), "fetchPretestCommand").injectReturn(pretestCommand)
+	tester.AssertNextCallIs("fetchPretestCommand").InjectReturn(pretestCommand)
 	// Then the pretest command is run
-	assertCallIs(t, relay.getCall(), "runSubprocess", pretestCommand)
+	tester.AssertNextCallIs("runSubprocess", pretestCommand)
 	// Then the done message is printed
-	assertCallIs(t, relay.getCall(), "printDone", "Success")
+	tester.AssertNextCallIs("printDone", "Success")
 
 	// Then the relay is shut down
-	assertRelayShutsDownWithin(t, relay, time.Second)
+	tester.AssertRelayShutsDownWithin(time.Second)
 
 	// Then the functin passed
 	if !passed {

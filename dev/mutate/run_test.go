@@ -8,205 +8,34 @@ package main
 // run, or how its output is conveyed.
 
 import (
-	"errors"
-	"fmt"
-	"reflect"
+	"spacer/dev/protest"
 	"testing"
 	"time"
 )
 
-type callRelay struct {
-	callChan chan call
-}
-
-type call struct {
-	name    string
-	args    []any
-	returns chan []any
-}
-
-func (cr *callRelay) getCall() callTester {
-	select {
-	case c, ok := <-cr.callChan:
-		if !ok {
-			panic("expected a call, but the relay was already shut down")
-		}
-
-		return c
-	case <-time.After(time.Second):
-		panic("testing timeout waiting for a call")
-	}
-}
-
-func (cr *callRelay) shutdown() {
-	close(cr.callChan)
-}
-
-var (
-	errCallRelayNotShutDown     = errors.New("call relay was not shut down")
-	errCallRelayShutdownTimeout = errors.New("call relay timed out waiting for shutdown")
-)
-
-func (cr *callRelay) waitForShutdown(waitTime time.Duration) error {
-	select {
-	case thisCall, ok := <-cr.callChan:
-		if !ok {
-			// channel is closed
-			return nil
-		}
-
-		return fmt.Errorf("had a call queued: %v: %w", thisCall, errCallRelayNotShutDown)
-	case <-time.After(waitTime):
-		return errCallRelayShutdownTimeout
-	}
-}
-
-type callReader interface {
-	Name() string
-	Args() []any
-}
-
-type returnWriter interface {
-	injectReturn(...any)
-}
-
-type callTester interface {
-	callReader
-	returnWriter
-}
-
-type returnReader interface {
-	fillReturns(...any)
-}
-
-func (cr *callRelay) putCall(c call) returnReader {
-	cr.callChan <- c
-	return c
-}
-
-func newCall(name string, args ...any) call {
-	return call{name: name, args: args, returns: make(chan []any)}
-}
-
-func newCallNoReturn(name string, args ...any) call {
-	return call{name: name, args: args, returns: nil}
-}
-
-func (c call) Name() string {
-	return c.name
-}
-
-func (c call) Args() []any {
-	return c.args
-}
-
-func (c call) injectReturn(returnValues ...any) {
-	if c.returns == nil {
-		panic("cannot inject a return on a call with no returns")
-	}
-	select {
-	case c.returns <- returnValues:
-		return
-	case <-time.After(1 * time.Second):
-		panic("timed out waiting for " + c.name + " to read the injected return values")
-	}
-}
-
-func (c call) fillReturns(returnPointers ...any) {
-	returnValues := <-c.returns
-	for index := range returnValues {
-		// USEFUL SNIPPETS FROM JSON.UNMARSHAL
-		// if rv.Kind() != reflect.Pointer || rv.IsNil() {
-		// 	return &InvalidUnmarshalError{reflect.TypeOf(v)}
-		// }
-		// v.Set(reflect.ValueOf(oi))
-		rv := reflect.ValueOf(returnPointers[index])
-		if rv.Kind() != reflect.Pointer || rv.IsNil() {
-			panic("cannot fill value into non-pointer")
-		}
-		// Use Elem instead of directly using Set for setting pointers
-		rv.Elem().Set(reflect.ValueOf(returnValues[index]))
-	}
-}
-
-func newCallRelay() *callRelay {
-	return &callRelay{callChan: make(chan call)}
-}
-
-func newDeps(relay *callRelay) *runDeps {
+func newDeps(relay *protest.CallRelay) *runDeps {
 	return &runDeps{
 		printStarting: func(s string) func(string) {
 			var f func(string)
-			relay.putCall(newCall("printStarting", s)).fillReturns(&f)
+			relay.Put(protest.NewCall("printStarting", s)).FillReturns(&f)
 
 			return f
 		},
 		pretest: func() bool {
 			var b bool
-			relay.putCall(newCall("pretest")).fillReturns(&b)
+			relay.Put(protest.NewCall("pretest")).FillReturns(&b)
 
 			return b
 		},
 		testMutations: func() bool {
 			var b bool
-			relay.putCall(newCall("testMutations")).fillReturns(&b)
+			relay.Put(protest.NewCall("testMutations")).FillReturns(&b)
 
 			return b
 		},
 		exit: func(code int) {
-			relay.putCall(newCallNoReturn("exit", code))
+			relay.Put(protest.NewCallNoReturn("exit", code))
 		},
-	}
-}
-
-func assertCalledNameIs(t *testing.T, c callReader, expectedName string) {
-	t.Helper()
-
-	if c.Name() != expectedName {
-		t.Fatalf("the called function was expected to be %s, but was %s instead", expectedName, c.Name())
-	}
-}
-
-func assertArgsAre(t *testing.T, theCall callReader, expectedArgs ...any) {
-	t.Helper()
-
-	if theCall.Args() == nil && expectedArgs != nil {
-		t.Fatalf(
-			"the function %s was expected to be called with %#v, but was called without args",
-			theCall.Name(),
-			expectedArgs,
-		)
-	}
-
-	if theCall.Args() != nil && expectedArgs == nil {
-		t.Fatalf(
-			"the function %s was expected to be called without args, but was called with %#v",
-			theCall.Name(),
-			theCall.Args(),
-		)
-	}
-
-	if !reflect.DeepEqual(theCall.Args(), expectedArgs) {
-		t.Fatalf("the function %s was expected to be called with %#v but was called with %#v",
-			theCall.Name(), expectedArgs, theCall.Args(),
-		)
-	}
-}
-
-func assertCallIs(t *testing.T, c callTester, name string, expectedArgs ...any) returnWriter {
-	t.Helper()
-	assertCalledNameIs(t, c, name)
-	assertArgsAre(t, c, expectedArgs...)
-
-	return c
-}
-
-// TODO: move these functions to their own package so that the linter stops yelling about how the only uses _now_ pass a 1s delay.
-func assertRelayShutsDownWithin(t *testing.T, relay *callRelay, waitTime time.Duration) {
-	t.Helper()
-
-	if err := relay.waitForShutdown(waitTime); err != nil {
-		t.Fatalf("the relay has not shut down yet: %s", err)
 	}
 }
 
@@ -214,100 +43,86 @@ func TestRunHappyPath(t *testing.T) {
 	t.Parallel()
 
 	// Given inputs
-	relay := newCallRelay()
+	relay := protest.NewCallRelay()
 	deps := newDeps(relay)
-	mockDoneFunc := func(message string) { relay.putCall(newCallNoReturn("printDone", message)) }
+	mockDoneFunc := func(message string) { relay.Put(protest.NewCallNoReturn("printDone", message)) }
 
 	// When the func is run
 	go func() {
 		run(deps)
 
-		relay.shutdown()
+		relay.Shutdown()
 	}()
 
 	// Then the start message is printed
-	assertCallIs(t, relay.getCall(), "printStarting", "Mutate").injectReturn(mockDoneFunc)
+	protest.AssertNextCallIs(t, relay, "printStarting", "Mutate").InjectReturn(mockDoneFunc)
 	// Then the pretest is run
-	assertCallIs(t, relay.getCall(), "pretest").injectReturn(true)
+	protest.AssertNextCallIs(t, relay, "pretest").InjectReturn(true)
 	// Then the mutation testing is run
-	assertCallIs(t, relay.getCall(), "testMutations").injectReturn(true)
+	protest.AssertNextCallIs(t, relay, "testMutations").InjectReturn(true)
 	// Then the done message is printed
-	assertCallIs(t, relay.getCall(), "printDone", "Success")
+	protest.AssertNextCallIs(t, relay, "printDone", "Success")
 	// Then the program exits with 0
-	assertCallIs(t, relay.getCall(), "exit", 0)
+	protest.AssertNextCallIs(t, relay, "exit", 0)
 
 	// Then the relay is shut down
-	assertRelayShutsDownWithin(t, relay, time.Second)
+	protest.AssertRelayShutsDownWithin(t, relay, time.Second)
 }
 
 func TestRunPretestFailure(t *testing.T) {
 	t.Parallel()
 
 	// Given inputs
-	relay := newCallRelay()
+	relay := protest.NewCallRelay()
 	deps := newDeps(relay)
-	mockDoneFunc := func(message string) { relay.putCall(newCallNoReturn("printDone", message)) }
-	// and outputs
-	var result bool
+	mockDoneFunc := func(message string) { relay.Put(protest.NewCallNoReturn("printDone", message)) }
 
 	// When the func is run
 	go func() {
 		run(deps)
 
-		relay.shutdown()
+		relay.Shutdown()
 	}()
 
 	// Then the start message is printed
-	assertCallIs(t, relay.getCall(), "printStarting", "Mutate").injectReturn(mockDoneFunc)
-	// Then the pretest is run
-	assertCallIs(t, relay.getCall(), "pretest").injectReturn(false)
+	protest.AssertNextCallIs(t, relay, "printStarting", "Mutate").InjectReturn(mockDoneFunc)
+	// Then the pretEst is run
+	protest.AssertNextCallIs(t, relay, "pretest").InjectReturn(false)
 	// Then the done message is printed
-	assertCallIs(t, relay.getCall(), "printDone", "Failure")
+	protest.AssertNextCallIs(t, relay, "printDone", "Failure")
 	// Then the program exits with 1
-	assertCallIs(t, relay.getCall(), "exit", 1)
+	protest.AssertNextCallIs(t, relay, "exit", 1)
 
 	// Then the relay is shut down
-	assertRelayShutsDownWithin(t, relay, time.Second)
-
-	// Then the result is true
-	if result != false {
-		t.Fatal("The result was unexpectedly true")
-	}
+	protest.AssertRelayShutsDownWithin(t, relay, time.Second)
 }
 
 func TestRunMutationFailure(t *testing.T) {
 	t.Parallel()
 
 	// Given inputs
-	relay := newCallRelay()
+	relay := protest.NewCallRelay()
 	deps := newDeps(relay)
-	mockDoneFunc := func(message string) { relay.putCall(newCallNoReturn("printDone", message)) }
-	// and outputs
-	var result bool
+	mockDoneFunc := func(message string) { relay.Put(protest.NewCallNoReturn("printDone", message)) }
 
 	// When the func is run
 	go func() {
 		run(deps)
 
-		relay.shutdown()
+		relay.Shutdown()
 	}()
 
 	// Then the start message is printed
-	assertCallIs(t, relay.getCall(), "printStarting", "Mutate").injectReturn(mockDoneFunc)
+	protest.AssertNextCallIs(t, relay, "printStarting", "Mutate").InjectReturn(mockDoneFunc)
 	// Then the pretest is run
-	assertCallIs(t, relay.getCall(), "pretest").injectReturn(true)
+	protest.AssertNextCallIs(t, relay, "pretest").InjectReturn(true)
 	// Then the mutation testing is run
-	assertCallIs(t, relay.getCall(), "testMutations").injectReturn(false)
+	protest.AssertNextCallIs(t, relay, "testMutations").InjectReturn(false)
 	// Then the done message is printed
-	assertCallIs(t, relay.getCall(), "printDone", "Failure")
+	protest.AssertNextCallIs(t, relay, "printDone", "Failure")
 	// Then the program exits with 1
-	assertCallIs(t, relay.getCall(), "exit", 1)
+	protest.AssertNextCallIs(t, relay, "exit", 1)
 
 	// Then the relay is shut down
-	assertRelayShutsDownWithin(t, relay, time.Second)
-
-	// Then the result is true
-	if result != false {
-		t.Fatal("The result was unexpectedly true")
-	}
+	protest.AssertRelayShutsDownWithin(t, relay, time.Second)
 }
