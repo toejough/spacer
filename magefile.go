@@ -163,7 +163,7 @@ func Fuzz() error {
 // Run the mutation tests
 func Mutate() error {
 	fmt.Println("Running mutation tests...")
-	return sh.RunV("go", "run", "./dev/mutate/mutate.go", "mage checkForFail")
+	return sh.RunV("go", "run", "./dev/mutate", "mage checkForFail")
 }
 
 // Install development tooling
