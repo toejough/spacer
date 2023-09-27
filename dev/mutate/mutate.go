@@ -12,34 +12,21 @@ import "os"
 
 // main runs the program and exits with 0 on success, 1 on failure, 2 on any kind of runtime failure.
 func main() {
-	run(prodRunDeps())
+	run(&prodRunDeps{})
 }
 
 type prodPretestDeps struct{}
 
-func (pd *prodPretestDeps) printStarting(string) func(string) {
-	return func(string) {}
-}
+func (pd *prodPretestDeps) printStarting(string) func(string) { return func(string) {} }
+func (pd *prodPretestDeps) fetchPretestCommand() []string     { return []string{} }
+func (pd *prodPretestDeps) runSubprocess([]string)            {}
 
-func (pd *prodPretestDeps) fetchPretestCommand() []string {
-	return []string{}
-}
+type prodRunDeps struct{}
 
-func (pd *prodPretestDeps) runSubprocess([]string) {}
-
-// this function is going to be long... it has all the dependencies.
-func prodRunDeps() *runDeps {
-	return &runDeps{
-		printStarting: func(string) func(string) { return func(string) {} },
-		pretest: func() bool {
-			return pretest(&prodPretestDeps{})
-		},
-		testMutations: func() bool {
-			return true
-		},
-		exit: func(code int) { os.Exit(code) },
-	}
-}
+func (rd *prodRunDeps) printStarting(string) func(string) { return func(string) {} }
+func (rd *prodRunDeps) pretest() bool                     { return pretest(&prodPretestDeps{}) }
+func (rd *prodRunDeps) testMutations() bool               { return true }
+func (rd *prodRunDeps) exit(code int)                     { os.Exit(code) }
 
 // run performs pretesting validation & tests the mutations
 //
@@ -53,7 +40,7 @@ func prodRunDeps() *runDeps {
 //
 // In either failure case, there's nothing we want to do besides treat it like
 // a failure, so the signature of these types is restricted to bools.
-func run(deps *runDeps) {
+func run(deps runDeps) {
 	doneFunc := deps.printStarting("Mutate")
 
 	if deps.pretest() && deps.testMutations() {
@@ -65,11 +52,10 @@ func run(deps *runDeps) {
 	}
 }
 
-type (
-	runDeps struct {
-		printStarting func(what string) func(string)
-		pretest       func() bool
-		testMutations func() bool
-		exit          func(int)
-	}
-)
+// TODO move rrun to its own file.
+type runDeps interface {
+	printStarting(what string) func(string)
+	pretest() bool
+	testMutations() bool
+	exit(int)
+}

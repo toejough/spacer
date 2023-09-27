@@ -13,30 +13,36 @@ import (
 	"time"
 )
 
-func newDeps(relay *protest.CallRelay) *runDeps {
-	return &runDeps{
-		printStarting: func(s string) func(string) {
-			var f func(string)
-			relay.Put(protest.NewCall("printStarting", s)).FillReturns(&f)
+type mockRunDeps struct {
+	relay *protest.CallRelay
+}
 
-			return f
-		},
-		pretest: func() bool {
-			var b bool
-			relay.Put(protest.NewCall("pretest")).FillReturns(&b)
+func (rd *mockRunDeps) printStarting(s string) func(string) {
+	var f func(string)
 
-			return b
-		},
-		testMutations: func() bool {
-			var b bool
-			relay.Put(protest.NewCall("testMutations")).FillReturns(&b)
+	rd.relay.Put(protest.NewCall("printStarting", s)).FillReturns(&f)
 
-			return b
-		},
-		exit: func(code int) {
-			relay.Put(protest.NewCallNoReturn("exit", code))
-		},
-	}
+	return f
+}
+
+func (rd *mockRunDeps) pretest() bool {
+	var b bool
+
+	rd.relay.Put(protest.NewCall("pretest")).FillReturns(&b)
+
+	return b
+}
+
+func (rd *mockRunDeps) testMutations() bool {
+	var b bool
+
+	rd.relay.Put(protest.NewCall("testMutations")).FillReturns(&b)
+
+	return b
+}
+
+func (rd *mockRunDeps) exit(code int) {
+	rd.relay.Put(protest.NewCallNoReturn("exit", code))
 }
 
 func TestRunHappyPath(t *testing.T) {
@@ -44,7 +50,7 @@ func TestRunHappyPath(t *testing.T) {
 
 	// Given inputs
 	relay := protest.NewCallRelay()
-	deps := newDeps(relay)
+	deps := &mockRunDeps{relay: relay}
 	mockDoneFunc := func(message string) { relay.Put(protest.NewCallNoReturn("printDone", message)) }
 
 	// When the func is run
@@ -74,7 +80,7 @@ func TestRunPretestFailure(t *testing.T) {
 
 	// Given inputs
 	relay := protest.NewCallRelay()
-	deps := newDeps(relay)
+	deps := &mockRunDeps{relay: relay}
 	mockDoneFunc := func(message string) { relay.Put(protest.NewCallNoReturn("printDone", message)) }
 
 	// When the func is run
@@ -102,7 +108,7 @@ func TestRunMutationFailure(t *testing.T) {
 
 	// Given inputs
 	relay := protest.NewCallRelay()
-	deps := newDeps(relay)
+	deps := &mockRunDeps{relay: relay}
 	mockDoneFunc := func(message string) { relay.Put(protest.NewCallNoReturn("printDone", message)) }
 
 	// When the func is run
