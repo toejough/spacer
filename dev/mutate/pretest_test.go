@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-type mockPretestDeps struct{ relay protest.RelayWriter }
+type mockPretestDeps struct{ relay *protest.CallRelay }
 
 func (d *mockPretestDeps) printStarting(message string) func(string) {
 	var returnFunc func(string)
@@ -39,7 +39,7 @@ func (d *mockPretestDeps) printDone(message string) {
 	d.relay.PutCallNoReturn(d.printDone, message)
 }
 
-func newPretestDeps(relay protest.RelayWriter) *mockPretestDeps {
+func newPretestDeps(relay *protest.CallRelay) *mockPretestDeps {
 	return &mockPretestDeps{relay: relay}
 }
 
@@ -63,10 +63,10 @@ func TestPretestHappyPath(t *testing.T) {
 	}()
 
 	// Then the start message is printed
-	tester.AssertNextCallIs(deps.printStarting, "Pretest").InjectReturn(deps.printDone)
+	tester.AssertNextCallIs(deps.printStarting, "Pretest").InjectReturns(deps.printDone)
 	// Then the pretest is fetched
 	// TODO: do property testing for the command returned
-	tester.AssertNextCallIs(deps.fetchPretestCommand).InjectReturn(pretestCommand)
+	tester.AssertNextCallIs(deps.fetchPretestCommand).InjectReturns(pretestCommand)
 	// Then the pretest command is run
 	// TODO: add a test for when the subprocess command fails
 	tester.AssertNextCallIs(deps.runSubprocess, pretestCommand)

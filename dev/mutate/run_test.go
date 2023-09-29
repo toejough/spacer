@@ -66,11 +66,11 @@ func TestRunHappyPath(t *testing.T) {
 	}()
 
 	// Then the start message is printed
-	tester.AssertNextCallIs(deps.printStarting, "Mutate").InjectReturn(deps.printDone)
+	tester.AssertNextCallIs(deps.printStarting, "Mutate").InjectReturns(deps.printDone)
 	// Then the pretest is run
-	tester.AssertNextCallIs(deps.pretest).InjectReturn(true)
+	tester.AssertNextCallIs(deps.pretest).InjectReturns(true)
 	// Then the mutation testing is run
-	tester.AssertNextCallIs(deps.testMutations).InjectReturn(true)
+	tester.AssertNextCallIs(deps.testMutations).InjectReturns(true)
 	// Then the done message is printed
 	tester.AssertNextCallIs(deps.printDone, "Success")
 	// Then the program exits with 0
@@ -97,9 +97,9 @@ func TestRunPretestFailure(t *testing.T) {
 	}()
 
 	// Then the start message is printed
-	tester.AssertNextCallIs(deps.printStarting, "Mutate").InjectReturn(deps.printDone)
+	tester.AssertNextCallIs(deps.printStarting, "Mutate").InjectReturns(deps.printDone)
 	// Then the pretEst is run
-	tester.AssertNextCallIs(deps.pretest).InjectReturn(false)
+	tester.AssertNextCallIs(deps.pretest).InjectReturns(false)
 	// Then the done message is printed
 	tester.AssertNextCallIs(deps.printDone, "Failure")
 	// Then the program exits with 1
@@ -126,11 +126,11 @@ func TestRunMutationFailure(t *testing.T) {
 	}()
 
 	// Then the start message is printed
-	tester.AssertNextCallIs(deps.printStarting, "Mutate").InjectReturn(deps.printDone)
+	tester.AssertNextCallIs(deps.printStarting, "Mutate").InjectReturns(deps.printDone)
 	// Then the pretest is run
-	tester.AssertNextCallIs(deps.pretest).InjectReturn(true)
+	tester.AssertNextCallIs(deps.pretest).InjectReturns(true)
 	// Then the mutation testing is run
-	tester.AssertNextCallIs(deps.testMutations).InjectReturn(false)
+	tester.AssertNextCallIs(deps.testMutations).InjectReturns(false)
 	// Then the done message is printed
 	tester.AssertNextCallIs(deps.printDone, "Failure")
 	// Then the program exits with 1

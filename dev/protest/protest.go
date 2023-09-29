@@ -17,26 +17,27 @@ import (
 
 type (
 	CallRelay struct {
-		callChan chan Call
+		callChan chan *Call
 	}
 	Call struct {
 		function Function
 		args     []any
 		returns  chan []any
 	}
-	RelayReader interface {
-		Get() callTester
-		WaitForShutdown(time.Duration) error
-	}
-	RelayWriter interface {
-		Put(Call) returnReader
-		PutCall(Function, ...any) returnReader
-		PutCallNoReturn(Function, ...any) returnReader
+	Function    any
+	RelayTester struct {
+		T     *testing.T
+		Relay *CallRelay
 	}
 )
 
+var (
+	errCallRelayNotShutDown     = errors.New("call relay was not shut down")
+	errCallRelayShutdownTimeout = errors.New("call relay timed out waiting for shutdown")
+)
+
 // Public helpers.
-func AssertNextCallIs(t *testing.T, r RelayReader, name string, expectedArgs ...any) callTester {
+func AssertNextCallIs(t *testing.T, r *CallRelay, name string, expectedArgs ...any) *Call {
 	t.Helper()
 
 	c := r.Get()
@@ -46,7 +47,7 @@ func AssertNextCallIs(t *testing.T, r RelayReader, name string, expectedArgs ...
 	return c
 }
 
-func AssertRelayShutsDownWithin(t *testing.T, relay RelayReader, waitTime time.Duration) {
+func AssertRelayShutsDownWithin(t *testing.T, relay *CallRelay, waitTime time.Duration) {
 	t.Helper()
 
 	if err := relay.WaitForShutdown(waitTime); err != nil {
@@ -54,8 +55,22 @@ func AssertRelayShutsDownWithin(t *testing.T, relay RelayReader, waitTime time.D
 	}
 }
 
+func NewCall(f Function, args ...any) *Call {
+	panicIfNotFunc(f, NewCall)
+	return &Call{function: f, args: args, returns: make(chan []any)}
+}
+
+func NewCallNoReturn(f Function, args ...any) *Call {
+	panicIfNotFunc(f, NewCallNoReturn)
+	return &Call{function: f, args: args, returns: nil}
+}
+
+func NewCallRelay() *CallRelay {
+	return &CallRelay{callChan: make(chan *Call)}
+}
+
 // Private helpers.
-func assertCalledNameIs(t *testing.T, c callReader, expectedName string) {
+func assertCalledNameIs(t *testing.T, c *Call, expectedName string) {
 	t.Helper()
 
 	if c.Name() != expectedName {
@@ -63,7 +78,7 @@ func assertCalledNameIs(t *testing.T, c callReader, expectedName string) {
 	}
 }
 
-func assertArgsAre(t *testing.T, theCall callReader, expectedArgs ...any) {
+func assertArgsAre(t *testing.T, theCall *Call, expectedArgs ...any) {
 	t.Helper()
 
 	if theCall.Args() == nil && expectedArgs != nil {
@@ -89,7 +104,24 @@ func assertArgsAre(t *testing.T, theCall callReader, expectedArgs ...any) {
 	}
 }
 
-func (cr *CallRelay) Get() callTester {
+func getFuncName(f Function) string {
+	// docs say to use UnsafePointer explicitly instead of Pointer()
+	// https://pkg.go.dev/reflect@go1.21.1#Value.Pointer
+	return runtime.FuncForPC(uintptr(reflect.ValueOf(f).UnsafePointer())).Name()
+}
+
+func panicIfNotFunc(evaluate Function, from Function) {
+	kind := reflect.ValueOf(evaluate).Kind()
+	if kind != reflect.Func {
+		panic(fmt.Sprintf("must pass a function as the first argument to %s. received a %s instead.",
+			getFuncName(from),
+			kind.String(),
+		))
+	}
+}
+
+// CallRelay Methods.
+func (cr *CallRelay) Get() *Call {
 	select {
 	case c, ok := <-cr.callChan:
 		if !ok {
@@ -102,14 +134,14 @@ func (cr *CallRelay) Get() callTester {
 	}
 }
 
+func (cr *CallRelay) Put(c *Call) *Call {
+	cr.callChan <- c
+	return c
+}
+
 func (cr *CallRelay) Shutdown() {
 	close(cr.callChan)
 }
-
-var (
-	errCallRelayNotShutDown     = errors.New("call relay was not shut down")
-	errCallRelayShutdownTimeout = errors.New("call relay timed out waiting for shutdown")
-)
 
 func (cr *CallRelay) WaitForShutdown(waitTime time.Duration) error {
 	select {
@@ -125,66 +157,15 @@ func (cr *CallRelay) WaitForShutdown(waitTime time.Duration) error {
 	}
 }
 
-type callReader interface {
-	Name() string
-	Args() []any
-}
-
-type returnWriter interface {
-	InjectReturn(...any)
-}
-
-type callTester interface {
-	callReader
-	returnWriter
-}
-
-type returnReader interface {
-	FillReturns(...any)
-}
-
-func (cr *CallRelay) Put(c Call) returnReader {
-	cr.callChan <- c
-	return c
-}
-
-type Function any
-
-func getFuncName(f Function) string {
-	// docs say to use UnsafePointer explicitly instead of Pointer()
-	// https://pkg.go.dev/reflect@go1.21.1#Value.Pointer
-	return runtime.FuncForPC(uintptr(reflect.ValueOf(f).UnsafePointer())).Name()
-}
-
-func (cr *CallRelay) PutCall(f Function, args ...any) returnReader {
+func (cr *CallRelay) PutCall(f Function, args ...any) *Call {
 	return cr.Put(NewCall(f, args...))
 }
 
-// TODO: try to return concrete types.
-func (cr *CallRelay) PutCallNoReturn(f Function, args ...any) returnReader {
+func (cr *CallRelay) PutCallNoReturn(f Function, args ...any) *Call {
 	return cr.Put(NewCallNoReturn(f, args...))
 }
 
-func panicIfNotFunc(evaluate Function, from Function) {
-	kind := reflect.ValueOf(evaluate).Kind()
-	if kind != reflect.Func {
-		panic(fmt.Sprintf("must pass a function as the first argument to %s. received a %s instead.",
-			getFuncName(from),
-			kind.String(),
-		))
-	}
-}
-
-func NewCall(f Function, args ...any) Call {
-	panicIfNotFunc(f, NewCall)
-	return Call{function: f, args: args, returns: make(chan []any)}
-}
-
-func NewCallNoReturn(f Function, args ...any) Call {
-	panicIfNotFunc(f, NewCallNoReturn)
-	return Call{function: f, args: args, returns: nil}
-}
-
+// Call methods.
 func (c Call) Name() string {
 	return getFuncName(c.function)
 }
@@ -193,7 +174,7 @@ func (c Call) Args() []any {
 	return c.args
 }
 
-func (c Call) InjectReturn(returnValues ...any) {
+func (c Call) InjectReturns(returnValues ...any) {
 	if c.returns == nil {
 		panic("cannot inject a return on a call with no returns")
 	}
@@ -207,8 +188,7 @@ func (c Call) InjectReturn(returnValues ...any) {
 
 func (c Call) FillReturns(returnPointers ...any) {
 	returnValues := <-c.returns
-	// TODO: callout in the docs: it's ok to panic if the test is written wrong. Not ok to panic if the test is just failing.
-	// TODO: document as a win over testify.Mocked: we fail if the number of returns doesn't match
+	// a win over testify.Mocked: we fail if the number of returns doesn't match
 	// TODO: Can we figure out the number of returns from the caller's function signature?
 	for index := range returnValues {
 		// USEFUL SNIPPETS FROM JSON.UNMARSHAL
@@ -225,17 +205,9 @@ func (c Call) FillReturns(returnPointers ...any) {
 	}
 }
 
-func NewCallRelay() *CallRelay {
-	return &CallRelay{callChan: make(chan Call)}
-}
-
-type RelayTester struct {
-	T     *testing.T
-	Relay RelayReader
-}
-
+// RelayTester methods.
 // TODO: can we know the number of args & check that here?
-func (rt *RelayTester) AssertNextCallIs(f Function, args ...any) callTester {
+func (rt *RelayTester) AssertNextCallIs(f Function, args ...any) *Call {
 	rt.T.Helper()
 	panicIfNotFunc(f, AssertNextCallIs)
 
