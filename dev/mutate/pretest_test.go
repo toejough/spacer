@@ -15,6 +15,7 @@ import (
 
 type mockPretestDeps struct{ relay protest.RelayWriter }
 
+// TODO: a relay function that creates a new call with the name already read from the calling method.
 func (d *mockPretestDeps) printStarting(message string) func(string) {
 	var returnFunc func(string)
 
@@ -60,10 +61,14 @@ func TestPretestHappyPath(t *testing.T) {
 	}()
 
 	// Then the start message is printed
+	// TODO: a protest function to read the name from a given function
+	// TODO: update tester function to use the function instead of a name
 	tester.AssertNextCallIs("printStarting", "Pretest").InjectReturn(mockDoneFunc)
 	// Then the pretest is fetched
+	// TODO: do property testing for the command returned
 	tester.AssertNextCallIs("fetchPretestCommand").InjectReturn(pretestCommand)
 	// Then the pretest command is run
+	// TODO: add a test for when the subprocess command fails
 	tester.AssertNextCallIs("runSubprocess", pretestCommand)
 	// Then the done message is printed
 	tester.AssertNextCallIs("printDone", "Success")

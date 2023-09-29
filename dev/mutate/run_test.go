@@ -34,17 +34,20 @@ func (rd *mockRunDeps) pretest() bool {
 }
 
 func (rd *mockRunDeps) testMutations() bool {
-	var b bool
+	var success bool
 
-	rd.relay.Put(protest.NewCall("testMutations")).FillReturns(&b)
+	// TODO: is there a way to grab the name like testify.mock does?
+	// TODO keep this filling, or do type assertions on returns(0) the way testify.mock does?
+	rd.relay.Put(protest.NewCall("testMutations")).FillReturns(&success)
 
-	return b
+	return success
 }
 
 func (rd *mockRunDeps) exit(code int) {
 	rd.relay.Put(protest.NewCallNoReturn("exit", code))
 }
 
+// TODO: implement the same tests with https://github.com/stretchr/testify/issues/741 and see how that feels.
 func TestRunHappyPath(t *testing.T) {
 	t.Parallel()
 

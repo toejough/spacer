@@ -1,4 +1,9 @@
 // Package protest provides procedure testing functionality.
+// Why not https://github.com/stretchr/testify/blob/master/README.md#mock-package?
+// You only get to specify simple call/return behavior, with no guarantees about ordering, and you need to unset
+// handlers for repeated calls for the same function.
+// On the other hand, there's https://github.com/stretchr/testify/issues/741.  Is this necessary?
+// maybe this whole suite is pointless?
 package protest
 
 import (
@@ -169,6 +174,9 @@ func (c Call) InjectReturn(returnValues ...any) {
 
 func (c Call) FillReturns(returnPointers ...any) {
 	returnValues := <-c.returns
+	// TODO: callout in the docs: it's ok to panic if the test is written wrong. Not ok to panic if the test is just failing.
+	// TODO: document as a win over testify.Mocked: we fail if the number of returns doesn't match
+	// TODO: Can we figure out the number of returns from the caller's function signature?
 	for index := range returnValues {
 		// USEFUL SNIPPETS FROM JSON.UNMARSHAL
 		// if rv.Kind() != reflect.Pointer || rv.IsNil() {
@@ -193,6 +201,7 @@ type RelayTester struct {
 	Relay RelayReader
 }
 
+// TODO: can we know the number of args & check that here?
 func (rt *RelayTester) AssertNextCallIs(message string, args ...any) callTester {
 	rt.T.Helper()
 	return AssertNextCallIs(rt.T, rt.Relay, message, args...)
