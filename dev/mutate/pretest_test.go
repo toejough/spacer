@@ -15,11 +15,10 @@ import (
 
 type mockPretestDeps struct{ relay protest.RelayWriter }
 
-// TODO: a relay function that creates a new call with the name already read from the calling method.
 func (d *mockPretestDeps) printStarting(message string) func(string) {
 	var returnFunc func(string)
 
-	d.relay.Put(protest.NewCall("printStarting", message)).FillReturns(&returnFunc)
+	d.relay.PutCall(d.printStarting, message).FillReturns(&returnFunc)
 
 	return returnFunc
 }
@@ -27,13 +26,17 @@ func (d *mockPretestDeps) printStarting(message string) func(string) {
 func (d *mockPretestDeps) fetchPretestCommand() []string {
 	var c []string
 
-	d.relay.Put(protest.NewCall("fetchPretestCommand")).FillReturns(&c)
+	d.relay.PutCall(d.fetchPretestCommand).FillReturns(&c)
 
 	return c
 }
 
 func (d *mockPretestDeps) runSubprocess(command []string) {
-	d.relay.Put(protest.NewCall("runSubprocess", command))
+	d.relay.PutCall(d.runSubprocess, command)
+}
+
+func (d *mockPretestDeps) printDone(message string) {
+	d.relay.PutCallNoReturn(d.printDone, message)
 }
 
 func newPretestDeps(relay protest.RelayWriter) *mockPretestDeps {
@@ -48,7 +51,6 @@ func TestPretestHappyPath(t *testing.T) {
 	tester := &protest.RelayTester{T: t, Relay: relay}
 	// Given inputs
 	deps := newPretestDeps(relay)
-	mockDoneFunc := func(message string) { relay.Put(protest.NewCallNoReturn("printDone", message)) }
 	pretestCommand := []string{"this", "is", "a", "test", "command"}
 	// and outputs
 	passed := false
@@ -61,17 +63,15 @@ func TestPretestHappyPath(t *testing.T) {
 	}()
 
 	// Then the start message is printed
-	// TODO: a protest function to read the name from a given function
-	// TODO: update tester function to use the function instead of a name
-	tester.AssertNextCallIs("printStarting", "Pretest").InjectReturn(mockDoneFunc)
+	tester.AssertNextCallIs(deps.printStarting, "Pretest").InjectReturn(deps.printDone)
 	// Then the pretest is fetched
 	// TODO: do property testing for the command returned
-	tester.AssertNextCallIs("fetchPretestCommand").InjectReturn(pretestCommand)
+	tester.AssertNextCallIs(deps.fetchPretestCommand).InjectReturn(pretestCommand)
 	// Then the pretest command is run
 	// TODO: add a test for when the subprocess command fails
-	tester.AssertNextCallIs("runSubprocess", pretestCommand)
+	tester.AssertNextCallIs(deps.runSubprocess, pretestCommand)
 	// Then the done message is printed
-	tester.AssertNextCallIs("printDone", "Success")
+	tester.AssertNextCallIs(deps.printDone, "Success")
 
 	// Then the relay is shut down
 	tester.AssertRelayShutsDownWithin(time.Second)

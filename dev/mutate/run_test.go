@@ -20,7 +20,7 @@ type mockRunDeps struct {
 func (rd *mockRunDeps) printStarting(s string) func(string) {
 	var f func(string)
 
-	rd.relay.Put(protest.NewCall("printStarting", s)).FillReturns(&f)
+	rd.relay.PutCall(rd.printStarting, s).FillReturns(&f)
 
 	return f
 }
@@ -28,7 +28,7 @@ func (rd *mockRunDeps) printStarting(s string) func(string) {
 func (rd *mockRunDeps) pretest() bool {
 	var b bool
 
-	rd.relay.Put(protest.NewCall("pretest")).FillReturns(&b)
+	rd.relay.PutCall(rd.pretest).FillReturns(&b)
 
 	return b
 }
@@ -36,25 +36,27 @@ func (rd *mockRunDeps) pretest() bool {
 func (rd *mockRunDeps) testMutations() bool {
 	var success bool
 
-	// TODO: is there a way to grab the name like testify.mock does?
-	// TODO keep this filling, or do type assertions on returns(0) the way testify.mock does?
-	rd.relay.Put(protest.NewCall("testMutations")).FillReturns(&success)
+	rd.relay.PutCall(rd.testMutations).FillReturns(&success)
 
 	return success
 }
 
 func (rd *mockRunDeps) exit(code int) {
-	rd.relay.Put(protest.NewCallNoReturn("exit", code))
+	rd.relay.PutCallNoReturn(rd.exit, code)
 }
 
-// TODO: implement the same tests with https://github.com/stretchr/testify/issues/741 and see how that feels.
+func (rd *mockRunDeps) printDone(message string) {
+	rd.relay.PutCallNoReturn(rd.printDone, message)
+}
+
 func TestRunHappyPath(t *testing.T) {
 	t.Parallel()
 
-	// Given inputs
+	// Given test needs
 	relay := protest.NewCallRelay()
+	tester := &protest.RelayTester{T: t, Relay: relay}
+	// Given inputs
 	deps := &mockRunDeps{relay: relay}
-	mockDoneFunc := func(message string) { relay.Put(protest.NewCallNoReturn("printDone", message)) }
 
 	// When the func is run
 	go func() {
@@ -64,27 +66,28 @@ func TestRunHappyPath(t *testing.T) {
 	}()
 
 	// Then the start message is printed
-	protest.AssertNextCallIs(t, relay, "printStarting", "Mutate").InjectReturn(mockDoneFunc)
+	tester.AssertNextCallIs(deps.printStarting, "Mutate").InjectReturn(deps.printDone)
 	// Then the pretest is run
-	protest.AssertNextCallIs(t, relay, "pretest").InjectReturn(true)
+	tester.AssertNextCallIs(deps.pretest).InjectReturn(true)
 	// Then the mutation testing is run
-	protest.AssertNextCallIs(t, relay, "testMutations").InjectReturn(true)
+	tester.AssertNextCallIs(deps.testMutations).InjectReturn(true)
 	// Then the done message is printed
-	protest.AssertNextCallIs(t, relay, "printDone", "Success")
+	tester.AssertNextCallIs(deps.printDone, "Success")
 	// Then the program exits with 0
-	protest.AssertNextCallIs(t, relay, "exit", 0)
+	tester.AssertNextCallIs(deps.exit, 0)
 
 	// Then the relay is shut down
-	protest.AssertRelayShutsDownWithin(t, relay, time.Second)
+	tester.AssertRelayShutsDownWithin(time.Second)
 }
 
 func TestRunPretestFailure(t *testing.T) {
 	t.Parallel()
 
-	// Given inputs
+	// Given test needs
 	relay := protest.NewCallRelay()
+	tester := &protest.RelayTester{T: t, Relay: relay}
+	// Given inputs
 	deps := &mockRunDeps{relay: relay}
-	mockDoneFunc := func(message string) { relay.Put(protest.NewCallNoReturn("printDone", message)) }
 
 	// When the func is run
 	go func() {
@@ -94,25 +97,26 @@ func TestRunPretestFailure(t *testing.T) {
 	}()
 
 	// Then the start message is printed
-	protest.AssertNextCallIs(t, relay, "printStarting", "Mutate").InjectReturn(mockDoneFunc)
+	tester.AssertNextCallIs(deps.printStarting, "Mutate").InjectReturn(deps.printDone)
 	// Then the pretEst is run
-	protest.AssertNextCallIs(t, relay, "pretest").InjectReturn(false)
+	tester.AssertNextCallIs(deps.pretest).InjectReturn(false)
 	// Then the done message is printed
-	protest.AssertNextCallIs(t, relay, "printDone", "Failure")
+	tester.AssertNextCallIs(deps.printDone, "Failure")
 	// Then the program exits with 1
-	protest.AssertNextCallIs(t, relay, "exit", 1)
+	tester.AssertNextCallIs(deps.exit, 1)
 
 	// Then the relay is shut down
-	protest.AssertRelayShutsDownWithin(t, relay, time.Second)
+	tester.AssertRelayShutsDownWithin(time.Second)
 }
 
 func TestRunMutationFailure(t *testing.T) {
 	t.Parallel()
 
-	// Given inputs
+	// Given test needs
 	relay := protest.NewCallRelay()
+	tester := &protest.RelayTester{T: t, Relay: relay}
+	// Given inputs
 	deps := &mockRunDeps{relay: relay}
-	mockDoneFunc := func(message string) { relay.Put(protest.NewCallNoReturn("printDone", message)) }
 
 	// When the func is run
 	go func() {
@@ -122,16 +126,16 @@ func TestRunMutationFailure(t *testing.T) {
 	}()
 
 	// Then the start message is printed
-	protest.AssertNextCallIs(t, relay, "printStarting", "Mutate").InjectReturn(mockDoneFunc)
+	tester.AssertNextCallIs(deps.printStarting, "Mutate").InjectReturn(deps.printDone)
 	// Then the pretest is run
-	protest.AssertNextCallIs(t, relay, "pretest").InjectReturn(true)
+	tester.AssertNextCallIs(deps.pretest).InjectReturn(true)
 	// Then the mutation testing is run
-	protest.AssertNextCallIs(t, relay, "testMutations").InjectReturn(false)
+	tester.AssertNextCallIs(deps.testMutations).InjectReturn(false)
 	// Then the done message is printed
-	protest.AssertNextCallIs(t, relay, "printDone", "Failure")
+	tester.AssertNextCallIs(deps.printDone, "Failure")
 	// Then the program exits with 1
-	protest.AssertNextCallIs(t, relay, "exit", 1)
+	tester.AssertNextCallIs(deps.exit, 1)
 
 	// Then the relay is shut down
-	protest.AssertRelayShutsDownWithin(t, relay, time.Second)
+	tester.AssertRelayShutsDownWithin(time.Second)
 }

@@ -10,10 +10,32 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 )
 
+type (
+	CallRelay struct {
+		callChan chan Call
+	}
+	Call struct {
+		function Function
+		args     []any
+		returns  chan []any
+	}
+	RelayReader interface {
+		Get() callTester
+		WaitForShutdown(time.Duration) error
+	}
+	RelayWriter interface {
+		Put(Call) returnReader
+		PutCall(Function, ...any) returnReader
+		PutCallNoReturn(Function, ...any) returnReader
+	}
+)
+
+// Public helpers.
 func AssertNextCallIs(t *testing.T, r RelayReader, name string, expectedArgs ...any) callTester {
 	t.Helper()
 
@@ -32,6 +54,7 @@ func AssertRelayShutsDownWithin(t *testing.T, relay RelayReader, waitTime time.D
 	}
 }
 
+// Private helpers.
 func assertCalledNameIs(t *testing.T, c callReader, expectedName string) {
 	t.Helper()
 
@@ -64,25 +87,6 @@ func assertArgsAre(t *testing.T, theCall callReader, expectedArgs ...any) {
 			theCall.Name(), expectedArgs, theCall.Args(),
 		)
 	}
-}
-
-type CallRelay struct {
-	callChan chan Call
-}
-
-type Call struct {
-	name    string
-	args    []any
-	returns chan []any
-}
-
-type RelayReader interface {
-	Get() callTester
-	WaitForShutdown(time.Duration) error
-}
-
-type RelayWriter interface {
-	Put(Call) returnReader
 }
 
 func (cr *CallRelay) Get() callTester {
@@ -144,16 +148,45 @@ func (cr *CallRelay) Put(c Call) returnReader {
 	return c
 }
 
-func NewCall(name string, args ...any) Call {
-	return Call{name: name, args: args, returns: make(chan []any)}
+type Function any
+
+func getFuncName(f Function) string {
+	// docs say to use UnsafePointer explicitly instead of Pointer()
+	// https://pkg.go.dev/reflect@go1.21.1#Value.Pointer
+	return runtime.FuncForPC(uintptr(reflect.ValueOf(f).UnsafePointer())).Name()
 }
 
-func NewCallNoReturn(name string, args ...any) Call {
-	return Call{name: name, args: args, returns: nil}
+func (cr *CallRelay) PutCall(f Function, args ...any) returnReader {
+	return cr.Put(NewCall(f, args...))
+}
+
+// TODO: try to return concrete types.
+func (cr *CallRelay) PutCallNoReturn(f Function, args ...any) returnReader {
+	return cr.Put(NewCallNoReturn(f, args...))
+}
+
+func panicIfNotFunc(evaluate Function, from Function) {
+	kind := reflect.ValueOf(evaluate).Kind()
+	if kind != reflect.Func {
+		panic(fmt.Sprintf("must pass a function as the first argument to %s. received a %s instead.",
+			getFuncName(from),
+			kind.String(),
+		))
+	}
+}
+
+func NewCall(f Function, args ...any) Call {
+	panicIfNotFunc(f, NewCall)
+	return Call{function: f, args: args, returns: make(chan []any)}
+}
+
+func NewCallNoReturn(f Function, args ...any) Call {
+	panicIfNotFunc(f, NewCallNoReturn)
+	return Call{function: f, args: args, returns: nil}
 }
 
 func (c Call) Name() string {
-	return c.name
+	return getFuncName(c.function)
 }
 
 func (c Call) Args() []any {
@@ -168,7 +201,7 @@ func (c Call) InjectReturn(returnValues ...any) {
 	case c.returns <- returnValues:
 		return
 	case <-time.After(1 * time.Second):
-		panic("timed out waiting for " + c.name + " to read the injected return values")
+		panic("timed out waiting for " + c.Name() + " to read the injected return values")
 	}
 }
 
@@ -202,9 +235,11 @@ type RelayTester struct {
 }
 
 // TODO: can we know the number of args & check that here?
-func (rt *RelayTester) AssertNextCallIs(message string, args ...any) callTester {
+func (rt *RelayTester) AssertNextCallIs(f Function, args ...any) callTester {
 	rt.T.Helper()
-	return AssertNextCallIs(rt.T, rt.Relay, message, args...)
+	panicIfNotFunc(f, AssertNextCallIs)
+
+	return AssertNextCallIs(rt.T, rt.Relay, getFuncName(f), args...)
 }
 
 func (rt *RelayTester) AssertRelayShutsDownWithin(d time.Duration) {
