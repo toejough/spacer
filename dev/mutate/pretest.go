@@ -7,20 +7,15 @@ type pretestDeps interface {
 }
 
 func pretest(deps pretestDeps) bool {
-	var success bool
-
 	done := deps.printStarting("Pretest")
-
-	defer func() {
-		if success {
-			done("Success")
-		} else {
-			done("Failure")
-		}
-	}()
-
 	command := deps.fetchPretestCommand()
-	success = deps.runSubprocess(command)
+	success := deps.runSubprocess(command)
+
+	if success {
+		done("Success")
+	} else {
+		done("Failure")
+	}
 
 	return success
 }
