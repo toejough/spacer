@@ -31,8 +31,12 @@ func (d *mockPretestDeps) fetchPretestCommand() []string {
 	return c
 }
 
-func (d *mockPretestDeps) runSubprocess(command []string) {
-	d.relay.PutCall(d.runSubprocess, command)
+func (d *mockPretestDeps) runSubprocess(command []string) bool {
+	var b bool
+
+	d.relay.PutCall(d.runSubprocess, command).FillReturns(&b)
+
+	return b
 }
 
 func (d *mockPretestDeps) printDone(message string) {
@@ -68,8 +72,7 @@ func TestPretestHappyPath(t *testing.T) {
 	// TODO: do property testing for the command returned
 	tester.AssertNextCallIs(deps.fetchPretestCommand).InjectReturns(pretestCommand)
 	// Then the pretest command is run
-	// TODO: add a test for when the subprocess command fails
-	tester.AssertNextCallIs(deps.runSubprocess, pretestCommand)
+	tester.AssertNextCallIs(deps.runSubprocess, pretestCommand).InjectReturns(true)
 	// Then the done message is printed
 	tester.AssertNextCallIs(deps.printDone, "Success")
 
@@ -79,5 +82,43 @@ func TestPretestHappyPath(t *testing.T) {
 	// Then the functin passed
 	if !passed {
 		t.Fatal("the pretest function failed unexpectedly")
+	}
+}
+
+func TestPretestSubprocessFail(t *testing.T) {
+	t.Parallel()
+
+	// Given test needs
+	relay := protest.NewCallRelay()
+	tester := &protest.RelayTester{T: t, Relay: relay}
+	// Given inputs
+	deps := newPretestDeps(relay)
+	pretestCommand := []string{"this", "is", "a", "test", "command"}
+	// and outputs
+	passed := false
+
+	// When the func is run
+	go func() {
+		passed = pretest(deps)
+
+		relay.Shutdown()
+	}()
+
+	// Then the start message is printed
+	tester.AssertNextCallIs(deps.printStarting, "Pretest").InjectReturns(deps.printDone)
+	// Then the pretest is fetched
+	// TODO: do property testing for the command returned
+	tester.AssertNextCallIs(deps.fetchPretestCommand).InjectReturns(pretestCommand)
+	// Then the pretest command is run
+	tester.AssertNextCallIs(deps.runSubprocess, pretestCommand).InjectReturns(false)
+	// Then the done message is printed
+	tester.AssertNextCallIs(deps.printDone, "Failure")
+
+	// Then the relay is shut down
+	tester.AssertRelayShutsDownWithin(time.Second)
+
+	// Then the function failed
+	if passed {
+		t.Fatal("the pretest function passed unexpectedly")
 	}
 }

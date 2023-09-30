@@ -3,15 +3,24 @@ package main
 type pretestDeps interface {
 	printStarting(string) func(string)
 	fetchPretestCommand() []string
-	runSubprocess([]string)
+	runSubprocess([]string) bool
 }
 
 func pretest(deps pretestDeps) bool {
+	var success bool
+
 	done := deps.printStarting("Pretest")
-	defer done("Success")
+
+	defer func() {
+		if success {
+			done("Success")
+		} else {
+			done("Failure")
+		}
+	}()
 
 	command := deps.fetchPretestCommand()
-	deps.runSubprocess(command)
+	success = deps.runSubprocess(command)
 
-	return true
+	return success
 }

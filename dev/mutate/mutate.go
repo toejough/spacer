@@ -19,7 +19,7 @@ type prodPretestDeps struct{}
 
 func (pd *prodPretestDeps) printStarting(string) func(string) { return func(string) {} }
 func (pd *prodPretestDeps) fetchPretestCommand() []string     { return []string{} }
-func (pd *prodPretestDeps) runSubprocess([]string)            {}
+func (pd *prodPretestDeps) runSubprocess([]string) bool       { return true }
 
 type prodRunDeps struct{}
 

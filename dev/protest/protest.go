@@ -189,6 +189,7 @@ func (c Call) Args() []any {
 	return c.args
 }
 
+// TODO: find some way to require returns to be injected... in the assert functions? gross?
 func (c Call) InjectReturns(returnValues ...any) {
 	if c.returns == nil {
 		panic("cannot inject a return on a call with no returns")
@@ -199,7 +200,7 @@ func (c Call) InjectReturns(returnValues ...any) {
 
 	if injectedNumReturns != supportedNumReturns {
 		panic(fmt.Sprintf(
-			"the length of the expected return list (%d)"+
+			"the length of the injected return list (%d)"+
 				" does not equal the length of the returns (%s) supports (%d)",
 			injectedNumReturns,
 			getFuncName(c.function),
