@@ -4,6 +4,8 @@
 // handlers for repeated calls for the same function.
 // On the other hand, there's https://github.com/stretchr/testify/issues/741.  Is this necessary?
 // maybe this whole suite is pointless?
+// A win over testify mocked: when the there's a test failure, we don't panic.
+// a win over testify.Mocked: we fail if the number of returns doesn't match
 package protest
 
 import (
@@ -188,8 +190,16 @@ func (c Call) InjectReturns(returnValues ...any) {
 
 func (c Call) FillReturns(returnPointers ...any) {
 	returnValues := <-c.returns
-	// a win over testify.Mocked: we fail if the number of returns doesn't match
-	// TODO: Can we figure out the number of returns from the caller's function signature?
+
+	if len(returnPointers) != len(returnValues) {
+		panic(fmt.Sprintf(
+			"the length of the pointer array to fill with return values (%d) does not match the "+
+				" length of the return value array injected by the test (%d)",
+			len(returnPointers),
+			len(returnValues),
+		))
+	}
+
 	for index := range returnValues {
 		// USEFUL SNIPPETS FROM JSON.UNMARSHAL
 		// if rv.Kind() != reflect.Pointer || rv.IsNil() {
