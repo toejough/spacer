@@ -159,8 +159,21 @@ func (cr *CallRelay) WaitForShutdown(waitTime time.Duration) error {
 	}
 }
 
-func (cr *CallRelay) PutCall(f Function, args ...any) *Call {
-	return cr.Put(NewCall(f, args...))
+func (cr *CallRelay) PutCall(function Function, args ...any) *Call {
+	supportedNumArgs := reflect.TypeOf(function).NumIn()
+	expectedNumArgs := len(args)
+
+	if expectedNumArgs != supportedNumArgs {
+		panic(fmt.Sprintf(
+			"the length of the expected argument list (%d)"+
+				" does not equal the length of the arguments (%s) supports (%d)",
+			expectedNumArgs,
+			getFuncName(function),
+			supportedNumArgs,
+		))
+	}
+
+	return cr.Put(NewCall(function, args...))
 }
 
 func (cr *CallRelay) PutCallNoReturn(f Function, args ...any) *Call {
@@ -216,12 +229,24 @@ func (c Call) FillReturns(returnPointers ...any) {
 }
 
 // RelayTester methods.
-// TODO: can we know the number of args & check that here?
-func (rt *RelayTester) AssertNextCallIs(f Function, args ...any) *Call {
+func (rt *RelayTester) AssertNextCallIs(function Function, args ...any) *Call {
 	rt.T.Helper()
-	panicIfNotFunc(f, AssertNextCallIs)
+	panicIfNotFunc(function, AssertNextCallIs)
 
-	return AssertNextCallIs(rt.T, rt.Relay, getFuncName(f), args...)
+	supportedNumArgs := reflect.TypeOf(function).NumIn()
+	expectedNumArgs := len(args)
+
+	if expectedNumArgs != supportedNumArgs {
+		panic(fmt.Sprintf(
+			"the length of the expected argument list (%d)"+
+				" does not equal the length of the arguments (%s) supports (%d)",
+			expectedNumArgs,
+			getFuncName(function),
+			supportedNumArgs,
+		))
+	}
+
+	return AssertNextCallIs(rt.T, rt.Relay, getFuncName(function), args...)
 }
 
 func (rt *RelayTester) AssertRelayShutsDownWithin(d time.Duration) {
