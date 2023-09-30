@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
-	"testing"
 	"time"
 )
 
@@ -26,9 +25,13 @@ type (
 		args     []any
 		returns  chan []any
 	}
-	Function    any
+	Function any
+	Tester   interface {
+		Helper()
+		Fatalf(string, ...any)
+	}
 	RelayTester struct {
-		T     *testing.T
+		T     Tester
 		Relay *CallRelay
 	}
 )
@@ -39,7 +42,7 @@ var (
 )
 
 // Public helpers.
-func AssertNextCallIs(t *testing.T, r *CallRelay, name string, expectedArgs ...any) *Call {
+func AssertNextCallIs(t Tester, r *CallRelay, name string, expectedArgs ...any) *Call {
 	t.Helper()
 
 	c := r.Get()
@@ -49,7 +52,7 @@ func AssertNextCallIs(t *testing.T, r *CallRelay, name string, expectedArgs ...a
 	return c
 }
 
-func AssertRelayShutsDownWithin(t *testing.T, relay *CallRelay, waitTime time.Duration) {
+func AssertRelayShutsDownWithin(t Tester, relay *CallRelay, waitTime time.Duration) {
 	t.Helper()
 
 	if err := relay.WaitForShutdown(waitTime); err != nil {
@@ -72,7 +75,7 @@ func NewCallRelay() *CallRelay {
 }
 
 // Private helpers.
-func assertCalledNameIs(t *testing.T, c *Call, expectedName string) {
+func assertCalledNameIs(t Tester, c *Call, expectedName string) {
 	t.Helper()
 
 	if c.Name() != expectedName {
@@ -80,11 +83,11 @@ func assertCalledNameIs(t *testing.T, c *Call, expectedName string) {
 	}
 }
 
-func assertArgsAre(t *testing.T, theCall *Call, expectedArgs ...any) {
-	t.Helper()
+func assertArgsAre(tester Tester, theCall *Call, expectedArgs ...any) {
+	tester.Helper()
 
 	if theCall.Args() == nil && expectedArgs != nil {
-		t.Fatalf(
+		tester.Fatalf(
 			"the function %s was expected to be called with %#v, but was called without args",
 			theCall.Name(),
 			expectedArgs,
@@ -92,7 +95,7 @@ func assertArgsAre(t *testing.T, theCall *Call, expectedArgs ...any) {
 	}
 
 	if theCall.Args() != nil && expectedArgs == nil {
-		t.Fatalf(
+		tester.Fatalf(
 			"the function %s was expected to be called without args, but was called with %#v",
 			theCall.Name(),
 			theCall.Args(),
@@ -100,7 +103,7 @@ func assertArgsAre(t *testing.T, theCall *Call, expectedArgs ...any) {
 	}
 
 	if !reflect.DeepEqual(theCall.Args(), expectedArgs) {
-		t.Fatalf("the function %s was expected to be called with %#v but was called with %#v",
+		tester.Fatalf("the function %s was expected to be called with %#v but was called with %#v",
 			theCall.Name(), expectedArgs, theCall.Args(),
 		)
 	}

@@ -29,6 +29,6 @@ settings = { shadow = { strict = true } } # I want to know!
 all.files = ["$all", "!$test"]
 all.allow = ["$gostd"]
 test.files = ["$test"]
-test.allow = ["$gostd", "spacer/dev/protest"]
+test.allow = ["$gostd", "spacer/dev/protest", "pgregory.net/rapid"]
 [linters-settings.nlreturn]
 block-size=2 # IMO this is ok style

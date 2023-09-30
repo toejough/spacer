@@ -11,6 +11,8 @@ import (
 	"spacer/dev/protest"
 	"testing"
 	"time"
+
+	"pgregory.net/rapid"
 )
 
 type mockPretestDeps struct{ relay *protest.CallRelay }
@@ -47,78 +49,79 @@ func newPretestDeps(relay *protest.CallRelay) *mockPretestDeps {
 	return &mockPretestDeps{relay: relay}
 }
 
+// Turn into a fuzz test?!
 func TestPretestHappyPath(t *testing.T) {
 	t.Parallel()
+	rapid.Check(t, func(rapidTester *rapid.T) {
+		// Given test needs
+		relay := protest.NewCallRelay()
+		tester := &protest.RelayTester{T: rapidTester, Relay: relay}
+		// Given inputs
+		deps := newPretestDeps(relay)
+		pretestCommand := rapid.SliceOf(rapid.String()).Draw(rapidTester, "pretestCommand")
+		// and outputs
+		passed := false
 
-	// Given test needs
-	relay := protest.NewCallRelay()
-	tester := &protest.RelayTester{T: t, Relay: relay}
-	// Given inputs
-	deps := newPretestDeps(relay)
-	pretestCommand := []string{"this", "is", "a", "test", "command"}
-	// and outputs
-	passed := false
+		// When the func is run
+		go func() {
+			passed = pretest(deps)
 
-	// When the func is run
-	go func() {
-		passed = pretest(deps)
+			relay.Shutdown()
+		}()
 
-		relay.Shutdown()
-	}()
+		// Then the start message is printed
+		tester.AssertNextCallIs(deps.printStarting, "Pretest").InjectReturns(deps.printDone)
+		// Then the pretest is fetched
+		tester.AssertNextCallIs(deps.fetchPretestCommand).InjectReturns(pretestCommand)
+		// Then the pretest command is run
+		tester.AssertNextCallIs(deps.runSubprocess, pretestCommand).InjectReturns(true)
+		// Then the done message is printed
+		tester.AssertNextCallIs(deps.printDone, "Success")
 
-	// Then the start message is printed
-	tester.AssertNextCallIs(deps.printStarting, "Pretest").InjectReturns(deps.printDone)
-	// Then the pretest is fetched
-	// TODO: do property testing for the command returned
-	tester.AssertNextCallIs(deps.fetchPretestCommand).InjectReturns(pretestCommand)
-	// Then the pretest command is run
-	tester.AssertNextCallIs(deps.runSubprocess, pretestCommand).InjectReturns(true)
-	// Then the done message is printed
-	tester.AssertNextCallIs(deps.printDone, "Success")
+		// Then the relay is shut down
+		tester.AssertRelayShutsDownWithin(time.Second)
 
-	// Then the relay is shut down
-	tester.AssertRelayShutsDownWithin(time.Second)
-
-	// Then the functin passed
-	if !passed {
-		t.Fatal("the pretest function failed unexpectedly")
-	}
+		// Then the functin passed
+		if !passed {
+			rapidTester.Fatal("the pretest function failed unexpectedly")
+		}
+	})
 }
 
 func TestPretestSubprocessFail(t *testing.T) {
 	t.Parallel()
+	rapid.Check(t, func(rapidTester *rapid.T) {
+		// Given test needs
+		relay := protest.NewCallRelay()
+		tester := &protest.RelayTester{T: t, Relay: relay}
+		// Given inputs
+		deps := newPretestDeps(relay)
+		pretestCommand := rapid.SliceOf(rapid.String()).Draw(rapidTester, "pretestCommand")
+		// and outputs
+		passed := false
 
-	// Given test needs
-	relay := protest.NewCallRelay()
-	tester := &protest.RelayTester{T: t, Relay: relay}
-	// Given inputs
-	deps := newPretestDeps(relay)
-	pretestCommand := []string{"this", "is", "a", "test", "command"}
-	// and outputs
-	passed := false
+		// When the func is run
+		go func() {
+			passed = pretest(deps)
 
-	// When the func is run
-	go func() {
-		passed = pretest(deps)
+			relay.Shutdown()
+		}()
 
-		relay.Shutdown()
-	}()
+		// Then the start message is printed
+		tester.AssertNextCallIs(deps.printStarting, "Pretest").InjectReturns(deps.printDone)
+		// Then the pretest is fetched
+		tester.AssertNextCallIs(deps.fetchPretestCommand).InjectReturns(pretestCommand)
+		// Then the pretest command is run
+		tester.AssertNextCallIs(deps.runSubprocess, pretestCommand).InjectReturns(false)
+		// Then the done message is printed
+		tester.AssertNextCallIs(deps.printDone, "Failure")
 
-	// Then the start message is printed
-	tester.AssertNextCallIs(deps.printStarting, "Pretest").InjectReturns(deps.printDone)
-	// Then the pretest is fetched
-	// TODO: do property testing for the command returned
-	tester.AssertNextCallIs(deps.fetchPretestCommand).InjectReturns(pretestCommand)
-	// Then the pretest command is run
-	tester.AssertNextCallIs(deps.runSubprocess, pretestCommand).InjectReturns(false)
-	// Then the done message is printed
-	tester.AssertNextCallIs(deps.printDone, "Failure")
+		// Then the relay is shut down
+		tester.AssertRelayShutsDownWithin(time.Second)
 
-	// Then the relay is shut down
-	tester.AssertRelayShutsDownWithin(time.Second)
-
-	// Then the function failed
-	if passed {
-		t.Fatal("the pretest function passed unexpectedly")
-	}
+		// Then the function failed
+		if passed {
+			t.Fatal("the pretest function passed unexpectedly")
+		}
+	})
 }
