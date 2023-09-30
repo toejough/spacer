@@ -193,6 +193,20 @@ func (c Call) InjectReturns(returnValues ...any) {
 	if c.returns == nil {
 		panic("cannot inject a return on a call with no returns")
 	}
+
+	supportedNumReturns := reflect.TypeOf(c.function).NumOut()
+	injectedNumReturns := len(returnValues)
+
+	if injectedNumReturns != supportedNumReturns {
+		panic(fmt.Sprintf(
+			"the length of the expected return list (%d)"+
+				" does not equal the length of the returns (%s) supports (%d)",
+			injectedNumReturns,
+			getFuncName(c.function),
+			supportedNumReturns,
+		))
+	}
+
 	select {
 	case c.returns <- returnValues:
 		return
