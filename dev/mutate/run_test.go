@@ -80,7 +80,6 @@ func TestRunHappyPath(t *testing.T) {
 	tester.AssertDoneWithin(time.Second)
 }
 
-// TODO: IDK, try it with subtests.
 func TestRunPretestFailure(t *testing.T) {
 	t.Parallel()
 

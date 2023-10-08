@@ -253,10 +253,12 @@ func (rt *RelayTester) Start(function Function, args ...any) *RelayTester {
 		for i := range args {
 			rArgs[i] = reflect.ValueOf(args[i])
 		}
+
 		rt.returns = reflect.ValueOf(function).Call(rArgs)
 
 		rt.Relay.Shutdown()
 	}()
+
 	return rt
 }
 
@@ -288,11 +290,13 @@ func (rt *RelayTester) AssertDoneWithin(d time.Duration) {
 func (rt *RelayTester) AssertReturned(args ...any) {
 	lenReturns := len(rt.returns)
 	lenArgs := len(args)
+
 	if lenReturns != lenArgs {
 		rt.T.Fatalf("The function returned %d values, but the test asserted %d returns", lenReturns, lenArgs)
 	}
+
 	for i := range args {
-		if !rt.returns[i].Equal(reflect.ValueOf(args[i])) {
+		if !reflect.DeepEqual(rt.returns[i].Interface(), args[i]) {
 			rt.T.Fatalf("the return value at index %d was expected to be %#v but it was %#v",
 				i, args[i], rt.returns[i],
 			)

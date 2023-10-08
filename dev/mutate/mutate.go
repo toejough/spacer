@@ -20,7 +20,7 @@ func main() {
 
 type prodPretestDeps struct{}
 
-// TODO: need testing for this function.
+// Would need testing for this function if we cared too much about the UI.
 func commmonPrintStarting(fname string) func(string) {
 	fmt.Printf("%s is starting...\n", fname)
 
