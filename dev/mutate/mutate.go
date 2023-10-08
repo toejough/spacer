@@ -1,7 +1,10 @@
 // Package mutate provides mutation testing functionality.
 package main
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 // Mutate. Based loosely on:
 // * https://mutmut.readthedocs.io/en/latest/
@@ -17,13 +20,24 @@ func main() {
 
 type prodPretestDeps struct{}
 
-func (pd *prodPretestDeps) printStarting(string) func(string) { return func(string) {} }
-func (pd *prodPretestDeps) fetchPretestCommand() []string     { return []string{} }
-func (pd *prodPretestDeps) runSubprocess([]string) bool       { return true }
+// TODO: need testing for this function.
+func commmonPrintStarting(fname string) func(string) {
+	fmt.Printf("%s is starting...\n", fname)
+
+	return func(result string) {
+		fmt.Printf("...%s completed with %s\n", fname, result)
+	}
+}
+
+func (pd *prodPretestDeps) printStarting(fname string) func(string) {
+	return commmonPrintStarting(fname)
+}
+func (pd *prodPretestDeps) fetchPretestCommand() []string { return []string{} }
+func (pd *prodPretestDeps) runSubprocess([]string) bool   { return true }
 
 type prodRunDeps struct{}
 
-func (rd *prodRunDeps) printStarting(string) func(string) { return func(string) {} }
-func (rd *prodRunDeps) pretest() bool                     { return pretest(&prodPretestDeps{}) }
-func (rd *prodRunDeps) testMutations() bool               { return true }
-func (rd *prodRunDeps) exit(code int)                     { os.Exit(code) }
+func (rd *prodRunDeps) printStarting(fname string) func(string) { return commmonPrintStarting(fname) }
+func (rd *prodRunDeps) pretest() bool                           { return pretest(&prodPretestDeps{}) }
+func (rd *prodRunDeps) testMutations() bool                     { return true }
+func (rd *prodRunDeps) exit(code int)                           { os.Exit(code) }

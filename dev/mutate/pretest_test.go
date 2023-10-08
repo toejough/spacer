@@ -76,12 +76,45 @@ func rapidPretestHappyPath(rapidTester *rapid.T) {
 	tester.AssertNextCallIs(deps.printDone, "Success")
 
 	// Then the relay is shut down
-	tester.AssertRelayShutsDownWithin(time.Second)
+	tester.AssertDoneWithin(time.Second)
 
 	// Then the functin passed
 	if !passed {
 		rapidTester.Fatal("the pretest function failed unexpectedly")
 	}
+}
+
+func rapidPretestData(rapidTester *rapid.T) {
+	// TODO: add fuzz targets for every test, like for this happy path.
+	// Given test needs
+	relay := protest.NewCallRelay()
+	tester := &protest.RelayTester{T: rapidTester, Relay: relay}
+	// Given inputs
+	deps := newPretestDeps(relay)
+	pretestCommand := rapid.SliceOf(rapid.String()).Draw(rapidTester, "pretestCommand")
+	// Given outputs
+	passed := true
+
+	// When the func is run
+	tester.Start(pretest, deps)
+
+	// Then the start message is printed
+	tester.AssertNextCallIs(deps.printStarting, "Pretest").InjectReturns(deps.printDone)
+	// Then the pretest is fetched
+	tester.AssertNextCallIs(deps.fetchPretestCommand).InjectReturns(pretestCommand)
+	// Then the pretest command is run
+	tester.AssertNextCallIs(deps.runSubprocess, pretestCommand).InjectReturns(true)
+	// Then the done message is printed
+	tester.AssertNextCallIs(deps.printDone, "Success")
+	// Then the function is done
+	tester.AssertDoneWithin(time.Second)
+	// Then the function passed
+	tester.AssertReturned(passed)
+}
+
+func TestPretestHappyPathData(t *testing.T) {
+	t.Parallel()
+	rapid.Check(t, rapidPretestData)
 }
 
 func FuzzPretestHappyPath(f *testing.F) {
@@ -122,7 +155,7 @@ func TestPretestSubprocessFail(t *testing.T) {
 		tester.AssertNextCallIs(deps.printDone, "Failure")
 
 		// Then the relay is shut down
-		tester.AssertRelayShutsDownWithin(time.Second)
+		tester.AssertDoneWithin(time.Second)
 
 		// Then the function failed
 		if passed {

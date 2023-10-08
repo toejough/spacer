@@ -77,9 +77,10 @@ func TestRunHappyPath(t *testing.T) {
 	tester.AssertNextCallIs(deps.exit, 0)
 
 	// Then the relay is shut down
-	tester.AssertRelayShutsDownWithin(time.Second)
+	tester.AssertDoneWithin(time.Second)
 }
 
+// TODO: IDK, try it with subtests.
 func TestRunPretestFailure(t *testing.T) {
 	t.Parallel()
 
@@ -106,7 +107,7 @@ func TestRunPretestFailure(t *testing.T) {
 	tester.AssertNextCallIs(deps.exit, 1)
 
 	// Then the relay is shut down
-	tester.AssertRelayShutsDownWithin(time.Second)
+	tester.AssertDoneWithin(time.Second)
 }
 
 func TestRunMutationFailure(t *testing.T) {
@@ -137,5 +138,5 @@ func TestRunMutationFailure(t *testing.T) {
 	tester.AssertNextCallIs(deps.exit, 1)
 
 	// Then the relay is shut down
-	tester.AssertRelayShutsDownWithin(time.Second)
+	tester.AssertDoneWithin(time.Second)
 }

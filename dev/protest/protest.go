@@ -31,8 +31,9 @@ type (
 		Fatalf(string, ...any)
 	}
 	RelayTester struct {
-		T     Tester
-		Relay *CallRelay
+		T       Tester
+		Relay   *CallRelay
+		returns []reflect.Value
 	}
 )
 
@@ -246,6 +247,19 @@ func (c Call) FillReturns(returnPointers ...any) {
 }
 
 // RelayTester methods.
+func (rt *RelayTester) Start(function Function, args ...any) *RelayTester {
+	go func() {
+		rArgs := make([]reflect.Value, len(args))
+		for i := range args {
+			rArgs[i] = reflect.ValueOf(args[i])
+		}
+		rt.returns = reflect.ValueOf(function).Call(rArgs)
+
+		rt.Relay.Shutdown()
+	}()
+	return rt
+}
+
 func (rt *RelayTester) AssertNextCallIs(function Function, args ...any) *Call {
 	rt.T.Helper()
 	panicIfNotFunc(function, AssertNextCallIs)
@@ -266,7 +280,22 @@ func (rt *RelayTester) AssertNextCallIs(function Function, args ...any) *Call {
 	return AssertNextCallIs(rt.T, rt.Relay, getFuncName(function), args...)
 }
 
-func (rt *RelayTester) AssertRelayShutsDownWithin(d time.Duration) {
+func (rt *RelayTester) AssertDoneWithin(d time.Duration) {
 	rt.T.Helper()
 	AssertRelayShutsDownWithin(rt.T, rt.Relay, d)
+}
+
+func (rt *RelayTester) AssertReturned(args ...any) {
+	lenReturns := len(rt.returns)
+	lenArgs := len(args)
+	if lenReturns != lenArgs {
+		rt.T.Fatalf("The function returned %d values, but the test asserted %d returns", lenReturns, lenArgs)
+	}
+	for i := range args {
+		if !rt.returns[i].Equal(reflect.ValueOf(args[i])) {
+			rt.T.Fatalf("the return value at index %d was expected to be %#v but it was %#v",
+				i, args[i], rt.returns[i],
+			)
+		}
+	}
 }
