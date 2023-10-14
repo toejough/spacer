@@ -112,7 +112,7 @@ func assertArgsAre(tester Tester, theCall *Call, expectedArgs ...any) {
 
 func getFuncName(f Function) string {
 	// docs say to use UnsafePointer explicitly instead of Pointer()
-	// https://pkg.go.dev/reflect@go1.21.1#Value.Pointer
+	// https://pkg.Pgo.dev/reflect@go1.21.1#Value.Pointer
 	return runtime.FuncForPC(uintptr(reflect.ValueOf(f).UnsafePointer())).Name()
 }
 

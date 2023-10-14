@@ -21,19 +21,14 @@ package main
 // In either failure case, there's nothing we want to do besides treat it like
 // a failure, so the signature of these types is restricted to bools.
 func run(deps runDeps) {
-	doneFunc := deps.printStarting("Mutate")
-
 	if deps.pretest() && deps.testMutations() {
-		doneFunc("Success")
 		deps.exit(0)
 	} else {
-		doneFunc("Failure")
 		deps.exit(1)
 	}
 }
 
 type runDeps interface {
-	printStarting(what string) func(string)
 	pretest() bool
 	testMutations() bool
 	exit(int)

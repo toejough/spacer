@@ -62,6 +62,7 @@ func rapidPretestHappyPath(rapidTester *rapid.T) {
 	// When the func is run
 	tester.Start(pretest, deps)
 
+	// TODO: test for the outputs from fetch & run subprocess.
 	// Then the start message is printed
 	tester.AssertNextCallIs(deps.printStarting, "Pretest").InjectReturns(deps.printDone)
 	// Then the pretest is fetched

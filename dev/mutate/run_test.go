@@ -17,14 +17,6 @@ type mockRunDeps struct {
 	relay *protest.CallRelay
 }
 
-func (rd *mockRunDeps) printStarting(s string) func(string) {
-	var f func(string)
-
-	rd.relay.PutCall(rd.printStarting, s).FillReturns(&f)
-
-	return f
-}
-
 func (rd *mockRunDeps) pretest() bool {
 	var b bool
 
@@ -45,10 +37,6 @@ func (rd *mockRunDeps) exit(code int) {
 	rd.relay.PutCallNoReturn(rd.exit, code)
 }
 
-func (rd *mockRunDeps) printDone(message string) {
-	rd.relay.PutCallNoReturn(rd.printDone, message)
-}
-
 func TestRunHappyPath(t *testing.T) {
 	t.Parallel()
 
@@ -59,20 +47,12 @@ func TestRunHappyPath(t *testing.T) {
 	deps := &mockRunDeps{relay: relay}
 
 	// When the func is run
-	go func() {
-		run(deps)
+	tester.Start(run, deps)
 
-		relay.Shutdown()
-	}()
-
-	// Then the start message is printed
-	tester.AssertNextCallIs(deps.printStarting, "Mutate").InjectReturns(deps.printDone)
 	// Then the pretest is run
 	tester.AssertNextCallIs(deps.pretest).InjectReturns(true)
 	// Then the mutation testing is run
 	tester.AssertNextCallIs(deps.testMutations).InjectReturns(true)
-	// Then the done message is printed
-	tester.AssertNextCallIs(deps.printDone, "Success")
 	// Then the program exits with 0
 	tester.AssertNextCallIs(deps.exit, 0)
 
@@ -90,18 +70,10 @@ func TestRunPretestFailure(t *testing.T) {
 	deps := &mockRunDeps{relay: relay}
 
 	// When the func is run
-	go func() {
-		run(deps)
+	tester.Start(run, deps)
 
-		relay.Shutdown()
-	}()
-
-	// Then the start message is printed
-	tester.AssertNextCallIs(deps.printStarting, "Mutate").InjectReturns(deps.printDone)
-	// Then the pretEst is run
+	// Then the pretest is run
 	tester.AssertNextCallIs(deps.pretest).InjectReturns(false)
-	// Then the done message is printed
-	tester.AssertNextCallIs(deps.printDone, "Failure")
 	// Then the program exits with 1
 	tester.AssertNextCallIs(deps.exit, 1)
 
@@ -119,20 +91,12 @@ func TestRunMutationFailure(t *testing.T) {
 	deps := &mockRunDeps{relay: relay}
 
 	// When the func is run
-	go func() {
-		run(deps)
+	tester.Start(run, deps)
 
-		relay.Shutdown()
-	}()
-
-	// Then the start message is printed
-	tester.AssertNextCallIs(deps.printStarting, "Mutate").InjectReturns(deps.printDone)
 	// Then the pretest is run
 	tester.AssertNextCallIs(deps.pretest).InjectReturns(true)
 	// Then the mutation testing is run
 	tester.AssertNextCallIs(deps.testMutations).InjectReturns(false)
-	// Then the done message is printed
-	tester.AssertNextCallIs(deps.printDone, "Failure")
 	// Then the program exits with 1
 	tester.AssertNextCallIs(deps.exit, 1)
 
