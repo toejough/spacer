@@ -3,7 +3,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 
@@ -23,14 +22,6 @@ func main() {
 }
 
 // Untested io funcs which need integration testing rather than unit testing.
-func commmonPrintStarting(fname string) func(string) {
-	fmt.Printf("%s is starting...\n", fname)
-
-	return func(result string) {
-		fmt.Printf("...%s completed with %s\n", fname, result)
-	}
-}
-
 func fetchPretestCommand() []string {
 	var args struct {
 		PretestCommand []string `arg:"positional,required"`
@@ -82,10 +73,6 @@ func exit(code int) {
 type prodPretestDeps struct{}
 
 // TODO: make the UI stuff happen here, actually. announcing stuff is starting/done with what result.
-func (pd *prodPretestDeps) printStarting(fname string) func(string) {
-	return commmonPrintStarting(fname)
-}
-
 func (pd *prodPretestDeps) fetchPretestCommand() []string {
 	return fetchPretestCommand()
 }

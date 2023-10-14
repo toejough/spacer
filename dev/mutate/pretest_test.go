@@ -17,14 +17,6 @@ import (
 
 type mockPretestDeps struct{ relay *protest.CallRelay }
 
-func (d *mockPretestDeps) printStarting(message string) func(string) {
-	var returnFunc func(string)
-
-	d.relay.PutCall(d.printStarting, message).FillReturns(&returnFunc)
-
-	return returnFunc
-}
-
 func (d *mockPretestDeps) fetchPretestCommand() []string {
 	var c []string
 
@@ -39,10 +31,6 @@ func (d *mockPretestDeps) runSubprocess(command []string) bool {
 	d.relay.PutCall(d.runSubprocess, command).FillReturns(&b)
 
 	return b
-}
-
-func (d *mockPretestDeps) printDone(message string) {
-	d.relay.PutCallNoReturn(d.printDone, message)
 }
 
 func newPretestDeps(relay *protest.CallRelay) *mockPretestDeps {
@@ -62,15 +50,10 @@ func rapidPretestHappyPath(rapidTester *rapid.T) {
 	// When the func is run
 	tester.Start(pretest, deps)
 
-	// TODO: test for the outputs from fetch & run subprocess.
-	// Then the start message is printed
-	tester.AssertNextCallIs(deps.printStarting, "Pretest").InjectReturns(deps.printDone)
 	// Then the pretest is fetched
 	tester.AssertNextCallIs(deps.fetchPretestCommand).InjectReturns(pretestCommand)
 	// Then the pretest command is run
 	tester.AssertNextCallIs(deps.runSubprocess, pretestCommand).InjectReturns(true)
-	// Then the done message is printed
-	tester.AssertNextCallIs(deps.printDone, "Success")
 	// Then the function is done
 	tester.AssertDoneWithin(time.Second)
 	// Then the function passed
@@ -99,14 +82,10 @@ func rapidPretestSubprocessFail(rapidTester *rapid.T) {
 	// When the func is run
 	tester.Start(pretest, deps)
 
-	// Then the start message is printed
-	tester.AssertNextCallIs(deps.printStarting, "Pretest").InjectReturns(deps.printDone)
 	// Then the pretest is fetched
 	tester.AssertNextCallIs(deps.fetchPretestCommand).InjectReturns(pretestCommand)
 	// Then the pretest command is run
 	tester.AssertNextCallIs(deps.runSubprocess, pretestCommand).InjectReturns(false)
-	// Then the done message is printed
-	tester.AssertNextCallIs(deps.printDone, "Failure")
 	// Then the function is done
 	tester.AssertDoneWithin(time.Second)
 	// Then the function passed
