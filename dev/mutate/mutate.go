@@ -3,8 +3,12 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
+	"reflect"
+	"runtime"
+	"strings"
 
 	"github.com/alexflint/go-arg"
 )
@@ -22,7 +26,7 @@ func main() {
 }
 
 // Untested io funcs which need integration testing rather than unit testing.
-func fetchPretestCommand() []string {
+func IOfetchPretestCommand() []string {
 	var args struct {
 		PretestCommand []string `arg:"positional,required"`
 	}
@@ -32,7 +36,7 @@ func fetchPretestCommand() []string {
 	return args.PretestCommand
 }
 
-func runSubprocess(command []string) bool {
+func IOrunSubprocess(command []string) bool {
 	var (
 		cmd  string
 		args []string
@@ -60,26 +64,83 @@ func runSubprocess(command []string) bool {
 	return true
 }
 
-func exit(code int) {
+func IOexit(code int) {
 	os.Exit(code)
 }
 
-// TODO: write a debug function that:
-// prints the name of the function with args
-// returns a func to be called when the function is done
-// that func prints the name of the function and the return values
+func getFuncName(f any) string {
+	// docs say to use UnsafePointer explicitly instead of Pointer()
+	// https://pkg.Pgo.dev/reflect@go1.21.1#Value.Pointer
+	return runtime.FuncForPC(uintptr(reflect.ValueOf(f).UnsafePointer())).Name()
+}
+
+func debug(function any, args ...any) func(returns ...any) {
+	// get function name
+	name := getFuncName(function)
+	parts := strings.Split(name, ".")
+	name = parts[len(parts)-1]
+	name = strings.TrimSuffix(name, "-fm")
+
+	if len(args) == 0 {
+		fmt.Printf("Called %s...\n", name)
+	} else {
+		fmt.Printf("Called %s with %v...\n", name, args)
+	}
+	// print function name & args
+	// return a func that prints the function name and returns
+	return func(returns ...any) {
+		dereferenced := make([]any, len(returns))
+		for i := range returns {
+			dereferenced[i] = reflect.ValueOf(returns[i]).Elem().Interface()
+		}
+
+		if len(returns) == 0 {
+			fmt.Printf("...%s completed\n", name)
+		} else {
+			fmt.Printf("...%s completed with %v\n", name, dereferenced)
+		}
+	}
+}
+
+func unimplemented() string {
+	// get function name
+	pc := make([]uintptr, 1)
+	callsToSkip := 2
+	n := runtime.Callers(callsToSkip, pc)
+	frames := runtime.CallersFrames(pc[:n])
+	frame, _ := frames.Next()
+	function := frame.Func
+	name := function.Name()
+
+	return fmt.Sprintf("%s is unimplemented\n", name)
+}
 
 // Dependency implementations for tested functions.
 type prodPretestDeps struct{}
 
-// TODO: make the UI stuff happen here, actually. announcing stuff is starting/done with what result.
-func (pd *prodPretestDeps) fetchPretestCommand() []string {
-	return fetchPretestCommand()
+func (pd *prodPretestDeps) fetchPretestCommand() (command []string) {
+	defer debug(pd.fetchPretestCommand)(&command)
+	return IOfetchPretestCommand()
 }
-func (pd *prodPretestDeps) runSubprocess(command []string) bool { return runSubprocess(command) }
+
+func (pd *prodPretestDeps) runSubprocess(command []string) (result bool) {
+	defer debug(pd.runSubprocess)(&result)
+	return IOrunSubprocess(command)
+}
 
 type prodRunDeps struct{}
 
-func (rd *prodRunDeps) pretest() bool       { return pretest(&prodPretestDeps{}) }
-func (rd *prodRunDeps) testMutations() bool { panic("unimplemented") }
-func (rd *prodRunDeps) exit(code int)       { exit(code) }
+func (rd *prodRunDeps) pretest() (result bool) {
+	defer debug(rd.pretest)(&result)
+	return pretest(&prodPretestDeps{})
+}
+
+func (rd *prodRunDeps) testMutations() (result bool) {
+	defer debug(rd.testMutations)(&result)
+	panic(unimplemented())
+}
+
+func (rd *prodRunDeps) exit(code int) {
+	defer debug(rd.exit, code)()
+	IOexit(code)
+}
