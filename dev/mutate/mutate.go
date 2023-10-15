@@ -4,6 +4,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"reflect"
@@ -55,8 +56,12 @@ func IOrunSubprocess(command []string) bool {
 	if err := exec.Command(cmd, args...).Run(); err != nil {
 		exitErr := new(exec.ExitError)
 		if errors.As(err, &exitErr) {
+			log.Printf("Err: %s\n", err)
+
 			return false
 		}
+
+		log.Printf("Err: %s\n", err)
 
 		return false
 	}

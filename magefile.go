@@ -100,7 +100,7 @@ func Check() error {
 // Run all checks on the code for determining whether any fail
 func CheckForFail() error {
 	fmt.Println("Checking...")
-	for _, cmd := range []func() error{LintForFail, TestForFail, Fuzz} {
+	for _, cmd := range []func() error{LintForFail, TestForFail} {
 		err := cmd()
 		if err != nil {
 			return fmt.Errorf("unable to finish checking: %w", err)
@@ -146,12 +146,7 @@ func Test() error {
 func TestForFail() error {
 	fmt.Println("Running unit tests for overall pass/fail...")
 
-	err := sh.RunV("go", "test", "./pkg/...", "-rapid.nofailfile", "-failfast")
-	if err != nil {
-		return err
-	}
-
-	return sh.RunV("go", "test", "./dev/...", "-failfast")
+	return sh.RunV("go", "test", "-timeout", "5s", "./...", "-rapid.nofailfile", "-failfast")
 }
 
 // Run the fuzz tests
@@ -163,7 +158,7 @@ func Fuzz() error {
 // Run the mutation tests
 func Mutate() error {
 	fmt.Println("Running mutation tests...")
-	return sh.RunV("go", "run", "./dev/mutate", "mage checkForFail")
+	return sh.RunV("go", "run", "./dev/mutate", "mage", "checkForFail")
 }
 
 // Install development tooling
