@@ -2,12 +2,13 @@ package main
 
 type pretestDeps interface {
 	fetchPretestCommand() []string
-	runSubprocess([]string) bool
+	runSubprocess([]string) error
 }
 
 func pretest(deps pretestDeps) bool {
 	command := deps.fetchPretestCommand()
-	success := deps.runSubprocess(command)
+	err := deps.runSubprocess(command)
+	// TODO: some sort of notification for the error
 
-	return success
+	return err == nil
 }

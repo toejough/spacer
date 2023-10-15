@@ -2,9 +2,7 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"reflect"
@@ -37,7 +35,7 @@ func IOfetchPretestCommand() []string {
 	return args.PretestCommand
 }
 
-func IOrunSubprocess(command []string) bool {
+func IOrunSubprocess(command []string) error {
 	var (
 		cmd  string
 		args []string
@@ -53,20 +51,12 @@ func IOrunSubprocess(command []string) bool {
 		args = command[1:]
 	}
 
-	if err := exec.Command(cmd, args...).Run(); err != nil {
-		exitErr := new(exec.ExitError)
-		if errors.As(err, &exitErr) {
-			log.Printf("Err: %s\n", err)
-
-			return false
-		}
-
-		log.Printf("Err: %s\n", err)
-
-		return false
+	err := exec.Command(cmd, args...).Run()
+	if err != nil {
+		return fmt.Errorf("subprocess error: %w", err)
 	}
 
-	return true
+	return nil
 }
 
 func IOexit(code int) {
@@ -128,8 +118,8 @@ func (pd *prodPretestDeps) fetchPretestCommand() (command []string) {
 	return IOfetchPretestCommand()
 }
 
-func (pd *prodPretestDeps) runSubprocess(command []string) (result bool) {
-	defer debug(pd.runSubprocess)(&result)
+func (pd *prodPretestDeps) runSubprocess(command []string) (err error) {
+	defer debug(pd.runSubprocess)(&err)
 	return IOrunSubprocess(command)
 }
 

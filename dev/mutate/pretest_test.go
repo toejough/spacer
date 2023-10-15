@@ -26,12 +26,12 @@ func (d *mockPretestDeps) fetchPretestCommand() []string {
 	return c
 }
 
-func (d *mockPretestDeps) runSubprocess(command []string) bool {
-	var b bool
+func (d *mockPretestDeps) runSubprocess(command []string) error {
+	var e error
 
-	d.relay.PutCall(d.runSubprocess, command).FillReturns(&b)
+	d.relay.PutCall(d.runSubprocess, command).FillReturns(&e)
 
-	return b
+	return e
 }
 
 func newPretestDeps(relay *protest.CallRelay) *mockPretestDeps {
@@ -77,7 +77,8 @@ func rapidPretestSubprocessFail(rapidTester *rapid.T) {
 	// Given inputs
 	deps := newPretestDeps(relay)
 	pretestCommand := rapid.SliceOf(rapid.String()).Draw(rapidTester, "pretestCommand")
-	subprocessError := errors.New(rapid.String().Draw(rapidTester, "subprocessError"))
+	// this is explicitly a dynamic error for testing
+	subprocessError := errors.New(rapid.String().Draw(rapidTester, "subprocessError")) //nolint:goerr113
 	// Given outputs
 	result := false
 

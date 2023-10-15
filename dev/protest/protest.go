@@ -223,6 +223,10 @@ func (c Call) InjectReturns(returnValues ...any) {
 	}
 }
 
+func (c Call) GetReturns() []any {
+	return <-c.returns
+}
+
 func (c Call) FillReturns(returnPointers ...any) {
 	returnValues := <-c.returns
 
@@ -237,16 +241,23 @@ func (c Call) FillReturns(returnPointers ...any) {
 
 	for index := range returnValues {
 		// USEFUL SNIPPETS FROM JSON.UNMARSHAL
-		// if rv.Kind() != reflect.Pointer || rv.IsNil() {
+		// if returnPointerValue.Kind() != reflect.Pointer || returnPointerValue.IsNil() {
 		// 	return &InvalidUnmarshalError{reflect.TypeOf(v)}
 		// }
 		// v.Set(reflect.ValueOf(oi))
-		rv := reflect.ValueOf(returnPointers[index])
-		if rv.Kind() != reflect.Pointer || rv.IsNil() {
+		returnPointerValue := reflect.ValueOf(returnPointers[index])
+		if returnPointerValue.Kind() != reflect.Pointer || returnPointerValue.IsNil() {
 			panic("cannot fill value into non-pointer")
 		}
+
+		returnedValue := reflect.ValueOf(returnValues[index])
+		// handle nils
+		if !returnedValue.IsValid() {
+			returnPointerValue.Elem().SetZero()
+			continue
+		}
 		// Use Elem instead of directly using Set for setting pointers
-		rv.Elem().Set(reflect.ValueOf(returnValues[index]))
+		returnPointerValue.Elem().Set(returnedValue)
 	}
 }
 
