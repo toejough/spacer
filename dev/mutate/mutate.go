@@ -124,7 +124,7 @@ func (pd *prodPretestDeps) runSubprocess(command []string) (err error) {
 }
 
 func (pd *prodPretestDeps) communicateError(e error) {
-	defer debug(pd.communicateError, e)
+	defer debug(pd.communicateError, e)()
 }
 
 type prodRunDeps struct{}
@@ -136,6 +136,14 @@ func (rd *prodRunDeps) pretest() (result bool) {
 
 func (rd *prodRunDeps) testMutations() (result bool) {
 	defer debug(rd.testMutations)(&result)
+	// find the go files, & alert the user
+	// find the mutators, & alert the user
+	// get the test command
+	// for each file & mutator, find the candidates & alert the user
+	// for each candidate, cache the file, mutate, alert the user about the difference & run the test command
+	//   alert the user about the results of the test
+	//   restore the original file
+	// if any escapees, fail (otherwise pass)
 	panic(unimplemented())
 }
 
