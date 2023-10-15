@@ -8,6 +8,7 @@ package main
 // run, or how its output is conveyed.
 
 import (
+	"errors"
 	"spacer/dev/protest"
 	"testing"
 	"time"
@@ -45,7 +46,7 @@ func rapidPretestHappyPath(rapidTester *rapid.T) {
 	deps := newPretestDeps(relay)
 	pretestCommand := rapid.SliceOf(rapid.String()).Draw(rapidTester, "pretestCommand")
 	// Given outputs
-	passed := true
+	result := true
 
 	// When the func is run
 	tester.Start(pretest, deps)
@@ -53,11 +54,11 @@ func rapidPretestHappyPath(rapidTester *rapid.T) {
 	// Then the pretest is fetched
 	tester.AssertNextCallIs(deps.fetchPretestCommand).InjectReturns(pretestCommand)
 	// Then the pretest command is run
-	tester.AssertNextCallIs(deps.runSubprocess, pretestCommand).InjectReturns(true)
+	tester.AssertNextCallIs(deps.runSubprocess, pretestCommand).InjectReturns(nil)
 	// Then the function is done
 	tester.AssertDoneWithin(time.Second)
 	// Then the function passed
-	tester.AssertReturned(passed)
+	tester.AssertReturned(result)
 }
 
 func FuzzPretestHappyPath(f *testing.F) {
@@ -76,8 +77,9 @@ func rapidPretestSubprocessFail(rapidTester *rapid.T) {
 	// Given inputs
 	deps := newPretestDeps(relay)
 	pretestCommand := rapid.SliceOf(rapid.String()).Draw(rapidTester, "pretestCommand")
+	subprocessError := errors.New(rapid.String().Draw(rapidTester, "subprocessError"))
 	// Given outputs
-	passed := false
+	result := false
 
 	// When the func is run
 	tester.Start(pretest, deps)
@@ -85,11 +87,11 @@ func rapidPretestSubprocessFail(rapidTester *rapid.T) {
 	// Then the pretest is fetched
 	tester.AssertNextCallIs(deps.fetchPretestCommand).InjectReturns(pretestCommand)
 	// Then the pretest command is run
-	tester.AssertNextCallIs(deps.runSubprocess, pretestCommand).InjectReturns(false)
+	tester.AssertNextCallIs(deps.runSubprocess, pretestCommand).InjectReturns(subprocessError)
 	// Then the function is done
 	tester.AssertDoneWithin(time.Second)
-	// Then the function passed
-	tester.AssertReturned(passed)
+	// Then the function failed
+	tester.AssertReturned(result)
 }
 
 func FuzzPretestSubprocessFail(f *testing.F) {
