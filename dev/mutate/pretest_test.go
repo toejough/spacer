@@ -34,6 +34,10 @@ func (d *mockPretestDeps) runSubprocess(command []string) error {
 	return e
 }
 
+func (d *mockPretestDeps) communicateError(e error) {
+	d.relay.PutCall(d.communicateError, e)
+}
+
 func newPretestDeps(relay *protest.CallRelay) *mockPretestDeps {
 	return &mockPretestDeps{relay: relay}
 }
@@ -89,6 +93,8 @@ func rapidPretestSubprocessFail(rapidTester *rapid.T) {
 	tester.AssertNextCallIs(deps.fetchPretestCommand).InjectReturns(pretestCommand)
 	// Then the pretest command is run
 	tester.AssertNextCallIs(deps.runSubprocess, pretestCommand).InjectReturns(subprocessError)
+	// Then the pretest command error is communicated to the user
+	tester.AssertNextCallIs(deps.communicateError, subprocessError)
 	// Then the function is done
 	tester.AssertDoneWithin(time.Second)
 	// Then the function failed

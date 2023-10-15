@@ -119,8 +119,12 @@ func (pd *prodPretestDeps) fetchPretestCommand() (command []string) {
 }
 
 func (pd *prodPretestDeps) runSubprocess(command []string) (err error) {
-	defer debug(pd.runSubprocess)(&err)
+	defer debug(pd.runSubprocess, command)(&err)
 	return IOrunSubprocess(command)
+}
+
+func (pd *prodPretestDeps) communicateError(e error) {
+	defer debug(pd.communicateError, e)
 }
 
 type prodRunDeps struct{}
