@@ -8,36 +8,32 @@ import (
 func TestTestMutationsHappyPath(t *testing.T) {
 	// Given Test Needs
 	tester := protest.NewTester(t)
-
-	// Given Inputs, dependencies, and data from dependencies
+	// Given dependencies
 	deps := testMutationsDepsForTest{tester: tester}
+	// Given data from dependencies
 	goFiles := []string{}
 	mutators := []string{}
 	testCommand := []string{}
+	candidates := []string{}
+	candidateResults := []string{}
 	// Given Outputs
 	result := true
 
 	// When Func is run
 	tester.Start(testMutations)
 
-	// Then find the go files, & alert the user
+	// Then find the go files
 	tester.AssertCalledNext(deps.FetchGoFiles).InjectReturns(goFiles)
-	tester.AssertCalledNext(deps.CommunicateGoFiles, goFiles)
-	// Then find the mutators, & alert the user
+	// Then find the mutators
 	tester.AssertCalledNext(deps.FetchMutators).InjectReturns(mutators)
-	tester.AssertCalledNext(deps.CommunicateMutators, mutators)
 	// Then get the test command
 	tester.AssertCalledNext(deps.FetchTestCommand).InjectReturns(testCommand)
 	// Then for each file & mutator, find the candidates & alert the user
 	tester.AssertCalledNext(deps.IdentifyCandidates, goFiles, mutators).InjectReturns(candidates)
-	// Then for each candidate, cache the file, mutate, alert the user about the difference & run the test command
+	// Then test each candidate
 	tester.AssertCalledNext(deps.TestCandidates, candidates).InjectReturns(candidateResults)
-	// Then alert the user about the results of the test
-	tester.AssertCalledNext(deps.CommunicateCandidateResults, candidateResults)
-
 	// Then assert func is done
 	tester.AssertDoneWithin(time.Second)
-
 	// Then if any escapees, fail (otherwise pass)
 	tester.AssertReturned(result)
 }
