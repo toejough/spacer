@@ -42,24 +42,29 @@ import { vOnClickOutside } from '@vueuse/components'
 import draggable from "vuedraggable";
 import { uid } from 'quasar';
 
-const draggableClicked = ref("")
-const newItem = ref("")
-const update = () => {
-  draggableNotes.value.unshift({ id: uid(), content: newItem.value })
-  newItem.value = ""
-};
-const closeDraggableEditor = () => {
-  draggableClicked.value = ""
-};
+// Notes: data
 type draggableNote = {
   id: string;
   content: string;
 };
 const draggableNotes = useStorage("draggableNotes", [] as draggableNote[])
+
+// Notes: Add/remove note
+const newItem = ref("")
+const update = () => {
+  draggableNotes.value.unshift({ id: uid(), content: newItem.value })
+  newItem.value = ""
+};
 const removeDraggable = (id: string) => {
   const index = draggableNotes.value.findIndex((item) => item.id === id);
   if (index !== -1) {
     draggableNotes.value.splice(index, 1);
   }
 }
+
+// Notes: Open/close editor
+const draggableClicked = ref("")
+const closeDraggableEditor = () => {
+  draggableClicked.value = ""
+};
 </script>
