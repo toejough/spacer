@@ -11,13 +11,17 @@
           </q-card>
         </q-item-section>
       </q-item>
-      <draggable :list="draggableNotes" item-key="id" animation=200>
+      <draggable :list="draggableNotes" item-key="id" animation=200 handle=".handle">
         <template #item="{ element }">
           <q-item>
             <q-item-section>
               <q-card>
                 <q-card-section horizontal class="flex justify-between" v-if="draggableClicked != element.id">
-                  <q-card-section @click="draggableClicked = element.id" v-sanitize:inline="element.content" />
+                  <q-card-section>
+                    <q-icon name="drag_indicator" class="handle" />
+                  </q-card-section>
+                  <q-card-section @click="draggableClicked = element.id" v-sanitize:inline="element.content"
+                    class="flex col" />
                   <q-card-actions>
                     <q-btn @click="removeDraggable(element.id)" round dense flat icon="remove" />
                   </q-card-actions>
@@ -68,3 +72,11 @@ const closeDraggableEditor = () => {
   draggableClicked.value = ""
 };
 </script>
+
+<style lang="css">
+.handle {
+  float: left;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+</style>
