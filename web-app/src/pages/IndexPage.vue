@@ -16,12 +16,14 @@
           <q-item>
             <q-item-section>
               <q-card>
-                <q-card-section horizontal class="flex justify-between" v-if="draggableClicked != element.id">
+                <q-card-section horizontal class="flex justify-between items-center"
+                  v-if="draggableClicked != element.id">
                   <q-card-section>
                     <q-icon name="drag_indicator" class="handle" />
                   </q-card-section>
-                  <q-card-section @click="draggableClicked = element.id" v-sanitize:inline="element.content"
-                    class="flex col" />
+                  <q-card-section @click="draggableClicked = element.id" class="flex col">
+                    <div v-sanitize:inline="element.content" />
+                  </q-card-section>
                   <q-card-actions>
                     <q-btn @click="removeDraggable(element.id)" round dense flat icon="remove" />
                   </q-card-actions>
