@@ -17,10 +17,10 @@
             <q-card>
               <q-card-section v-if="openEditorFor != index" horizontal class="flex justify-between">
                 <q-card-section @click="openEditor(index)">
-                  {{ note }}
+                  <span v-sanitize.inline="note"> </span>
                 </q-card-section>
                 <q-card-actions>
-                  <q-btn @click="remove(index)" round dense flat icon="remove" />
+                  <q-btn @click=" remove(index)" round dense flat icon="remove" />
                 </q-card-actions>
               </q-card-section>
               <q-card-section v-else horizontal>
@@ -31,6 +31,28 @@
         </q-item>
       </template>
     </q-list>
+    <q-list>
+      <draggable :list="draggableNotes" item-key="id" animation=200>
+        <template #item="{ element }">
+          <q-item>
+            <q-item-section>
+              <q-card>
+                <q-card-section horizontal class="flex justify-between" v-if="draggableClicked != element.id">
+                  <q-card-section @click="draggableClicked = element.id" v-sanitize:inline="element.content" />
+                  <q-card-actions>
+                    <q-btn @click="removeDraggable(element.id)" round dense flat icon="remove" />
+                  </q-card-actions>
+                </q-card-section>
+                <q-card-section v-else horizontal>
+                  <q-editor v-model="element.content" min-height="5rem" class="col"
+                    v-on-click-outside="closeDraggableEditor" />
+                </q-card-section>
+              </q-card>
+            </q-item-section>
+          </q-item>
+        </template>
+      </draggable>
+    </q-list>
   </q-page>
 </template>
 
@@ -39,11 +61,14 @@ import { ref } from 'vue'
 import { useStorage } from '@vueuse/core'
 // TODO: can I do this with just on-blur?
 import { vOnClickOutside } from '@vueuse/components'
+import draggable from "vuedraggable";
+import { uid } from 'quasar';
 
+const draggableClicked = ref("")
 const notes = useStorage("notes", <string[]>[])
 const newItem = ref("")
 const update = () => {
-  notes.value.push(newItem.value)
+  draggableNotes.value.unshift({ id: uid(), content: newItem.value })
   newItem.value = ""
 };
 const remove = (index: number) => {
@@ -60,4 +85,18 @@ const closeEditor = () => {
   notes.value[notes.value.length - openEditorFor.value - 1] = editorContent.value
   openEditorFor.value = -1
 };
+const closeDraggableEditor = () => {
+  draggableClicked.value = ""
+};
+type draggableNote = {
+  id: string;
+  content: string;
+};
+const draggableNotes = useStorage("draggableNotes", [] as draggableNote[])
+const removeDraggable = (id: string) => {
+  const index = draggableNotes.value.findIndex((item) => item.id === id);
+  if (index !== -1) {
+    draggableNotes.value.splice(index, 1);
+  }
+}
 </script>
