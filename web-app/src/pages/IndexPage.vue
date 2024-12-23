@@ -21,17 +21,28 @@
                   <q-card-section>
                     <q-icon name="drag_indicator" class="handle" />
                   </q-card-section>
-                  <q-card-section @click="draggableClicked = element.id" class="flex col">
+                  <q-card-section @click="editorOpenedOnNote(element.id)" class="flex col">
                     <div v-sanitize:inline="element.content" />
                   </q-card-section>
                   <q-card-actions>
                     <q-btn @click="removeDraggable(element.id)" round dense flat icon="remove" />
                   </q-card-actions>
                 </q-card-section>
-                <q-card-section v-else horizontal>
-                  <q-editor v-model="element.content" min-height="5rem" class="col"
-                    v-on-click-outside="closeDraggableEditor" />
-                </q-card-section>
+                <div v-else>
+                  <q-card-section horizontal>
+                    <q-editor v-model="element.content" min-height="5rem" class="col"
+                      v-on-click-outside="closeDraggableEditor" :toolbar="[['bold']]" :definitions="{
+                        bold: {
+                          label: 'toggle flashcard with bold', icon: 'flash_on', tip: 'toggle flashcard with bold',
+                          handler: toggleFlashCard
+                        }
+                      }" />
+                  </q-card-section>
+                  <q-separator />
+                  <q-card-section v-for="answer in element.answers" :key="answer">
+                    {{ answer }}
+                  </q-card-section>
+                </div>
               </q-card>
             </q-item-section>
           </q-item>
@@ -52,13 +63,14 @@ import { uid } from 'quasar';
 type draggableNote = {
   id: string;
   content: string;
+  answers: string[];
 };
 const draggableNotes = useStorage("draggableNotes", [] as draggableNote[])
 
 // Notes: Add/remove note
 const newItem = ref("")
 const update = () => {
-  draggableNotes.value.unshift({ id: uid(), content: newItem.value })
+  draggableNotes.value.unshift({ id: uid(), content: newItem.value, answers: [] })
   newItem.value = ""
 };
 const removeDraggable = (id: string) => {
@@ -73,6 +85,63 @@ const draggableClicked = ref("")
 const closeDraggableEditor = () => {
   draggableClicked.value = ""
 };
+const editorOpenedOnNote = (noteId: string) => {
+  draggableClicked.value = noteId
+  const index = draggableNotes.value.findIndex((item) => item.id === noteId);
+  const note = draggableNotes.value[index];
+  if (note != null) {
+    const regexp = /<b>(.*?)<\/b>/g
+    const array = [...note.content.matchAll(regexp)];
+    const answers = array.map((value) => {
+      return value[1] || ""
+    })
+    note.answers = answers
+  }
+};
+
+// Flashcard: toggle
+const toggleFlashCard = () => {
+  // TODO: replace this with the example here: https://jsfiddle.net/y9qzejmf/1/
+  document.execCommand('bold')
+
+  const index = draggableNotes.value.findIndex((item) => item.id === draggableClicked.value);
+  const note = draggableNotes.value[index];
+  if (note != null) {
+    const regexp = /<b>(.*?)<\/b>/g
+    const array = [...note.content.matchAll(regexp)];
+    console.log(array)
+    const answers = array.map((value) => {
+      return value[1] || ""
+    })
+    note.answers = answers
+    // TODO: add prompts
+    // TODO: just add answers/prompts to a flashcards list
+    // TODO: add a flashcards tab
+    // TODO: add flashcard functionality: prompt, answer, remembered, forgot
+    // TODO: add spaced repetition logic
+    // TODO: add section for due vs not
+    // TODO: add notifications
+  }
+
+  // before doing anything, true up the notes:
+  //   if the number of bolded segments != the number of flashcards:
+  //     delete the old flashcards
+  //     create a new flashcard for each bolded item
+  // if the selected text is completely unbolded:
+  //   bold the text
+  //   insert a new flashcard at the index of the newly bolded text, in the list of bolded text snippets
+  // if the selected text is completely bolded:
+  //   unbold the text
+  //   delete the flashcard at teh old bolded text's index, in the list of bolded text snippets
+  // if the selected text overlaps only one bolded item
+  //   bold the unbolded part
+  //   update the flashcard to contain all the bolded text
+  // else (selected text overlaps more than one bolded item)
+  //   bold the unbolded part
+  //   update the first flashcard to contain all the bolded text
+  //   delete the other flashcards
+};
+
 </script>
 
 <style lang="css">
