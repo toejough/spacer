@@ -29,11 +29,13 @@
                   </q-card-actions>
                 </q-card-section>
                 <div v-else v-on-click-outside="closeDraggableEditor">
-                  <q-card-section>
-                    <button @click="toggleFlashCard">
-                      <q-icon name="flash_on" />
-                      Toggle flashcard with BOLD
-                    </button>
+                  <q-card-section horizontal>
+                    <q-card-section>
+                      <button @click="toggleFlashCard" class="button-style">
+                        <q-icon name="flash_on" />
+                        Toggle flashcard with BOLD
+                      </button>
+                    </q-card-section>
                   </q-card-section>
                   <q-separator />
                   <q-card-section horizontal>
@@ -173,4 +175,8 @@ const toggleFlashCard = () => {
 <style lang="sass">
 .handle
   cursor: grab
+.button-style
+  background-color: inherit
+  border-style: none
+  color: $primary
 </style>
