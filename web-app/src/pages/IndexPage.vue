@@ -40,8 +40,13 @@
                     <q-editor v-model="element.content" min-height="5rem" class="col" :toolbar="[]" />
                   </q-card-section>
                   <q-separator />
-                  <q-card-section v-for="prompt in element.prompts" :key="prompt">
-                    <div v-sanitize:inline="prompt" />
+                  <q-card-section horizontal v-for="flashcard in element.flashcards" :key="flashcard">
+                    <q-card-section class="col">
+                      <div v-sanitize:inline="flashcard.prompt" />
+                    </q-card-section>
+                    <q-card-section>
+                      (<span v-sanitize:inline="flashcard.answer" />)
+                    </q-card-section>
                   </q-card-section>
                 </div>
               </q-card>
@@ -60,19 +65,25 @@ import { vOnClickOutside } from '@vueuse/components'
 import draggable from "vuedraggable";
 import { uid } from 'quasar';
 
+// Flashcards: data
+type flashcard = {
+  answer: string
+  prompt: string
+};
 // Notes: data
 type draggableNote = {
   id: string;
   content: string;
   answers: string[];
   prompts: string[];
+  flashcards: flashcard[];
 };
 const draggableNotes = useStorage("draggableNotes", [] as draggableNote[])
 
 // Notes: Add/remove note
 const newItem = ref("")
 const update = () => {
-  draggableNotes.value.unshift({ id: uid(), content: newItem.value, answers: [], prompts: [] })
+  draggableNotes.value.unshift({ id: uid(), content: newItem.value, answers: [], prompts: [], flashcards: [] })
   newItem.value = ""
 };
 const removeDraggable = (id: string) => {
@@ -107,9 +118,20 @@ const editorOpenedOnNote = (noteId: string) => {
       const end = input.slice(index + 3 + answer.length)
       return beginning + blank + end
     })
+    const flashcards = array.map((value) => {
+      const input = value.input;
+      const index = value.index;
+      const answer = value[1] || "";
+      const beginning = input.slice(0, index + 3)
+      const blank = "_".repeat(answer.length)
+      const end = input.slice(index + 3 + answer.length)
+      const prompt = beginning + blank + end
+      return { prompt: prompt, answer: answer } as flashcard
+    })
     console.log(prompts)
     note.answers = answers
     note.prompts = prompts
+    note.flashcards = flashcards
   }
 };
 
@@ -140,7 +162,7 @@ const toggleFlashCard = () => {
     })
     console.log(prompts)
     note.prompts = prompts
-    // TODO: add prompts
+    // TODO: convert answer/prompt to flashcard
     // TODO: just add answers/prompts to a flashcards list
     // TODO: add a flashcards tab
     // TODO: add flashcard functionality: prompt, answer, remembered, forgot
