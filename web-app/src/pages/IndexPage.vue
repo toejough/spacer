@@ -74,8 +74,6 @@ type flashcard = {
 type draggableNote = {
   id: string;
   content: string;
-  answers: string[];
-  prompts: string[];
   flashcards: flashcard[];
 };
 const draggableNotes = useStorage("draggableNotes", [] as draggableNote[])
@@ -83,7 +81,7 @@ const draggableNotes = useStorage("draggableNotes", [] as draggableNote[])
 // Notes: Add/remove note
 const newItem = ref("")
 const update = () => {
-  draggableNotes.value.unshift({ id: uid(), content: newItem.value, answers: [], prompts: [], flashcards: [] })
+  draggableNotes.value.unshift({ id: uid(), content: newItem.value, flashcards: [] })
   newItem.value = ""
 };
 const removeDraggable = (id: string) => {
@@ -105,19 +103,6 @@ const editorOpenedOnNote = (noteId: string) => {
   if (note != null) {
     const regexp = /<b>(.*?)<\/b>/g
     const array = [...note.content.matchAll(regexp)];
-    console.log(array)
-    const answers = array.map((value) => {
-      return value[1] || ""
-    })
-    const prompts = array.map((value) => {
-      const input = value.input;
-      const index = value.index;
-      const answer = value[1] || "";
-      const beginning = input.slice(0, index + 3)
-      const blank = "_".repeat(answer.length)
-      const end = input.slice(index + 3 + answer.length)
-      return beginning + blank + end
-    })
     const flashcards = array.map((value) => {
       const input = value.input;
       const index = value.index;
@@ -128,9 +113,6 @@ const editorOpenedOnNote = (noteId: string) => {
       const prompt = beginning + blank + end
       return { prompt: prompt, answer: answer } as flashcard
     })
-    console.log(prompts)
-    note.answers = answers
-    note.prompts = prompts
     note.flashcards = flashcards
   }
 };
@@ -146,22 +128,17 @@ const toggleFlashCard = () => {
   if (note != null) {
     const regexp = /<b>(.*?)<\/b>/g
     const array = [...note.content.matchAll(regexp)];
-    console.log(array)
-    const answers = array.map((value) => {
-      return value[1] || ""
-    })
-    note.answers = answers
-    const prompts = array.map((value) => {
+    const flashcards = array.map((value) => {
       const input = value.input;
       const index = value.index;
       const answer = value[1] || "";
       const beginning = input.slice(0, index + 3)
       const blank = "_".repeat(answer.length)
       const end = input.slice(index + 3 + answer.length)
-      return beginning + blank + end
+      const prompt = beginning + blank + end
+      return { prompt: prompt, answer: answer } as flashcard
     })
-    console.log(prompts)
-    note.prompts = prompts
+    note.flashcards = flashcards
     // TODO: convert answer/prompt to flashcard
     // TODO: just add answers/prompts to a flashcards list
     // TODO: add a flashcards tab
