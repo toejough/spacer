@@ -37,11 +37,11 @@
                   </q-card-section>
                   <q-separator />
                   <q-card-section horizontal>
-                    <q-editor v-model="element.content" min-height="5rem" class="col no-select" :toolbar="[]" />
+                    <q-editor v-model="element.content" min-height="5rem" class="col" :toolbar="[]" />
                   </q-card-section>
                   <q-separator />
-                  <q-card-section v-for="answer in element.answers" :key="answer">
-                    {{ answer }}
+                  <q-card-section v-for="prompt in element.prompts" :key="prompt">
+                    <div v-sanitize:inline="prompt" />
                   </q-card-section>
                 </div>
               </q-card>
@@ -65,13 +65,14 @@ type draggableNote = {
   id: string;
   content: string;
   answers: string[];
+  prompts: string[];
 };
 const draggableNotes = useStorage("draggableNotes", [] as draggableNote[])
 
 // Notes: Add/remove note
 const newItem = ref("")
 const update = () => {
-  draggableNotes.value.unshift({ id: uid(), content: newItem.value, answers: [] })
+  draggableNotes.value.unshift({ id: uid(), content: newItem.value, answers: [], prompts: [] })
   newItem.value = ""
 };
 const removeDraggable = (id: string) => {
@@ -93,10 +94,22 @@ const editorOpenedOnNote = (noteId: string) => {
   if (note != null) {
     const regexp = /<b>(.*?)<\/b>/g
     const array = [...note.content.matchAll(regexp)];
+    console.log(array)
     const answers = array.map((value) => {
       return value[1] || ""
     })
+    const prompts = array.map((value) => {
+      const input = value.input;
+      const index = value.index;
+      const answer = value[1] || "";
+      const beginning = input.slice(0, index + 3)
+      const blank = "_".repeat(answer.length)
+      const end = input.slice(index + 3 + answer.length)
+      return beginning + blank + end
+    })
+    console.log(prompts)
     note.answers = answers
+    note.prompts = prompts
   }
 };
 
@@ -116,6 +129,17 @@ const toggleFlashCard = () => {
       return value[1] || ""
     })
     note.answers = answers
+    const prompts = array.map((value) => {
+      const input = value.input;
+      const index = value.index;
+      const answer = value[1] || "";
+      const beginning = input.slice(0, index + 3)
+      const blank = "_".repeat(answer.length)
+      const end = input.slice(index + 3 + answer.length)
+      return beginning + blank + end
+    })
+    console.log(prompts)
+    note.prompts = prompts
     // TODO: add prompts
     // TODO: just add answers/prompts to a flashcards list
     // TODO: add a flashcards tab
@@ -142,22 +166,12 @@ const toggleFlashCard = () => {
   //   bold the unbolded part
   //   update the first flashcard to contain all the bolded text
   //   delete the other flashcards
+  // todo: add grabbing
 };
 
 </script>
 
-<style lang="css">
-.handle {
-  float: left;
-  padding-top: 8px;
-  padding-bottom: 8px;
-}
-
-.no-callout {
-  -webkit-touch-callout: none;
-}
-
-.no-select {
-  user-select: none;
-}
+<style lang="sass">
+.handle
+  cursor: grab
 </style>
