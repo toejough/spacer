@@ -28,15 +28,16 @@
                     <q-btn @click="removeDraggable(element.id)" round dense flat icon="remove" />
                   </q-card-actions>
                 </q-card-section>
-                <div v-else>
+                <div v-else v-on-click-outside="closeDraggableEditor">
+                  <q-card-section>
+                    <button @click="toggleFlashCard">
+                      <q-icon name="flash_on" />
+                      Toggle flashcard with BOLD
+                    </button>
+                  </q-card-section>
+                  <q-separator />
                   <q-card-section horizontal>
-                    <q-editor v-model="element.content" min-height="5rem" class="col"
-                      v-on-click-outside="closeDraggableEditor" :toolbar="[['bold']]" :definitions="{
-                        bold: {
-                          label: 'toggle flashcard with bold', icon: 'flash_on', tip: 'toggle flashcard with bold',
-                          handler: toggleFlashCard
-                        }
-                      }" />
+                    <q-editor v-model="element.content" min-height="5rem" class="col no-select" :toolbar="[]" />
                   </q-card-section>
                   <q-separator />
                   <q-card-section v-for="answer in element.answers" :key="answer">
@@ -102,6 +103,7 @@ const editorOpenedOnNote = (noteId: string) => {
 // Flashcard: toggle
 const toggleFlashCard = () => {
   // TODO: replace this with the example here: https://jsfiddle.net/y9qzejmf/1/
+  // const selection = document.getSelection()
   document.execCommand('bold')
 
   const index = draggableNotes.value.findIndex((item) => item.id === draggableClicked.value);
@@ -149,5 +151,13 @@ const toggleFlashCard = () => {
   float: left;
   padding-top: 8px;
   padding-bottom: 8px;
+}
+
+.no-callout {
+  -webkit-touch-callout: none;
+}
+
+.no-select {
+  user-select: none;
 }
 </style>
