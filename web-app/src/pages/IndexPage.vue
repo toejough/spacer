@@ -4,63 +4,67 @@
       <q-tab name="notes" label="notes" />
       <q-tab name="flashcards" label="flashcards" />
     </q-tabs>
-    <q-list>
-      <q-item>
-        <q-item-section>
-          <q-card>
-            <q-input filled v-model="newItem" @keyup.enter="update" placeholder="Enter a new note here">
-              <template v-slot:append>
-                <q-btn @click="update" round dense flat icon="add" />
-              </template></q-input>
-          </q-card>
-        </q-item-section>
-      </q-item>
-      <draggable :list="draggableNotes" item-key="id" animation=200 handle=".handle">
-        <template #item="{ element }">
+    <q-tab-panels v-model="tabs">
+      <q-tab-panel name="notes">
+        <q-list>
           <q-item>
             <q-item-section>
               <q-card>
-                <q-card-section horizontal class="flex justify-between items-center"
-                  v-if="draggableClicked != element.id">
-                  <q-card-section>
-                    <q-icon name="drag_indicator" class="handle" />
-                  </q-card-section>
-                  <q-card-section @click="editorOpenedOnNote(element.id)" class="flex col">
-                    <div v-sanitize:inline="element.content" />
-                  </q-card-section>
-                  <q-card-actions>
-                    <q-btn @click="removeDraggable(element.id)" round dense flat icon="remove" />
-                  </q-card-actions>
-                </q-card-section>
-                <div v-else v-on-click-outside="closeDraggableEditor">
-                  <q-card-section horizontal>
-                    <q-card-section>
-                      <button @click="toggleFlashCard" class="button-style">
-                        <q-icon name="flash_on" />
-                        Toggle flashcard with BOLD
-                      </button>
-                    </q-card-section>
-                  </q-card-section>
-                  <q-separator />
-                  <q-card-section horizontal>
-                    <q-editor v-model="element.content" min-height="5rem" class="col" :toolbar="[]" />
-                  </q-card-section>
-                  <q-separator />
-                  <q-card-section horizontal v-for="flashcard in element.flashcards" :key="flashcard">
-                    <q-card-section class="col">
-                      <div v-sanitize:inline="flashcard.prompt" />
-                    </q-card-section>
-                    <q-card-section>
-                      (<span v-sanitize:inline="flashcard.answer" />)
-                    </q-card-section>
-                  </q-card-section>
-                </div>
+                <q-input filled v-model="newItem" @keyup.enter="update" placeholder="Enter a new note here">
+                  <template v-slot:append>
+                    <q-btn @click="update" round dense flat icon="add" />
+                  </template></q-input>
               </q-card>
             </q-item-section>
           </q-item>
-        </template>
-      </draggable>
-    </q-list>
+          <draggable :list="draggableNotes" item-key="id" animation=200 handle=".handle">
+            <template #item="{ element }">
+              <q-item>
+                <q-item-section>
+                  <q-card>
+                    <q-card-section horizontal class="flex justify-between items-center"
+                      v-if="draggableClicked != element.id">
+                      <q-card-section>
+                        <q-icon name="drag_indicator" class="handle" />
+                      </q-card-section>
+                      <q-card-section @click="editorOpenedOnNote(element.id)" class="flex col">
+                        <div v-sanitize:inline="element.content" />
+                      </q-card-section>
+                      <q-card-actions>
+                        <q-btn @click="removeDraggable(element.id)" round dense flat icon="remove" />
+                      </q-card-actions>
+                    </q-card-section>
+                    <div v-else v-on-click-outside="closeDraggableEditor">
+                      <q-card-section horizontal>
+                        <q-card-section>
+                          <button @click="toggleFlashCard" class="button-style">
+                            <q-icon name="flash_on" />
+                            Toggle flashcard with BOLD
+                          </button>
+                        </q-card-section>
+                      </q-card-section>
+                      <q-separator />
+                      <q-card-section horizontal>
+                        <q-editor v-model="element.content" min-height="5rem" class="col" :toolbar="[]" />
+                      </q-card-section>
+                      <q-separator />
+                      <q-card-section horizontal v-for="flashcard in element.flashcards" :key="flashcard">
+                        <q-card-section class="col">
+                          <div v-sanitize:inline="flashcard.prompt" />
+                        </q-card-section>
+                        <q-card-section>
+                          (<span v-sanitize:inline="flashcard.answer" />)
+                        </q-card-section>
+                      </q-card-section>
+                    </div>
+                  </q-card>
+                </q-item-section>
+              </q-item>
+            </template>
+          </draggable>
+        </q-list>
+      </q-tab-panel>
+    </q-tab-panels>
   </q-page>
 </template>
 
