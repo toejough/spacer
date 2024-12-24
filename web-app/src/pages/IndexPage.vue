@@ -1,5 +1,9 @@
 <template>
   <q-page>
+    <q-tabs v-model="tabs">
+      <q-tab name="notes" label="notes" />
+      <q-tab name="flashcards" label="flashcards" />
+    </q-tabs>
     <q-list>
       <q-item>
         <q-item-section>
@@ -66,6 +70,9 @@ import { useStorage } from '@vueuse/core'
 import { vOnClickOutside } from '@vueuse/components'
 import draggable from "vuedraggable";
 import { uid } from 'quasar';
+
+// Tabs
+const tabs = ref("notes")
 
 // Flashcards: data
 type flashcard = {
