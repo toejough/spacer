@@ -2,7 +2,7 @@
   <q-page>
     <q-tabs v-model="tabs">
       <q-tab name="notes" label="notes" />
-      <q-tab name="flashcards" label="flashcards" />
+      <q-tab name="flashcards" label="flashcards" @click="checkCards" />
     </q-tabs>
     <q-tab-panels v-model="tabs">
       <q-tab-panel name="notes">
@@ -70,10 +70,26 @@
             <q-item>
               <q-item-section>
                 <q-card>
-                  <q-card-section>
-                    <div v-sanitize="card.prompt">
-                    </div>
-                  </q-card-section>
+                  <div v-if="!card.show">
+                    <q-card-section>
+                      <div v-sanitize="card.prompt"></div>
+                    </q-card-section>
+                    <q-card-actions>
+                      <q-btn label="Show Answer" @click="card.show = true" />
+                    </q-card-actions>
+                  </div>
+                  <div v-else>
+                    <q-card-section>
+                      <div v-sanitize="card.prompt"></div>
+                    </q-card-section>
+                    <q-card-section class="answer">
+                      <div v-sanitize="card.answer"></div>
+                    </q-card-section>
+                    <q-card-actions>
+                      <q-btn label="Remembered" @click="rememberedCard(card)" />
+                      <q-btn label="Forgot" @click="forgotCard(card)" />
+                    </q-card-actions>
+                  </div>
                 </q-card>
               </q-item-section>
             </q-item>
@@ -102,8 +118,63 @@ type flashcard = {
   answer: string
   prompt: string
   noteID: string
+  show: boolean
+  due: Date
+  fibDays: number
+  forgetfulness: number
 };
 const flashcards = useStorage("flashcards", [] as flashcard[])
+
+const rememberedCard = (card: flashcard) => {
+  card.show = false
+  card.fibDays = nextFib(card.fibDays)
+  card.due = new Date((new Date()).getTime() + card.fibDays / card.forgetfulness * 1000 * 60 * 60 * 24)
+  console.log("new due date:")
+  console.log(card.due)
+  console.dir(card)
+  flashcards.value.sort((a: flashcard, b: flashcard): number => { return (new Date(a.due)).getTime() - (new Date(b.due)).getTime() })
+  console.dir(flashcards)
+  // TODO: set up reminders
+};
+
+const forgotCard = (card: flashcard) => {
+  card.show = false
+  card.due = new Date()
+  card.forgetfulness++
+  card.fibDays = 0
+  console.log("new forgetfulness:")
+  console.log(card.forgetfulness)
+  console.dir(card)
+  flashcards.value.sort((a: flashcard, b: flashcard): number => { return (new Date(a.due)).getTime() - (new Date(b.due)).getTime() })
+  // TODO: set up reminders
+};
+
+const nextFib = (currentNum: number): number => {
+  let current = 0
+  let next = 1
+  while (current <= currentNum) {
+    const nextNext = current + next
+    current = next
+    next = nextNext
+  }
+  return current
+};
+
+const checkCards = () => {
+  console.log("clicked flashcards")
+  // check all the cards are for notes that still exist
+  flashcards.value = flashcards.value.filter(element => {
+    const index = draggableNotes.value.findIndex(note => { return note.id == element.noteID })
+    return index >= 0
+  })
+  flashcards.value.forEach(e => {
+    e.show = e.show === undefined ? false : e.show
+    e.due = e.due === undefined ? new Date() : e.due
+    e.fibDays = e.fibDays === undefined ? 0 : e.fibDays
+    e.forgetfulness = e.forgetfulness === undefined ? 1 : e.forgetfulness
+  });
+  flashcards.value.sort((a: flashcard, b: flashcard): number => { return (new Date(a.due)).getTime() - (new Date(b.due)).getTime() })
+};
 
 // Notes: data
 type draggableNote = {
@@ -123,7 +194,8 @@ const update = () => {
 };
 const removeDraggable = (id: string) => {
   const index = draggableNotes.value.findIndex((item) => item.id === id);
-  if (index !== -1) {
+  if (index !== -1 && draggableNotes.value[index] != undefined) {
+    removeCardsFrom(flashcards.value, draggableNotes.value[index].flashcards)
     draggableNotes.value.splice(index, 1);
   }
 }
@@ -156,7 +228,7 @@ const ensureCardsForNote = (note: draggableNote) => {
     const blank = "_".repeat(answer.length)
     const end = input.slice(index + 3 + answer.length)
     const prompt = beginning + blank + end
-    return { prompt: prompt, answer: answer, noteID: note.id, id: note.id + prompt + answer } as flashcard
+    return { prompt: prompt, answer: answer, noteID: note.id, id: note.id + prompt + answer, show: false, due: new Date(), fibDays: 0, forgetfulness: 1 } as flashcard
   })
   // if any of these flashcards are not present in the overall list, add them with new id's.
   const newCards = diffCards(note.flashcards, flashcards.value)
@@ -255,4 +327,6 @@ const toggleFlashCard = () => {
   background-color: inherit
   border-style: none
   color: $primary
+.answer
+  background-color: $cyan-3
 </style>
