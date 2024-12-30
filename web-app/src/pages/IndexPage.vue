@@ -17,9 +17,10 @@
               </q-card>
             </q-item-section>
           </q-item>
-          <draggable :list="draggableNotes" item-key="id" animation=200 handle=".handle">
+          <draggable :list="draggableNotes" item-key="id" animation=200 handle=".handle"
+            :component-data="{ class: 'sort-animation' }">
             <template #item="{ element }">
-              <q-item>
+              <q-item class="sort-animation">
                 <q-item-section>
                   <q-card>
                     <q-card-section horizontal class="flex justify-between items-center"
@@ -65,36 +66,53 @@
         </q-list>
       </q-tab-panel>
       <q-tab-panel name="flashcards">
-        <q-list>
-          <div v-for="card in flashcards" :key="card.id">
-            <q-item>
-              <q-item-section>
-                <q-card>
-                  <div v-if="!card.show">
-                    <q-card-section>
-                      <div v-sanitize="card.prompt"></div>
-                    </q-card-section>
-                    <q-card-actions>
-                      <q-btn label="Show Answer" @click="card.show = true" />
-                    </q-card-actions>
-                  </div>
-                  <div v-else>
-                    <q-card-section>
-                      <div v-sanitize="card.prompt"></div>
-                    </q-card-section>
-                    <q-card-section class="answer">
-                      <div v-sanitize="card.answer"></div>
-                    </q-card-section>
-                    <q-card-actions>
-                      <q-btn label="Remembered" @click="rememberedCard(card)" />
-                      <q-btn label="Forgot" @click="forgotCard(card)" />
-                    </q-card-actions>
-                  </div>
-                </q-card>
-              </q-item-section>
-            </q-item>
-          </div>
-        </q-list>
+        <!-- <div v-draggable="[ -->
+        <!--   flashcards, -->
+        <!--   { -->
+        <!--     animation: 500, -->
+        <!--   } -->
+        <!-- ]"> -->
+        <!-- <draggable v-model="flashcards" animation=500> -->
+        <Sortable :list="flashcards" item-key="id" :options="{ animation: '500' }">
+          <!-- <VueDraggable v-model="flashcards" animation="500"> -->
+          <!-- <ul id="toDrag"> -->
+          <!--   <li v-for="card in flashcards" :key="card.id"> -->
+          <template #item="{ element: card }">
+            <TransitionGroup name="drag">
+              <q-item>
+                <q-item-section>
+                  <q-card>
+                    <div v-if="!card.show">
+                      <q-card-section>
+                        <div v-sanitize="card.prompt"></div>
+                      </q-card-section>
+                      <q-card-actions>
+                        <q-btn label="Show Answer" @click="card.show = true" />
+                      </q-card-actions>
+                    </div>
+                    <div v-else>
+                      <q-card-section>
+                        <div v-sanitize="card.prompt"></div>
+                      </q-card-section>
+                      <q-card-section class="answer">
+                        <div v-sanitize="card.answer"></div>
+                      </q-card-section>
+                      <q-card-actions>
+                        <q-btn label="Remembered" @click="rememberedCard(card)" />
+                        <q-btn label="Forgot" @click="forgotCard(card)" />
+                      </q-card-actions>
+                    </div>
+                  </q-card>
+                </q-item-section>
+              </q-item>
+              <!-- </li> -->
+              <!-- </ul> -->
+            </TransitionGroup>
+          </template>
+        </Sortable>
+        <!-- </VueDraggable> -->
+        <!-- </draggable> -->
+        <!-- </div> -->
       </q-tab-panel>
     </q-tab-panels>
   </q-page>
@@ -106,6 +124,16 @@ import { useStorage } from '@vueuse/core'
 import { vOnClickOutside } from '@vueuse/components'
 import draggable from "vuedraggable";
 import { uid } from 'quasar';
+import { Sortable } from "sortablejs-vue3";
+// import { VueDraggable } from 'vue-draggable-plus'
+// import { vDraggable } from 'vue-draggable-plus'
+
+// dragging with sortablejs
+const el = document.getElementById('example');
+if (el != undefined) {
+  console.log("here we are")
+  Sortable.create(el, { animation: 500 })
+}
 
 // Tabs
 const tabs = ref("notes")
@@ -162,6 +190,7 @@ const nextFib = (currentNum: number): number => {
 
 const checkCards = () => {
   console.log("clicked flashcards")
+  console.dir(flashcards)
   // check all the cards are for notes that still exist
   flashcards.value = flashcards.value.filter(element => {
     const index = draggableNotes.value.findIndex(note => { return note.id == element.noteID })
@@ -329,4 +358,8 @@ const toggleFlashCard = () => {
   color: $primary
 .answer
   background-color: $cyan-3
+.sort-animation
+  transition: transform 0.5s
+.drag-move
+  transition: all 0.5s cubic-bezier(0.55, 0, 0.1, 1)
 </style>
