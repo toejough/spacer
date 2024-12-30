@@ -82,8 +82,13 @@
               <q-item :key=card.id>
                 <q-item-section>
                   <q-card>
-                    <q-card-section class="dueDate">
-                      <div>Next Due: {{ date.formatDate(card.due, "YYYY-MM-DD") }}</div>
+                    <q-card-section horizontal class="dueDate">
+                      <q-card-section>
+                        <q-icon name="drag_indicator" class="handle" />
+                      </q-card-section>
+                      <q-card-section>
+                        <div>Next Due: {{ date.formatDate(card.due, "YYYY-MM-DD") }}</div>
+                      </q-card-section>
                     </q-card-section>
                     <div v-if="!card.show">
                       <q-card-section>
