@@ -79,9 +79,12 @@
           <!--   <li v-for="card in flashcards" :key="card.id"> -->
           <template #item="{ element: card }">
             <TransitionGroup name="drag">
-              <q-item>
+              <q-item :key=card.id>
                 <q-item-section>
                   <q-card>
+                    <q-card-section class="dueDate">
+                      <div>Next Due: {{ date.formatDate(card.due, "YYYY-MM-DD") }}</div>
+                    </q-card-section>
                     <div v-if="!card.show">
                       <q-card-section>
                         <div v-sanitize="card.prompt"></div>
@@ -125,6 +128,7 @@ import { vOnClickOutside } from '@vueuse/components'
 import draggable from "vuedraggable";
 import { uid } from 'quasar';
 import { Sortable } from "sortablejs-vue3";
+import { date } from 'quasar'
 // import { VueDraggable } from 'vue-draggable-plus'
 // import { vDraggable } from 'vue-draggable-plus'
 
@@ -356,10 +360,12 @@ const toggleFlashCard = () => {
   background-color: inherit
   border-style: none
   color: $primary
+.dueDate
+  background-color: $grey-3
 .answer
   background-color: $cyan-3
 .sort-animation
-  transition: transform 0.5s
+  transition: transform 1s
 .drag-move
-  transition: all 0.5s cubic-bezier(0.55, 0, 0.1, 1)
+  transition: all 1s cubic-bezier(0.55, 0, 0.1, 1)
 </style>
