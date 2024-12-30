@@ -73,7 +73,7 @@
         <!--   } -->
         <!-- ]"> -->
         <!-- <draggable v-model="flashcards" animation=500> -->
-        <Sortable :list="flashcards" item-key="id" :options="{ animation: '500' }">
+        <Sortable :list="flashcards" item-key="id" :options="{ animation: '500', handle: '.handle' }">
           <!-- <VueDraggable v-model="flashcards" animation="500"> -->
           <!-- <ul id="toDrag"> -->
           <!--   <li v-for="card in flashcards" :key="card.id"> -->
