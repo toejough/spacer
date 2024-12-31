@@ -17,66 +17,57 @@
               </q-card>
             </q-item-section>
           </q-item>
-          <draggable :list="draggableNotes" item-key="id" animation=200 handle=".handle"
-            :component-data="{ class: 'sort-animation' }">
-            <template #item="{ element }">
-              <q-item class="sort-animation">
-                <q-item-section>
-                  <q-card>
-                    <q-card-section horizontal class="flex justify-between items-center"
-                      v-if="draggableClicked != element.id">
-                      <q-card-section>
-                        <q-icon name="drag_indicator" class="handle" />
-                      </q-card-section>
-                      <q-card-section @click="editorOpenedOnNote(element.id)" class="flex col">
-                        <div v-sanitize:inline="element.content" />
-                      </q-card-section>
-                      <q-card-actions>
-                        <q-btn @click="removeDraggable(element.id)" round dense flat icon="remove" />
-                      </q-card-actions>
-                    </q-card-section>
-                    <div v-else v-on-click-outside="closeDraggableEditor">
-                      <q-card-section horizontal>
+          <Sortable :list="draggableNotes" item-key="id" :options="{ animation: '500', handle: '.handle' }">
+            <template #item="{ element: note }">
+              <TransitionGroup name="drag">
+                <q-item :key=note.id>
+                  <q-item-section>
+                    <q-card>
+                      <q-card-section horizontal class="flex justify-between items-center"
+                        v-if="draggableClicked != note.id">
                         <q-card-section>
-                          <button @click="toggleFlashCard" class="button-style">
-                            <q-icon name="flash_on" />
-                            Toggle flashcard with BOLD
-                          </button>
+                          <q-icon name="drag_indicator" class="handle" />
                         </q-card-section>
-                      </q-card-section>
-                      <q-separator />
-                      <q-card-section horizontal>
-                        <q-editor v-model="element.content" min-height="5rem" class="col" :toolbar="[]" />
-                      </q-card-section>
-                      <q-separator />
-                      <q-card-section horizontal v-for="flashcard in element.flashcards" :key="flashcard">
-                        <q-card-section class="col">
-                          <div v-sanitize:inline="flashcard.prompt" />
+                        <q-card-section @click="editorOpenedOnNote(note.id)" class="flex col">
+                          <div v-sanitize:inline="note.content" />
                         </q-card-section>
-                        <q-card-section>
-                          (<span v-sanitize:inline="flashcard.answer" />)
-                        </q-card-section>
+                        <q-card-actions>
+                          <q-btn @click="removeDraggable(note.id)" round dense flat icon="remove" />
+                        </q-card-actions>
                       </q-card-section>
-                    </div>
-                  </q-card>
-                </q-item-section>
-              </q-item>
+                      <div v-else v-on-click-outside="closeDraggableEditor">
+                        <q-card-section horizontal>
+                          <q-card-section>
+                            <button @click="toggleFlashCard" class="button-style">
+                              <q-icon name="flash_on" />
+                              Toggle flashcard with BOLD
+                            </button>
+                          </q-card-section>
+                        </q-card-section>
+                        <q-separator />
+                        <q-card-section horizontal>
+                          <q-editor v-model="note.content" min-height="5rem" class="col" :toolbar="[]" />
+                        </q-card-section>
+                        <q-separator />
+                        <q-card-section horizontal v-for="flashcard in note.flashcards" :key="flashcard">
+                          <q-card-section class="col">
+                            <div v-sanitize:inline="flashcard.prompt" />
+                          </q-card-section>
+                          <q-card-section>
+                            (<span v-sanitize:inline="flashcard.answer" />)
+                          </q-card-section>
+                        </q-card-section>
+                      </div>
+                    </q-card>
+                  </q-item-section>
+                </q-item>
+              </TransitionGroup>
             </template>
-          </draggable>
+          </Sortable>
         </q-list>
       </q-tab-panel>
       <q-tab-panel name="flashcards">
-        <!-- <div v-draggable="[ -->
-        <!--   flashcards, -->
-        <!--   { -->
-        <!--     animation: 500, -->
-        <!--   } -->
-        <!-- ]"> -->
-        <!-- <draggable v-model="flashcards" animation=500> -->
         <Sortable :list="flashcards" item-key="id" :options="{ animation: '500', handle: '.handle' }">
-          <!-- <VueDraggable v-model="flashcards" animation="500"> -->
-          <!-- <ul id="toDrag"> -->
-          <!--   <li v-for="card in flashcards" :key="card.id"> -->
           <template #item="{ element: card }">
             <TransitionGroup name="drag">
               <q-item :key=card.id>
@@ -113,14 +104,9 @@
                   </q-card>
                 </q-item-section>
               </q-item>
-              <!-- </li> -->
-              <!-- </ul> -->
             </TransitionGroup>
           </template>
         </Sortable>
-        <!-- </VueDraggable> -->
-        <!-- </draggable> -->
-        <!-- </div> -->
       </q-tab-panel>
     </q-tab-panels>
   </q-page>
@@ -130,12 +116,9 @@
 import { ref } from 'vue'
 import { useStorage } from '@vueuse/core'
 import { vOnClickOutside } from '@vueuse/components'
-import draggable from "vuedraggable";
 import { uid } from 'quasar';
 import { Sortable } from "sortablejs-vue3";
 import { date } from 'quasar'
-// import { VueDraggable } from 'vue-draggable-plus'
-// import { vDraggable } from 'vue-draggable-plus'
 
 // dragging with sortablejs
 const el = document.getElementById('example');
@@ -148,8 +131,7 @@ if (el != undefined) {
 const tabs = ref("notes")
 
 // Flashcards: data
-// TODO: forget the set logic stuff - going to have to implement it manually instead of with the Set type, because we won't be able to compare other state such as last time we practiced, etc.
-// or maybe that's... results? results for a flashcard? Interesting...
+// TODO: split out flashcards & results & due dates? these are different concepts...
 type flashcard = {
   id: string
   answer: string
