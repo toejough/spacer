@@ -53,7 +53,7 @@ const defaultIDs = notes.value.map(n => n.id)
 const topLevelNoteIDs = useStorage("topLevelNoteIDs", defaultIDs)
 console.dir(notes)
 console.dir(topLevelNoteIDs)
-const subIDsForID = (id: string) => {
+const subIDsForID = (id: string): string[] => {
   const noteIndex = notes.value.findIndex(n => n.id == id)
   return [id, ...notes.value[noteIndex]?.subnoteIDs.flatMap(subIDsForID) ?? [] as string[]]
 };
