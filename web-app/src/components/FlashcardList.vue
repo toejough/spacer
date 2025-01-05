@@ -10,8 +10,14 @@
                   <q-icon name="drag_indicator" class="handle" />
                 </q-card-section>
                 <q-card-section>
-                  <div>Next Due: {{ date.formatDate(card.due, "YYYY-MM-DD") }}</div>
+                  <div>Practice Again On/After: {{ date.formatDate(card.due, "YYYY-MM-DD") }}</div>
                 </q-card-section>
+              </q-card-section>
+              <q-card-section v-if="parentNotesForCard(card).length > 0">
+                <q-list v-for="note in parentNotesForCard(card)" :key="note.id">
+                  <div v-sanitize:inline="note.content" />
+                  <q-separator />
+                </q-list>
               </q-card-section>
               <div v-if="!card.show">
                 <q-card-section>
@@ -60,8 +66,30 @@ export type flashcard = {
 // todo - onclick outside of card, collapse card again?
 import { Sortable } from "sortablejs-vue3";
 import { date } from 'quasar'
+import type { draggableNote } from './NoteList.vue'
 
-const flashcards = defineModel<flashcard[]>({ required: true })
+
+const flashcards = defineModel<flashcard[]>("flashcards", { required: true })
+const notes = defineModel<draggableNote[]>("notes", { required: true })
+
+const parentNotesForCard = (card: flashcard): draggableNote[] => {
+  const parentNotes = [] as draggableNote[]
+  let noteID = card.noteID
+  let noteIndex = notes.value.findIndex(n => n.id == noteID)
+  let parentNote = notes.value[noteIndex]
+  if (noteIndex >= 0 && parentNote !== undefined) {
+    noteID = parentNote.id
+    noteIndex = notes.value.findIndex(n => n.subnoteIDs.includes(noteID))
+    parentNote = notes.value[noteIndex]
+  }
+  while (noteIndex >= 0 && parentNote !== undefined) {
+    noteID = parentNote.id
+    parentNotes.unshift(parentNote)
+    noteIndex = notes.value.findIndex(n => n.subnoteIDs.includes(noteID))
+    parentNote = notes.value[noteIndex]
+  }
+  return parentNotes
+};
 const rememberedCard = (card: flashcard) => {
   card.show = false
   card.fibDays = nextFib(card.fibDays)

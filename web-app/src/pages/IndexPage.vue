@@ -2,14 +2,15 @@
   <q-page>
     <q-tabs v-model="tabs">
       <q-tab name="notes" label="notes" />
+      <!-- <q-tab name="flashcards" label="flashcards" /> -->
       <q-tab name="flashcards" label="flashcards" @click="checkCards" />
     </q-tabs>
     <q-tab-panels v-model="tabs">
       <q-tab-panel name="notes">
-        <NoteList v-model:notes="notes" v-model:flashcards="flashcards" />
+        <NoteList v-model:notes="notes" v-model:flashcards="flashcards" v-model:listIDs="topLevelNoteIDs" />
       </q-tab-panel>
       <q-tab-panel name="flashcards">
-        <FlashcardList v-model="flashcards" />
+        <FlashcardList v-model:flashcards="flashcards" v-model:notes="notes" />
       </q-tab-panel>
     </q-tab-panels>
   </q-page>
@@ -48,7 +49,28 @@ const checkCards = () => {
 };
 
 const notes = useStorage("draggableNotes", [] as draggableNote[])
+const defaultIDs = notes.value.map(n => n.id)
+const topLevelNoteIDs = useStorage("topLevelNoteIDs", defaultIDs)
+console.dir(notes)
+console.dir(topLevelNoteIDs)
+const subIDsForID = (id: string) => {
+  const noteIndex = notes.value.findIndex(n => n.id == id)
+  return [id, ...notes.value[noteIndex]?.subnoteIDs.flatMap(subIDsForID) ?? [] as string[]]
+};
+const allNoteIDs = notes.value.map(n => n.id)
+const usedNoteIDs = topLevelNoteIDs.value.flatMap(subIDsForID)
+console.log(allNoteIDs)
+console.log(usedNoteIDs)
+const missingIDs = allNoteIDs.filter(id => !usedNoteIDs.includes(id))
+console.log(missingIDs)
 const flashcards = useStorage("flashcards", [] as flashcard[])
+topLevelNoteIDs.value.push(...missingIDs)
+const extraIDs = topLevelNoteIDs.value.filter(id => !defaultIDs.includes(id))
+console.log(extraIDs)
+extraIDs.forEach(id => {
+  const index = topLevelNoteIDs.value.indexOf(id)
+  topLevelNoteIDs.value.splice(index, 1)
+});
 </script>
 
 <style lang="sass">
