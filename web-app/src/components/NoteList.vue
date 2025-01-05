@@ -90,6 +90,12 @@ const listNotes = computed(() => {
   return listIDs.value.map(id => {
     const noteIndex = notes.value.findIndex(n => n.id == id)
     const note = notes.value[noteIndex]
+    if (note !== undefined) {
+      if (note.id === undefined) { note.id = uid() }
+      if (note.content === undefined) { note.content = "" }
+      if (note.flashcards === undefined) { note.flashcards = [] as flashcard[] }
+      if (note.subnoteIDs === undefined) { note.subnoteIDs = [] as string[] }
+    }
     return note
   }).filter(n => n !== undefined)
 })
