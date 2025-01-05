@@ -23,6 +23,8 @@ import NoteList from '../components/NoteList.vue'
 import type { draggableNote } from '../components/NoteList.vue'
 import FlashcardList from '../components/FlashcardList.vue'
 import type { flashcard } from '../components/FlashcardList.vue'
+import { uid } from 'quasar';
+
 
 // dragging with sortablejs
 // Tabs
@@ -49,6 +51,12 @@ const checkCards = () => {
 };
 
 const notes = useStorage("draggableNotes", [] as draggableNote[])
+notes.value.forEach(note => {
+  if (note.id === undefined) { note.id = uid() }
+  if (note.content === undefined) { note.content = "" }
+  if (note.flashcards === undefined) { note.flashcards = [] as flashcard[] }
+  if (note.subnoteIDs === undefined) { note.subnoteIDs = [] as string[] }
+});
 const defaultIDs = notes.value.map(n => n.id)
 const topLevelNoteIDs = useStorage("topLevelNoteIDs", defaultIDs)
 console.dir(notes)
