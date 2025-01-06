@@ -1,69 +1,100 @@
 <template>
-  <q-list>
-    <q-item>
-      <q-item-section>
-        <q-card>
-          <q-input filled v-model="newItem" @keyup.enter="update" placeholder="Enter a new note here">
-            <template v-slot:append>
-              <q-btn @click="update" round dense flat icon="add" />
-            </template></q-input>
-        </q-card>
-      </q-item-section>
-    </q-item>
-    <Sortable :list="listNotes" item-key="id" :options="{ animation: '500', handle: '.handle', group: 'notes' }"
-      @add="onAdd" @remove="onRemove" @update="onUpdate">
-      <template #item="{ element: note }">
-        <TransitionGroup name="drag">
-          <q-item :key=note.id :data-note-id=note.id>
-            <q-item-section>
-              <q-card>
-                <q-card-section horizontal class="flex justify-between items-center" v-if="draggableClicked != note.id">
-                  <q-card-section>
-                    <q-icon name="drag_indicator" class="handle" />
-                  </q-card-section>
-                  <q-card-section @click="editorOpenedOnNote(note.id)" class="flex col">
-                    <div v-sanitize:inline="note.content" />
-                  </q-card-section>
-                  <q-card-actions>
-                    <q-btn v-if="note.subnoteIDs.length == 0" @click="removeDraggable(note.id)" round dense flat
-                      icon="remove" />
-                    <div v-else> ({{ note.subnoteIDs.length }} subnotes) </div>
-                  </q-card-actions>
-                </q-card-section>
-                <div v-else v-on-click-outside="closeDraggableEditor">
-                  <q-card-section horizontal>
+  <div v-if="focused === undefined">
+    <q-list>
+      <q-item>
+        <q-item-section>
+          <q-card>
+            <q-input filled v-model="newItem" @keyup.enter="update" placeholder="Enter a new note here">
+              <template v-slot:append>
+                <q-btn @click="update" round dense flat icon="add" />
+              </template></q-input>
+          </q-card>
+        </q-item-section>
+      </q-item>
+      <Sortable :list="listNotes" item-key="id" :options="{ animation: '500', handle: '.handle', group: 'notes' }"
+        @add="onAdd" @remove="onRemove" @update="onUpdate">
+        <template #item="{ element: note }">
+          <TransitionGroup name="drag">
+            <q-item :key=note.id :data-note-id=note.id>
+              <q-item-section>
+                <q-card>
+                  <q-card-section horizontal class="flex justify-between items-center"
+                    v-if="draggableClicked != note.id">
                     <q-card-section>
-                      <button @click="toggleFlashCard" class="button-style">
-                        <q-icon name="flash_on" />
-                        Toggle flashcard with BOLD
-                      </button>
+                      <q-icon name="drag_indicator" class="handle" />
                     </q-card-section>
-                  </q-card-section>
-                  <q-separator />
-                  <q-card-section horizontal>
-                    <q-editor v-model="note.content" min-height="5rem" class="col" :toolbar="[]" />
-                  </q-card-section>
-                  <q-separator />
-                  <q-card-section horizontal v-for="flashcard in note.flashcards" :key="flashcard">
-                    <q-card-section class="col">
-                      <div v-sanitize:inline="flashcard.prompt" />
+                    <q-card-section @click="editorOpenedOnNote(note.id)" class="flex col">
+                      <div v-sanitize:inline="note.content" />
                     </q-card-section>
+                    <q-card-actions>
+                      <q-btn v-if="note.subnoteIDs.length == 0" @click="removeDraggable(note.id)" round dense flat
+                        icon="remove" />
+                      <div v-else> ({{ note.subnoteIDs.length }} subnotes) </div>
+                    </q-card-actions>
+                  </q-card-section>
+                  <div v-else v-on-click-outside="closeDraggableEditor">
+                    <q-card-section horizontal>
+                      <q-card-section class="col">
+                        <button @click="toggleFlashCard" class="button-style">
+                          <q-icon name="flash_on" />
+                          Toggle flashcard with BOLD
+                        </button>
+                      </q-card-section>
+                      <q-card-section>
+                        <q-btn label="Focus" @click="focused = note" />
+                      </q-card-section>
+                    </q-card-section>
+                    <q-separator />
+                    <q-card-section horizontal>
+                      <q-editor v-model="note.content" min-height="5rem" class="col" :toolbar="[]" />
+                    </q-card-section>
+                    <q-separator />
+                    <q-card-section horizontal v-for="flashcard in note.flashcards" :key="flashcard">
+                      <q-card-section class="col">
+                        <div v-sanitize:inline="flashcard.prompt" />
+                      </q-card-section>
+                      <q-card-section>
+                        (<span v-sanitize:inline="flashcard.answer" />)
+                      </q-card-section>
+                    </q-card-section>
+                    <q-separator />
                     <q-card-section>
-                      (<span v-sanitize:inline="flashcard.answer" />)
+                      <q-card-section horizontal>
+                        <q-card-section class="col">
+                          <div class="subnotes">Subnotes</div>
+                        </q-card-section>
+                      </q-card-section>
+                      <NoteList v-model:notes="notes" v-model:flashcards="flashcards"
+                        v-model:listIDs="note.subnoteIDs" />
                     </q-card-section>
-                  </q-card-section>
-                  <q-separator />
-                  <q-card-section>
-                    <NoteList v-model:notes="notes" v-model:flashcards="flashcards" v-model:listIDs="note.subnoteIDs" />
-                  </q-card-section>
-                </div>
-              </q-card>
-            </q-item-section>
-          </q-item>
-        </TransitionGroup>
-      </template>
-    </Sortable>
-  </q-list>
+                  </div>
+                </q-card>
+              </q-item-section>
+            </q-item>
+          </TransitionGroup>
+        </template>
+      </Sortable>
+    </q-list>
+  </div>
+  <div v-else>
+    <q-list>
+      <q-item>
+        <q-item-section>
+          <q-card>
+            <q-card-section horizontal>
+              <q-card-section class="col">
+                <div v-sanitize:inline="focused.content" />
+              </q-card-section>
+              <q-card-section>
+                <q-btn label="Unfocus" @click="focused = undefined" />
+              </q-card-section>
+            </q-card-section>
+          </q-card>
+        </q-item-section>
+      </q-item>
+    </q-list>
+    <NoteList v-model:notes="notes" v-model:flashcards="flashcards" v-model:listIDs="focused.subnoteIDs" />
+  </div>
 </template>
 
 <script lang="ts">
@@ -77,11 +108,14 @@ export type draggableNote = {
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import type { Ref } from 'vue'
 import { vOnClickOutside } from '@vueuse/components'
 import { uid } from 'quasar';
 import { Sortable } from "sortablejs-vue3";
 import type { flashcard } from './FlashcardList.vue'
 import type { SortableEvent } from "sortablejs";
+
+const focused: Ref<undefined | draggableNote> = ref(undefined)
 
 const notes = defineModel<draggableNote[]>('notes', { required: true })
 const flashcards = defineModel<flashcard[]>('flashcards', { required: true })
@@ -328,4 +362,7 @@ const onUpdate = (evt: SortableEvent) => {
   color: $primary
 .drag-move
   transition: all 1s cubic-bezier(0.55, 0, 0.1, 1)
+.subnotes
+  color: $grey-6
+  font-weight: bold
 </style>

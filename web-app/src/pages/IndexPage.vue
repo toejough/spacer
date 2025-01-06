@@ -7,6 +7,8 @@
     </q-tabs>
     <q-tab-panels v-model="tabs">
       <q-tab-panel name="notes">
+        <!-- When a note is clicked to edit, show that note's parent list at the top level, with the parents listed above -->
+        <!-- to start with, just a focus button to do that? -->
         <NoteList v-model:notes="notes" v-model:flashcards="flashcards" v-model:listIDs="topLevelNoteIDs" />
       </q-tab-panel>
       <q-tab-panel name="flashcards">
@@ -24,7 +26,6 @@ import type { draggableNote } from '../components/NoteList.vue'
 import FlashcardList from '../components/FlashcardList.vue'
 import type { flashcard } from '../components/FlashcardList.vue'
 import { uid } from 'quasar';
-
 
 // dragging with sortablejs
 // Tabs
