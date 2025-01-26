@@ -63,6 +63,9 @@ importers:
       '@types/node':
         specifier: ^20.5.9
         version: 20.17.10
+      '@types/sortablejs':
+        specifier: ^1.15.8
+        version: 1.15.8
       '@vue/eslint-config-prettier':
         specifier: ^10.1.0
         version: 10.1.0(eslint@9.17.0)(prettier@3.4.2)
@@ -1166,6 +1169,9 @@ packages:
 
   '@types/serve-static@1.15.7':
     resolution: {integrity: sha512-W8Ym+h8nhuRwaKPaDw34QUkwsGi6Rc4yYqvKFo5rm2FUEhCFbzVWrxXUxuKK8TASjWsysJY0nsmNCGhCOIsrOw==}
+
+  '@types/sortablejs@1.15.8':
+    resolution: {integrity: sha512-b79830lW+RZfwaztgs1aVPgbasJ8e7AXtZYHTELNXZPsERt4ymJdjV4OccDbHQAvHrCcFpbF78jkm0R6h/pZVg==}
 
   '@types/trusted-types@2.0.7':
     resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
@@ -4910,6 +4916,8 @@ snapshots:
       '@types/http-errors': 2.0.4
       '@types/node': 20.17.10
       '@types/send': 0.17.4
+
+  '@types/sortablejs@1.15.8': {}
 
   '@types/trusted-types@2.0.7': {}
 

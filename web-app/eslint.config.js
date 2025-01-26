@@ -33,7 +33,7 @@ export default [
    * pluginVue.configs["flat/recommended"]
    *   -> Above, plus rules to enforce subjective community defaults to ensure consistency.
    */
-  ...pluginVue.configs['flat/strongly-recommended'],
+  ...pluginVue.configs['flat/essential'],
 
   // https://github.com/vuejs/eslint-config-typescript
   ...vueTsEslintConfig({
@@ -82,7 +82,7 @@ export default [
   },
 
   {
-    files: [ 'src-pwa/custom-service-worker.ts' ],
+    files: ['src-pwa/custom-service-worker.ts'],
     languageOptions: {
       globals: {
         ...globals.serviceworker

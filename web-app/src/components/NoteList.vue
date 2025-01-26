@@ -1,11 +1,16 @@
 <template>
   <div v-if="focused === undefined">
     <q-list>
+      <q-item v-if="hasAncestors(getFocusedNote())">
+        <q-item-section>
+          <AncestorsCard />
+        </q-item-section>
+      </q-item>
       <q-item>
         <q-item-section>
           <q-card>
             <q-input filled v-model="newItem" @keyup.enter="update" placeholder="Enter a new note here">
-              <template v-slot:append>
+              <template #append>
                 <q-btn @click="update" round dense flat icon="add" />
               </template></q-input>
           </q-card>
@@ -98,12 +103,6 @@
 </template>
 
 <script lang="ts">
-export type draggableNote = {
-  id: string;
-  content: string;
-  flashcards: flashcard[];
-  subnoteIDs: string[];
-};
 </script>
 
 <script setup lang="ts">
@@ -114,30 +113,29 @@ import { uid } from 'quasar';
 import { Sortable } from "sortablejs-vue3";
 import type { flashcard } from './FlashcardList.vue'
 import type { SortableEvent } from "sortablejs";
+import type { draggableNote } from "../stores/noteCards.ts"
+import { useNoteCardStore } from 'src/stores/noteCards';
+import { storeToRefs } from 'pinia';
+import AncestorsCard from './AncestorsCard.vue'
+
+
+// TODO: after ancestor card, siblings component
+// TODO: move new note input to new component and put it at the end
 const focused: Ref<undefined | draggableNote> = ref(undefined)
 
 const notes = defineModel<draggableNote[]>('notes', { required: true })
 const flashcards = defineModel<flashcard[]>('flashcards', { required: true })
 const listIDs = defineModel<string[]>('listIDs', { required: true })
 const listNotes = computed(() => {
-  return listIDs.value.map(id => {
-    const noteIndex = notes.value.findIndex(n => n.id == id)
-    const note = notes.value[noteIndex]
-    if (note !== undefined) {
-      if (note.id === undefined) { note.id = uid() }
-      if (note.content === undefined) { note.content = "" }
-      if (note.flashcards === undefined) { note.flashcards = [] as flashcard[] }
-      if (note.subnoteIDs === undefined) { note.subnoteIDs = [] as string[] }
-    }
-    return note
-  }).filter(n => n !== undefined)
+  return listIDs.value.map(id => notes.value.find(n => n.id == id)
+  ).filter(n => n !== undefined)
 })
 // Notes: data
 // Notes: Add/remove note
 const newItem = ref("")
 const update = () => {
   const newNote = {
-    id: uid(), content: newItem.value, flashcards: [] as flashcard[], subnoteIDs: [] as string[]
+    id: uid(), content: newItem.value, flashcards: [] as flashcard[], subnoteIDs: [] as string[], parentNoteID: getFocusedNote()?.parentNoteID || ""
   }
   notes.value.unshift(newNote)
   listIDs.value.unshift(newNote.id)
@@ -159,8 +157,21 @@ const removeDraggable = (id: string) => {
   }
 }
 
+// TODO: preserve reordering of the list
 // Notes: Open/close editor
-const draggableClicked = ref("")
+const draggableClicked = storeToRefs(useNoteCardStore()).clicked
+
+const hasAncestors = (note: draggableNote | undefined) => {
+  if (note === undefined) { return false }
+  if (note.parentNoteID == "") { return false }
+  return true
+};
+
+const getFocusedNote = () => {
+  if (draggableClicked.value == "") { return undefined }
+  return notes.value.find(note => note.id == draggableClicked.value)
+};
+
 const closeDraggableEditor = () => {
   draggableClicked.value = ""
 };

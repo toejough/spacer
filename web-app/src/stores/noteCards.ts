@@ -13,6 +13,7 @@ export type draggableNote = {
 export const useNoteCardStore = defineStore('myStore', {
   state: () => ({
     noteCards: useStorage("draggableNotes", [] as draggableNote[]),
+    clicked: "",
   }),
   getters: {},
   actions: {}

@@ -66,7 +66,7 @@ export type flashcard = {
 // todo - onclick outside of card, collapse card again?
 import { Sortable } from "sortablejs-vue3";
 import { date } from 'quasar'
-import type { draggableNote } from './NoteList.vue'
+import type { draggableNote } from '../stores/noteCards.ts'
 
 
 const flashcards = defineModel<flashcard[]>("flashcards", { required: true })
