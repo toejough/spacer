@@ -114,7 +114,6 @@ import { uid } from 'quasar';
 import { Sortable } from "sortablejs-vue3";
 import type { flashcard } from './FlashcardList.vue'
 import type { SortableEvent } from "sortablejs";
-
 const focused: Ref<undefined | draggableNote> = ref(undefined)
 
 const notes = defineModel<draggableNote[]>('notes', { required: true })

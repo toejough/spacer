@@ -19,7 +19,7 @@
     "@vueuse/components": "^12.0.0",
     "@vueuse/core": "^12.0.0",
     "axios": "^1.2.1",
-    "pinia": "^2.0.11",
+    "pinia": "^2.3.0",
     "quasar": "^2.16.0",
     "register-service-worker": "^1.7.2",
     "sortablejs": "^1.15.6",

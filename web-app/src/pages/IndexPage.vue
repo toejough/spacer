@@ -26,6 +26,10 @@ import type { draggableNote } from '../components/NoteList.vue'
 import FlashcardList from '../components/FlashcardList.vue'
 import type { flashcard } from '../components/FlashcardList.vue'
 import { uid } from 'quasar';
+import { useNoteCardStore } from 'src/stores/noteCards';
+import { storeToRefs } from 'pinia';
+
+const store = useNoteCardStore();
 
 // dragging with sortablejs
 // Tabs
@@ -51,7 +55,7 @@ const checkCards = () => {
   flashcards.value.sort((a: flashcard, b: flashcard): number => { return (new Date(a.due)).getTime() - (new Date(b.due)).getTime() })
 };
 
-const notes = useStorage("draggableNotes", [] as draggableNote[])
+const notes = storeToRefs(store).noteCards
 notes.value.forEach(note => {
   if (note.id === undefined) { note.id = uid() }
   if (note.content === undefined) { note.content = "" }
