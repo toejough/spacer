@@ -6,6 +6,7 @@ export type draggableNote = {
   id: string;
   content: string;
   flashcards: flashcard[];
+  parentNoteID: string;
   subnoteIDs: string[];
 };
 

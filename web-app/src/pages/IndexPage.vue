@@ -38,36 +38,22 @@ const notes = storeToRefs(store).noteCards
 // Sanitizing noteCard data
 // TODO: push this into a store getter
 notes.value.forEach(note => {
+  // define any undefined fields
   if (note.id === undefined) { note.id = uid() }
   if (note.content === undefined) { note.content = "" }
   if (note.flashcards === undefined) { note.flashcards = [] as flashcard[] }
+  if (note.parentNoteID === undefined) { note.parentNoteID = "" }
   if (note.subnoteIDs === undefined) { note.subnoteIDs = [] as string[] }
+  // true up the parent ID's based on subnote ID's
+  note.subnoteIDs.forEach(id => {
+    // get the subnote & set parent ID
+    const subnote = notes.value.find(value => value.id == id)
+    if (subnote != undefined) { subnote.parentNoteID = note.id }
+  })
 });
 
-// top level notes
-// TODO: these should just be all the notes with no parents. Add parent id's and then calculate this.
-// TODO: put these in the store?
-const defaultIDs = notes.value.map(n => n.id)
-const topLevelNoteIDs = useStorage("topLevelNoteIDs", defaultIDs)
-
-// find notecards that are in the list but are not present in the tree of top-level ID's down.
-const allNoteIDs = notes.value.map(n => n.id)
-const subIDsForID = (id: string): string[] => {
-  const noteIndex = notes.value.findIndex(n => n.id == id)
-  return [id, ...notes.value[noteIndex]?.subnoteIDs.flatMap(subIDsForID) ?? [] as string[]]
-};
-const usedNoteIDs = topLevelNoteIDs.value.flatMap(subIDsForID)
-const missingIDs = allNoteIDs.filter(id => !usedNoteIDs.includes(id))
-// push the notecards that are not in the tree into the top level
-topLevelNoteIDs.value.push(...missingIDs)
-// find the top level id's that are not in the defaultID's list
-const extraIDs = topLevelNoteIDs.value.filter(id => !defaultIDs.includes(id))
-// remove them from the top level?? isn't this just undoing what we just did? all to true up the top level?
-// TODO: replace all of this nonsense with finding the notes with no parents & using them as the top level list.
-extraIDs.forEach(id => {
-  const index = topLevelNoteIDs.value.indexOf(id)
-  topLevelNoteIDs.value.splice(index, 1)
-});
+// get the top level id's
+const topLevelNoteIDs = notes.value.filter(note => note.parentNoteID == "").map(note => note.id)
 
 // Tabs
 const tabs = ref("notes")
