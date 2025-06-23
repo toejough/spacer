@@ -23,6 +23,17 @@ function saveFlashcards(flashcards) {
     localStorage.setItem('flashcards', JSON.stringify(flashcards));
 }
 
+function hashString(str) {
+    let hash = 0, i, chr;
+    if (str.length === 0) return hash;
+    for (i = 0; i < str.length; i++) {
+        chr = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + chr;
+        hash |= 0; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36);
+}
+
 function renderFlashcards() {
     const flashcards = getFlashcards();
     flashcardsList.innerHTML = '';
@@ -32,6 +43,8 @@ function renderFlashcards() {
         cardDiv.setAttribute('draggable', 'true');
         cardDiv.setAttribute('data-idx', idx);
         cardDiv.tabIndex = 0;
+        const hash = hashString(card.question + '||' + card.answer);
+        cardDiv.style.viewTransitionName = `flashcard-${hash}`;
         // Question row with delete button right-aligned
         let questionHtml = `<div class=\"question-row\"><div class=\"question\">${card.question}</div><button class=\"delete-btn\" title=\"Delete\" data-idx=\"${idx}\">&times;</button></div>`;
         // Answer row with reveal button (if needed)
@@ -77,6 +90,15 @@ flashcardsList.addEventListener('dragleave', function(e) {
     if (card) card.classList.remove('drag-over');
 });
 
+// View Transitions API for drag & drop reorder animation
+async function animateWithViewTransition(callback) {
+    if (document.startViewTransition) {
+        await document.startViewTransition(callback);
+    } else {
+        callback();
+    }
+}
+
 flashcardsList.addEventListener('drop', function(e) {
     e.preventDefault();
     const card = e.target.closest('.flashcard');
@@ -88,7 +110,7 @@ flashcardsList.addEventListener('drop', function(e) {
     const [moved] = flashcards.splice(dragSrcIdx, 1);
     flashcards.splice(dropIdx, 0, moved);
     saveFlashcards(flashcards);
-    renderFlashcards();
+    animateWithViewTransition(() => renderFlashcards());
 });
 
 form.addEventListener('submit', function(e) {
