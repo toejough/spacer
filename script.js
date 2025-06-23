@@ -19,6 +19,8 @@ function renderFlashcards() {
     flashcards.forEach((card, idx) => {
         const cardDiv = document.createElement('div');
         cardDiv.className = 'flashcard';
+        cardDiv.setAttribute('draggable', 'true');
+        cardDiv.setAttribute('data-idx', idx);
         cardDiv.innerHTML = `
             <div class="question">${card.question}</div>
             <div class="answer">${card.answer}</div>
@@ -27,6 +29,48 @@ function renderFlashcards() {
         flashcardsList.appendChild(cardDiv);
     });
 }
+
+// Drag & Drop logic
+let dragSrcIdx = null;
+
+flashcardsList.addEventListener('dragstart', function(e) {
+    const card = e.target.closest('.flashcard');
+    if (!card) return;
+    dragSrcIdx = card.getAttribute('data-idx');
+    card.classList.add('dragging');
+});
+
+flashcardsList.addEventListener('dragend', function(e) {
+    const card = e.target.closest('.flashcard');
+    if (card) card.classList.remove('dragging');
+    dragSrcIdx = null;
+});
+
+flashcardsList.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    const card = e.target.closest('.flashcard');
+    if (!card) return;
+    card.classList.add('drag-over');
+});
+
+flashcardsList.addEventListener('dragleave', function(e) {
+    const card = e.target.closest('.flashcard');
+    if (card) card.classList.remove('drag-over');
+});
+
+flashcardsList.addEventListener('drop', function(e) {
+    e.preventDefault();
+    const card = e.target.closest('.flashcard');
+    if (!card || dragSrcIdx === null) return;
+    card.classList.remove('drag-over');
+    const dropIdx = card.getAttribute('data-idx');
+    if (dragSrcIdx === dropIdx) return;
+    const flashcards = getFlashcards();
+    const [moved] = flashcards.splice(dragSrcIdx, 1);
+    flashcards.splice(dropIdx, 0, moved);
+    saveFlashcards(flashcards);
+    renderFlashcards();
+});
 
 form.addEventListener('submit', function(e) {
     e.preventDefault();

@@ -66,6 +66,20 @@ h1 {
     box-shadow: 0 2px 8px rgba(52, 168, 83, 0.07);
 }
 
+.flashcard[draggable="true"] {
+    cursor: grab;
+}
+
+.flashcard.dragging {
+    opacity: 0.5;
+    box-shadow: 0 0 0 2px #1a73e8;
+}
+
+.flashcard.drag-over {
+    border: 2px dashed #34a853;
+    background: #e8f5e9;
+}
+
 .flashcard .question {
     font-weight: 600;
     color: #1a73e8;
