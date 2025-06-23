@@ -32,15 +32,18 @@ function renderFlashcards() {
         cardDiv.setAttribute('draggable', 'true');
         cardDiv.setAttribute('data-idx', idx);
         cardDiv.tabIndex = 0;
-        let answerHtml = `<div class="answer-row"><div class=\"answer${card.blur ? ' blurred' : ''}\">${card.answer}</div>`;
+        // Question row with delete button right-aligned
+        let questionHtml = `<div class=\"question-row\"><div class=\"question\">${card.question}</div><button class=\"delete-btn\" title=\"Delete\" data-idx=\"${idx}\">&times;</button></div>`;
+        // Answer row with reveal button (if needed)
+        let answerHtml = `<div class=\"answer-row\">`;
+        answerHtml += `<div class=\"answer${card.blur ? ' blurred' : ''}\">${card.answer}</div>`;
         if (card.blur) {
             answerHtml += `<button class=\"reveal-btn\" data-idx=\"${idx}\">Reveal</button>`;
         }
-        answerHtml += '</div>';
+        answerHtml += `</div>`;
         cardDiv.innerHTML = `
-            <div class="question">${card.question}</div>
+            ${questionHtml}
             ${answerHtml}
-            <button class="delete-btn" title="Delete" data-idx="${idx}">&times;</button>
         `;
         flashcardsList.appendChild(cardDiv);
     });

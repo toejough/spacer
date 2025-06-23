@@ -98,45 +98,52 @@ h1 {
     transition: filter 0.2s;
 }
 
-.reveal-btn {
+.reveal-btn, .delete-btn {
+    background: #1a73e8;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
     margin-left: 12px;
-    background: #1a73e8;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    padding: 4px 12px;
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: background 0.2s;
+    margin-right: 0;
+    width: auto;
+    height: auto;
+    position: static;
+    top: auto;
+    right: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.reveal-btn:hover {
+.reveal-btn:hover, .delete-btn:hover {
     background: #34a853;
 }
 
-.delete-btn {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: #34a853;
-    color: #fff;
-    border: none;
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: background 0.2s;
+.question-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
 }
 
-.delete-btn:hover {
-    background: #1a73e8;
+.question-row .question {
+    font-weight: 600;
+    color: #1a73e8;
+    margin-bottom: 0;
+}
+
+.question-row .delete-btn {
+    margin-left: 12px;
 }
 
 .answer-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 12px;
 }
 
