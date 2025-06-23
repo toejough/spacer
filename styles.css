@@ -98,7 +98,7 @@ h1 {
     transition: filter 0.2s;
 }
 
-.reveal-btn, .delete-btn {
+.reveal-btn {
     background: #1a73e8;
     color: #fff;
     border: none;
@@ -119,8 +119,33 @@ h1 {
     justify-content: center;
 }
 
-.reveal-btn:hover, .delete-btn:hover {
+.reveal-btn:hover {
     background: #34a853;
+}
+
+.delete-btn {
+    background: #b71c1c;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-left: 12px;
+    margin-right: 0;
+    width: auto;
+    height: auto;
+    position: static;
+    top: auto;
+    right: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-btn:hover {
+    background: #7f1010;
 }
 
 .question-row {
