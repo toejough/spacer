@@ -92,7 +92,7 @@ h1 {
 }
 
 .flashcard .answer.blurred {
-    filter: blur(0.38em) brightness(1.3) grayscale(0.3);
+    filter: blur(0.5em) brightness(1.35) grayscale(0.35);
     user-select: none;
     pointer-events: none;
     transition: filter 0.2s;
