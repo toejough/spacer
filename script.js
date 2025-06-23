@@ -16,14 +16,23 @@ function saveFlashcards(flashcards) {
 function renderFlashcards() {
     const flashcards = getFlashcards();
     flashcardsList.innerHTML = '';
+    // Track blur state for each card
+    if (!window.blurStates || window.blurStates.length !== flashcards.length) {
+        window.blurStates = Array(flashcards.length).fill(true);
+    }
     flashcards.forEach((card, idx) => {
         const cardDiv = document.createElement('div');
         cardDiv.className = 'flashcard';
         cardDiv.setAttribute('draggable', 'true');
         cardDiv.setAttribute('data-idx', idx);
+        cardDiv.tabIndex = 0;
+        let answerHtml = `<div class="answer${window.blurStates[idx] ? ' blurred' : ''}">${card.answer}</div>`;
+        if (window.blurStates[idx]) {
+            answerHtml += `<button class="reveal-btn" data-idx="${idx}">Reveal</button>`;
+        }
         cardDiv.innerHTML = `
             <div class="question">${card.question}</div>
-            <div class="answer">${card.answer}</div>
+            ${answerHtml}
             <button class="delete-btn" title="Delete" data-idx="${idx}">&times;</button>
         `;
         flashcardsList.appendChild(cardDiv);
@@ -84,14 +93,36 @@ form.addEventListener('submit', function(e) {
     form.reset();
 });
 
+// Reveal answer logic
 flashcardsList.addEventListener('click', function(e) {
     if (e.target.classList.contains('delete-btn')) {
         const idx = e.target.getAttribute('data-idx');
         const flashcards = getFlashcards();
         flashcards.splice(idx, 1);
         saveFlashcards(flashcards);
+        window.blurStates.splice(idx, 1);
         renderFlashcards();
+        return;
     }
+    if (e.target.classList.contains('reveal-btn')) {
+        const idx = e.target.getAttribute('data-idx');
+        window.blurStates[idx] = false;
+        renderFlashcards();
+        return;
+    }
+});
+
+// Blur answer when clicking outside
+window.addEventListener('mousedown', function(e) {
+    const cards = document.querySelectorAll('.flashcard');
+    let changed = false;
+    cards.forEach((card, idx) => {
+        if (!card.contains(e.target) && window.blurStates[idx] === false) {
+            window.blurStates[idx] = true;
+            changed = true;
+        }
+    });
+    if (changed) renderFlashcards();
 });
 
 // Initial render
