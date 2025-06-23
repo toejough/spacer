@@ -133,6 +133,22 @@ h1 {
     background: #1a73e8;
 }
 
+.answer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.answer-row .answer {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.answer-row .reveal-btn {
+    margin-left: 0;
+}
+
 @media (max-width: 600px) {
     .container {
         padding: 16px 4px 12px 4px;

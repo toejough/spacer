@@ -32,10 +32,11 @@ function renderFlashcards() {
         cardDiv.setAttribute('draggable', 'true');
         cardDiv.setAttribute('data-idx', idx);
         cardDiv.tabIndex = 0;
-        let answerHtml = `<div class="answer${card.blur ? ' blurred' : ''}">${card.answer}</div>`;
+        let answerHtml = `<div class="answer-row"><div class=\"answer${card.blur ? ' blurred' : ''}\">${card.answer}</div>`;
         if (card.blur) {
-            answerHtml += `<button class="reveal-btn" data-idx="${idx}">Reveal</button>`;
+            answerHtml += `<button class=\"reveal-btn\" data-idx=\"${idx}\">Reveal</button>`;
         }
+        answerHtml += '</div>';
         cardDiv.innerHTML = `
             <div class="question">${card.question}</div>
             ${answerHtml}
