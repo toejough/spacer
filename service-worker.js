@@ -19,9 +19,14 @@ self.addEventListener('activate', event => {
   event.waitUntil(self.clients.claim());
 });
 
+// On iOS, service workers are less aggressive about updates. Force update check on every launch.
 self.addEventListener('fetch', event => {
+  // Only handle GET requests
+  if (event.request.method !== 'GET') return;
+
+  // Try network first, fallback to cache
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'reload' })
       .then(response => {
         // Clone and store in cache
         const responseClone = response.clone();
@@ -31,5 +36,16 @@ self.addEventListener('fetch', event => {
         return response;
       })
       .catch(() => caches.match(event.request))
+  );
+
+  // For iOS: update cache in the background for next launch
+  event.waitUntil(
+    caches.open('flashcards-v1').then(cache => {
+      return fetch(event.request, { cache: 'reload' })
+        .then(response => {
+          cache.put(event.request, response.clone());
+        })
+        .catch(() => {});
+    })
   );
 });
