@@ -64,6 +64,84 @@ function renderFlashcards() {
 
 // Drag & Drop logic
 let dragSrcIdx = null;
+let touchDrag = {
+    dragging: false,
+    startIdx: null,
+    currentIdx: null,
+    ghost: null
+};
+
+function getCardIdxFromTouch(touch) {
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const card = el && el.closest('.flashcard');
+    return card ? parseInt(card.getAttribute('data-idx')) : null;
+}
+
+// Touch events for mobile drag & drop
+flashcardsList.addEventListener('touchstart', function(e) {
+    const card = e.target.closest('.flashcard');
+    if (!card) return;
+    touchDrag.dragging = true;
+    touchDrag.startIdx = parseInt(card.getAttribute('data-idx'));
+    touchDrag.currentIdx = touchDrag.startIdx;
+    card.classList.add('dragging');
+    // Create ghost
+    touchDrag.ghost = card.cloneNode(true);
+    touchDrag.ghost.style.position = 'fixed';
+    touchDrag.ghost.style.pointerEvents = 'none';
+    touchDrag.ghost.style.opacity = '0.7';
+    touchDrag.ghost.style.zIndex = '9999';
+    document.body.appendChild(touchDrag.ghost);
+});
+
+flashcardsList.addEventListener('touchmove', function(e) {
+    if (!touchDrag.dragging || !touchDrag.ghost) return;
+    const touch = e.touches[0];
+    touchDrag.ghost.style.left = (touch.clientX - touchDrag.ghost.offsetWidth/2) + 'px';
+    touchDrag.ghost.style.top = (touch.clientY - touchDrag.ghost.offsetHeight/2) + 'px';
+    const overIdx = getCardIdxFromTouch(touch);
+    if (overIdx !== null && overIdx !== touchDrag.currentIdx) {
+        // Remove drag-over from all
+        document.querySelectorAll('.flashcard.drag-over').forEach(c => c.classList.remove('drag-over'));
+        // Add drag-over to new
+        const overCard = flashcardsList.querySelector(`.flashcard[data-idx="${overIdx}"]`);
+        if (overCard) overCard.classList.add('drag-over');
+        touchDrag.currentIdx = overIdx;
+    }
+    e.preventDefault();
+}, {passive: false});
+
+flashcardsList.addEventListener('touchend', function(e) {
+    if (!touchDrag.dragging) return;
+    // Remove ghost
+    if (touchDrag.ghost) {
+        document.body.removeChild(touchDrag.ghost);
+        touchDrag.ghost = null;
+    }
+    // Remove dragging/drag-over classes
+    document.querySelectorAll('.flashcard.dragging').forEach(c => c.classList.remove('dragging'));
+    document.querySelectorAll('.flashcard.drag-over').forEach(c => c.classList.remove('drag-over'));
+    // Perform reorder if needed
+    if (touchDrag.startIdx !== null && touchDrag.currentIdx !== null && touchDrag.startIdx !== touchDrag.currentIdx) {
+        const flashcards = getFlashcards();
+        const [moved] = flashcards.splice(touchDrag.startIdx, 1);
+        flashcards.splice(touchDrag.currentIdx, 0, moved);
+        saveFlashcards(flashcards);
+        animateWithViewTransition(() => renderFlashcards());
+    }
+    touchDrag.dragging = false;
+    touchDrag.startIdx = null;
+    touchDrag.currentIdx = null;
+});
+
+// View Transitions API for drag & drop reorder animation
+async function animateWithViewTransition(callback) {
+    if (document.startViewTransition) {
+        await document.startViewTransition(callback);
+    } else {
+        callback();
+    }
+}
 
 flashcardsList.addEventListener('dragstart', function(e) {
     const card = e.target.closest('.flashcard');
@@ -89,15 +167,6 @@ flashcardsList.addEventListener('dragleave', function(e) {
     const card = e.target.closest('.flashcard');
     if (card) card.classList.remove('drag-over');
 });
-
-// View Transitions API for drag & drop reorder animation
-async function animateWithViewTransition(callback) {
-    if (document.startViewTransition) {
-        await document.startViewTransition(callback);
-    } else {
-        callback();
-    }
-}
 
 flashcardsList.addEventListener('drop', function(e) {
     e.preventDefault();
