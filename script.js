@@ -54,9 +54,15 @@ function renderFlashcards() {
             answerHtml += `<button class=\"reveal-btn\" data-idx=\"${idx}\">Reveal</button>`;
         }
         answerHtml += `</div>`;
+        // If answer is revealed, show prompt
+        let promptHtml = '';
+        if (!card.blur) {
+            promptHtml = `<div class=\"remember-prompt-flex\"><span class=\"remember-prompt-text\">Did you remember it?</span><div class=\"remember-prompt-btns\"><button class=\"remember-btn yes\" data-idx=\"${idx}\" data-remembered=\"yes\">Yes</button> <button class=\"remember-btn no\" data-idx=\"${idx}\" data-remembered=\"no\">No</button></div></div>`;
+        }
         cardDiv.innerHTML = `
             ${questionHtml}
             ${answerHtml}
+            ${promptHtml}
         `;
         flashcardsList.appendChild(cardDiv);
     });
@@ -212,6 +218,14 @@ flashcardsList.addEventListener('click', function(e) {
         renderFlashcards();
         return;
     }
+    if (e.target.classList.contains('remember-btn')) {
+        const idx = e.target.getAttribute('data-idx');
+        const flashcards = getFlashcards();
+        flashcards[idx].blur = true;
+        saveFlashcards(flashcards);
+        renderFlashcards();
+        return;
+    }
 });
 
 // Blur answer when clicking outside
@@ -233,3 +247,62 @@ window.addEventListener('mousedown', function(e) {
 
 // Initial render
 renderFlashcards();
+
+// Add styles for the remember prompt and buttons
+const style = document.createElement('style');
+style.textContent = `
+.remember-prompt-flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #e3f2fd;
+    border-left: 4px solid #34a853;
+    border-radius: 6px;
+    margin-top: 12px;
+    padding: 12px 10px 10px 14px;
+    font-size: 1.05rem;
+    color: #1765c1;
+    font-weight: 500;
+    border: 1px solid #b3d8fd;
+    gap: 16px;
+}
+.remember-prompt-text {
+    flex: 1 1 auto;
+    text-align: left;
+}
+.remember-prompt-btns {
+    display: flex;
+    gap: 10px;
+}
+.remember-btn.yes {
+    background: #34a853;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 18px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(52, 168, 83, 0.10);
+}
+.remember-btn.yes:hover {
+    background: #2e8c46;
+}
+.remember-btn.no {
+    background: #b71c1c;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 18px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(183, 28, 28, 0.10);
+}
+.remember-btn.no:hover {
+    background: #7f1010;
+}
+`;
+document.head.appendChild(style);

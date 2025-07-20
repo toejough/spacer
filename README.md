@@ -5,7 +5,7 @@ a spaced repetition program
 ## TODOS
 
 - [ ] Problem: let the user quickly say whether they got the answer right or not. 
-    * Solution: after reveal, show a section that says: I got it... and then a green button "right" and a red button "wrong"
+    * Solution: after reveal, show a section that says: I got it... and then two buttons for whether the user remembered the answer: a green button "right" and a red button "wrong". Return the card to the hidden state when either button is clicked.
 - [ ] Problem: sort flashcards by least well remembered 
     * Solution: record a count of correct answers with each flashcard. when user answers "right", increment by one. when user answers "wrong", reset to zero. sort by the correctness count, ascending. record a date of last answered, and sort by that, as a secondary sort, ascending.
 - [ ] Problem: give the user some sense of progress / accomplishment by indicating that they don't need to redo cards that they've completed successfully.
