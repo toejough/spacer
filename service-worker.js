@@ -1,5 +1,5 @@
 // Service worker version
-const SW_VERSION = '0.1.0.2025-07-26.14';
+const SW_VERSION = '0.1.0.2025-07-26.17';
 
 self.addEventListener('install', event => {
   event.waitUntil(

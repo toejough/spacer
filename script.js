@@ -1,5 +1,5 @@
 // Service worker version (keep in sync with service-worker.js)
-const SW_VERSION = '0.1.0.2025-07-26.14';
+const SW_VERSION = '0.1.0.2025-07-26.17';
 
 // Flashcard app logic
 const form = document.getElementById('flashcard-form');
@@ -333,3 +333,126 @@ function addVersionFooter() {
     footer.style.userSelect = 'all';
 }
 addVersionFooter();
+
+// --- Pull-to-refresh: reload page on pull down gesture (mobile-friendly) with animation and blur ---
+(function enablePullToRefresh() {
+    let startY = null;
+    let pulling = false;
+    let threshold = 60; // px to trigger refresh
+    let scrollable = () => window.scrollY === 0;
+    let indicator = null;
+    let blurOverlay = null;
+    // Create pull-to-refresh indicator
+    function showIndicator(offset, spinning) {
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.id = 'pull-to-refresh-indicator';
+            indicator.style.position = 'fixed';
+            indicator.style.top = '0';
+            indicator.style.left = '0';
+            indicator.style.right = '0';
+            indicator.style.height = '48px';
+            indicator.style.display = 'flex';
+            indicator.style.alignItems = 'center';
+            indicator.style.justifyContent = 'center';
+            indicator.style.zIndex = '2000';
+            indicator.style.pointerEvents = 'none';
+            indicator.style.transition = 'transform 0.2s cubic-bezier(.4,2,.6,1), opacity 0.2s';
+            indicator.innerHTML = '<svg width="28" height="28" viewBox="0 0 28 28" style="transform:rotate(0deg);transition:transform 0.3s;"><circle cx="14" cy="14" r="12" stroke="#1a73e8" stroke-width="3" fill="none" opacity="0.18"/><path d="M7 14a7 7 0 0 1 14 0" stroke="#1a73e8" stroke-width="3" fill="none" stroke-linecap="round"/></svg>';
+            document.body.appendChild(indicator);
+        }
+        indicator.style.opacity = '1';
+        indicator.style.transform = `translateY(${offset}px)`;
+        const svg = indicator.querySelector('svg');
+        if (spinning) {
+            svg.style.transition = 'transform 0.5s linear';
+            svg.style.transform = 'rotate(720deg)';
+        } else {
+            svg.style.transition = 'transform 0.2s';
+            svg.style.transform = `rotate(${Math.min(offset, threshold) * 2}deg)`;
+        }
+    }
+    function showBlur() {
+        if (!blurOverlay) {
+            blurOverlay = document.createElement('div');
+            blurOverlay.id = 'pull-to-refresh-blur';
+            blurOverlay.style.position = 'fixed';
+            blurOverlay.style.top = '0';
+            blurOverlay.style.left = '0';
+            blurOverlay.style.width = '100vw';
+            blurOverlay.style.height = '100vh';
+            blurOverlay.style.zIndex = '1500';
+            blurOverlay.style.backdropFilter = 'blur(7px)';
+            blurOverlay.style.background = 'rgba(255,255,255,0.18)';
+            blurOverlay.style.pointerEvents = 'none';
+            blurOverlay.style.transition = 'opacity 0.3s';
+            blurOverlay.style.opacity = '1';
+            document.body.appendChild(blurOverlay);
+        } else {
+            blurOverlay.style.opacity = '1';
+        }
+    }
+    function hideBlur() {
+        if (blurOverlay) {
+            blurOverlay.style.opacity = '0';
+            setTimeout(() => {
+                if (blurOverlay && blurOverlay.parentNode) blurOverlay.parentNode.removeChild(blurOverlay);
+                blurOverlay = null;
+            }, 350);
+        }
+    }
+    function hideIndicator() {
+        if (indicator) {
+            indicator.style.opacity = '0';
+            indicator.style.transform = 'translateY(0)';
+            setTimeout(() => {
+                if (indicator && indicator.parentNode) indicator.parentNode.removeChild(indicator);
+                indicator = null;
+            }, 350);
+        }
+    }
+    function isPullingOnCard(touchEvent) {
+        // Check if the touchstart or touchmove target is inside a flashcard
+        const touch = touchEvent.touches && touchEvent.touches[0];
+        if (!touch) return false;
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        return el && el.closest('.flashcard');
+    }
+    document.addEventListener('touchstart', function(e) {
+        if (e.touches.length !== 1) return;
+        if (!scrollable()) return;
+        if (isPullingOnCard(e)) return; // Don't start pull-to-refresh on cards
+        startY = e.touches[0].clientY;
+        pulling = false;
+    }, {passive: true});
+    document.addEventListener('touchmove', function(e) {
+        if (startY === null) return;
+        if (isPullingOnCard(e)) return; // Don't trigger pull-to-refresh if finger is on a card
+        let deltaY = e.touches[0].clientY - startY;
+        if (deltaY > 0 && scrollable()) {
+            showIndicator(Math.min(deltaY, threshold * 1.5), false);
+            showBlur();
+        }
+        if (deltaY > threshold && scrollable()) {
+            pulling = true;
+        }
+    }, {passive: false});
+    document.addEventListener('touchend', function(e) {
+        if (pulling) {
+            showIndicator(threshold, true);
+            showBlur();
+            setTimeout(() => {
+                hideIndicator();
+                // Blur stays until navigation
+                const url = new URL(window.location.href);
+                url.searchParams.set('cb', Date.now());
+                window.location.replace(url.toString());
+            }, 400);
+        } else {
+            hideIndicator();
+            hideBlur();
+        }
+        startY = null;
+        pulling = false;
+    }, {passive: true});
+})();
