@@ -1,3 +1,6 @@
+// Service worker version (keep in sync with service-worker.js)
+const SW_VERSION = '0.1.0.2025-07-26.14';
+
 // Flashcard app logic
 const form = document.getElementById('flashcard-form');
 const questionInput = document.getElementById('question');
@@ -306,3 +309,27 @@ style.textContent = `
 }
 `;
 document.head.appendChild(style);
+
+// Add version number to bottom left corner
+function addVersionFooter() {
+    const version = SW_VERSION;
+    let footer = document.getElementById('version-footer');
+    if (!footer) {
+        footer = document.createElement('div');
+        footer.id = 'version-footer';
+        document.body.appendChild(footer);
+    }
+    footer.innerHTML = `<span>${version}</span>`;
+    footer.style.position = 'fixed';
+    footer.style.left = '18px';
+    footer.style.bottom = '10px';
+    footer.style.fontSize = '0.95rem';
+    footer.style.color = '#1a73e8';
+    footer.style.background = 'rgba(255,255,255,0.85)';
+    footer.style.padding = '4px 12px';
+    footer.style.borderRadius = '8px';
+    footer.style.boxShadow = '0 2px 8px rgba(26,115,232,0.08)';
+    footer.style.zIndex = '1000';
+    footer.style.userSelect = 'all';
+}
+addVersionFooter();

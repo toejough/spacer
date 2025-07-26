@@ -1,3 +1,6 @@
+// Service worker version
+const SW_VERSION = '0.1.0.2025-07-26.14';
+
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open('flashcards-v1').then(cache => {
