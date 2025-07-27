@@ -1,5 +1,5 @@
 // Service worker version
-const SW_VERSION = '0.1.0.2025-07-26.17';
+const SW_VERSION = '0.1.0.2025-07-26.23';
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -38,7 +38,7 @@ self.addEventListener('fetch', event => {
         });
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => caches.match(event.request)) // If network fails, use cache
   );
 
   // For iOS: update cache in the background for next launch
@@ -51,4 +51,12 @@ self.addEventListener('fetch', event => {
         .catch(() => {});
     })
   );
+});
+
+// Listen for a message from the client to force SW restart (used on refresh)
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'RESTART_SW') {
+    self.skipWaiting();
+    self.clients.claim();
+  }
 });

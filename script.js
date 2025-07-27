@@ -1,5 +1,5 @@
 // Service worker version (keep in sync with service-worker.js)
-const SW_VERSION = '0.1.0.2025-07-26.17';
+const SW_VERSION = '0.1.0.2025-07-26.23';
 
 // Flashcard app logic
 const form = document.getElementById('flashcard-form');
@@ -444,9 +444,14 @@ addVersionFooter();
             setTimeout(() => {
                 hideIndicator();
                 // Blur stays until navigation
-                const url = new URL(window.location.href);
-                url.searchParams.set('cb', Date.now());
-                window.location.replace(url.toString());
+                // If offline, reload without cb param to use cache
+                if (!navigator.onLine) {
+                    window.location.reload();
+                } else {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('cb', Date.now());
+                    window.location.replace(url.toString());
+                }
             }, 400);
         } else {
             hideIndicator();
@@ -456,3 +461,39 @@ addVersionFooter();
         pulling = false;
     }, {passive: true});
 })();
+
+// --- Restart service worker on refresh with cache-busting param or reload ---
+function restartServiceWorkerOnRefresh() {
+    const url = new URL(window.location.href);
+    const cb = url.searchParams.get('cb');
+    if (!('serviceWorker' in navigator)) return;
+    if (cb && navigator.onLine) { // Only refresh SW if online
+        // Unregister and re-register with cache-busting param
+        navigator.serviceWorker.getRegistrations().then(regs => {
+            Promise.all(regs.map(reg => reg.unregister())).then(() => {
+                navigator.serviceWorker.register('service-worker.js?cb=' + cb).then(reg => {
+                    // After registration, send a message to force activation
+                    if (reg.active) {
+                        reg.active.postMessage({ type: 'RESTART_SW' });
+                    } else if (reg.installing) {
+                        reg.installing.addEventListener('statechange', function(e) {
+                            if (e.target.state === 'activated') {
+                                reg.active && reg.active.postMessage({ type: 'RESTART_SW' });
+                            }
+                        });
+                    }
+                });
+            });
+        });
+    }
+}
+restartServiceWorkerOnRefresh();
+
+// Register service worker for offline PWA support (if not already registered)
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        if (!navigator.serviceWorker.controller) {
+            navigator.serviceWorker.register('service-worker.js').catch(() => {});
+        }
+    });
+}
