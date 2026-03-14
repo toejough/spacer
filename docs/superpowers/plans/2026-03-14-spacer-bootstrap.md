@@ -4,11 +4,13 @@
 
 **Goal:** Bootstrap the Spacer PWA with Vue 3 + Vite + Tailwind + Vitest + Dexie + PWA manifest so every subsequent 5-minute increment can deliver a real feature.
 
-**Architecture:** Single-page app with Vue Router (3 route stubs), Pinia stores, and Dexie.js for IndexedDB persistence. SM-2 algorithm lives as a pure function in `src/lib/`. PWA via vite-plugin-pwa.
+**Architecture:** Single-page app with Vue Router (3 route stubs), Pinia stores, and Dexie.js for IndexedDB persistence. SM-2 algorithm lives as a pure function in `src/lib/`. PWA via vite-plugin-pwa with `registerType: 'autoUpdate'` (auto-injects service worker registration — no manual registration code needed in `main.ts`).
 
-**Tech Stack:** Vue 3, TypeScript, Vite, Tailwind CSS, Pinia, Dexie.js, Vitest, @vue/test-utils, vite-plugin-pwa
+**Tech Stack:** Vue 3, TypeScript, Vite, Tailwind CSS v4, Pinia, Dexie.js, Vitest, @vue/test-utils, vite-plugin-pwa
 
 **Spec:** `docs/superpowers/specs/2026-03-14-spacer-bootstrap-design.md`
+
+**Note on SM-2:** The spec simplifies the description of quality < 3 behavior. The standard SM-2 algorithm adjusts `easeFactor` on every review regardless of quality. The implementation follows the standard algorithm.
 
 ---
 
@@ -48,8 +50,10 @@ Expected: HTML with `<div id="app">` present.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add -A
-git commit -m "feat: scaffold Vite + Vue 3 + TypeScript project"
+git add package.json package-lock.json tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts index.html env.d.ts src/ public/
+git commit -m "feat: scaffold Vite + Vue 3 + TypeScript project
+
+AI-Used: [claude]"
 ```
 
 ---
@@ -57,8 +61,10 @@ git commit -m "feat: scaffold Vite + Vue 3 + TypeScript project"
 ### Task 2: Configure Tailwind CSS
 
 **Files:**
-- Create: `tailwind.config.js`, `postcss.config.js`
-- Modify: `src/assets/main.css` (replace contents)
+- Create: `src/assets/main.css`
+- Modify: `src/main.ts`, `src/App.vue`, `vite.config.ts`
+
+Note: Using Tailwind v4 with `@tailwindcss/vite` plugin — no `tailwind.config.js` or `postcss.config.js` needed.
 
 - [ ] **Step 1: Install Tailwind and dependencies**
 
@@ -117,8 +123,10 @@ Expected: Build succeeds without errors.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add -A
-git commit -m "feat: configure Tailwind CSS"
+git add src/assets/main.css src/main.ts src/App.vue vite.config.ts package.json package-lock.json
+git commit -m "feat: configure Tailwind CSS v4
+
+AI-Used: [claude]"
 ```
 
 ---
@@ -151,6 +159,8 @@ export default defineConfig({
 
 - [ ] **Step 3: Write failing smoke test**
 
+The test asserts `router-view` is present — which it won't be until Task 4 adds the router. This gives us a genuine red phase.
+
 Create `src/__tests__/smoke.test.ts`:
 
 ```typescript
@@ -163,26 +173,33 @@ describe('App', () => {
     const wrapper = mount(App)
     expect(wrapper.text()).toContain('Spacer')
   })
+
+  it('has a router-view for page content', () => {
+    const wrapper = mount(App)
+    expect(wrapper.find('router-view').exists() || wrapper.html().includes('router-view')).toBe(true)
+  })
 })
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run tests to verify red**
 
 ```bash
 npx vitest run
 ```
 
-Expected: 1 test passes (it should pass because App.vue already contains "Spacer" from Task 2).
+Expected: First test passes (App.vue has "Spacer"), second test FAILS (no router-view yet). This is the correct red state.
 
-- [ ] **Step 5: Add test script to package.json**
+- [ ] **Step 5: Add test scripts to package.json**
 
 Add to `scripts`: `"test": "vitest run"`, `"test:watch": "vitest"`
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Commit (with one red test — intentional)**
 
 ```bash
-git add -A
-git commit -m "feat: configure Vitest with smoke test"
+git add vitest.config.ts src/__tests__/smoke.test.ts package.json
+git commit -m "test: configure Vitest with smoke tests (router-view test intentionally red)
+
+AI-Used: [claude]"
 ```
 
 ---
@@ -191,6 +208,7 @@ git commit -m "feat: configure Vitest with smoke test"
 
 **Files:**
 - Create: `src/router/index.ts`, `src/views/HomeView.vue`, `src/views/DeckView.vue`, `src/views/ReviewView.vue`
+- Create: `src/__tests__/router.test.ts`
 - Modify: `src/main.ts`, `src/App.vue`
 
 - [ ] **Step 1: Install Vue Router**
@@ -199,7 +217,55 @@ git commit -m "feat: configure Vitest with smoke test"
 npm install vue-router
 ```
 
-- [ ] **Step 2: Create route stub views**
+- [ ] **Step 2: Write failing router test**
+
+Create `src/__tests__/router.test.ts`:
+
+```typescript
+import { describe, it, expect } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { createRouter, createMemoryHistory } from 'vue-router'
+
+describe('Router', () => {
+  const routes = [
+    { path: '/', name: 'home', component: { template: '<div>Home</div>' } },
+    { path: '/deck/:id', name: 'deck', component: { template: '<div>Deck</div>' } },
+    { path: '/review/:deckId?', name: 'review', component: { template: '<div>Review</div>' } },
+  ]
+
+  it('navigates to home route', async () => {
+    const router = createRouter({ history: createMemoryHistory(), routes })
+    router.push('/')
+    await router.isReady()
+    expect(router.currentRoute.value.name).toBe('home')
+  })
+
+  it('navigates to deck route with id param', async () => {
+    const router = createRouter({ history: createMemoryHistory(), routes })
+    router.push('/deck/abc123')
+    await router.isReady()
+    expect(router.currentRoute.value.name).toBe('deck')
+    expect(router.currentRoute.value.params.id).toBe('abc123')
+  })
+
+  it('navigates to review route', async () => {
+    const router = createRouter({ history: createMemoryHistory(), routes })
+    router.push('/review')
+    await router.isReady()
+    expect(router.currentRoute.value.name).toBe('review')
+  })
+})
+```
+
+- [ ] **Step 3: Run tests to confirm red**
+
+```bash
+npx vitest run src/__tests__/router.test.ts
+```
+
+Expected: FAIL — `vue-router` can be imported but let's confirm it runs. The test itself may pass since it creates its own router inline. If it passes, that's fine — the red phase is covered by the existing smoke test's `router-view` assertion from Task 3.
+
+- [ ] **Step 4: Create route stub views**
 
 Create `src/views/HomeView.vue`:
 ```vue
@@ -231,7 +297,7 @@ Create `src/views/ReviewView.vue`:
 </template>
 ```
 
-- [ ] **Step 3: Create `src/router/index.ts`**
+- [ ] **Step 5: Create `src/router/index.ts`**
 
 ```typescript
 import { createRouter, createWebHistory } from 'vue-router'
@@ -257,7 +323,7 @@ const router = createRouter({
 export default router
 ```
 
-- [ ] **Step 4: Wire router into `src/main.ts`**
+- [ ] **Step 6: Wire router into `src/main.ts`**
 
 ```typescript
 import { createApp } from 'vue'
@@ -268,7 +334,7 @@ import './assets/main.css'
 createApp(App).use(router).mount('#app')
 ```
 
-- [ ] **Step 5: Update `src/App.vue` to use router-view**
+- [ ] **Step 7: Update `src/App.vue` to use router-view**
 
 ```vue
 <template>
@@ -285,47 +351,70 @@ createApp(App).use(router).mount('#app')
 </template>
 ```
 
-- [ ] **Step 6: Run tests to verify nothing broke**
+- [ ] **Step 8: Update smoke test to provide router**
+
+The smoke test needs the router plugin now. Update `src/__tests__/smoke.test.ts`:
+
+```typescript
+import { describe, it, expect } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { createRouter, createMemoryHistory } from 'vue-router'
+import App from '../App.vue'
+
+function createTestRouter() {
+  return createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/', component: { template: '<div>Home</div>' } },
+      { path: '/deck/:id', component: { template: '<div>Deck</div>' } },
+      { path: '/review/:deckId?', component: { template: '<div>Review</div>' } },
+    ],
+  })
+}
+
+describe('App', () => {
+  it('renders the app title', async () => {
+    const router = createTestRouter()
+    router.push('/')
+    await router.isReady()
+    const wrapper = mount(App, { global: { plugins: [router] } })
+    expect(wrapper.text()).toContain('Spacer')
+  })
+
+  it('has a router-view for page content', async () => {
+    const router = createTestRouter()
+    router.push('/')
+    await router.isReady()
+    const wrapper = mount(App, { global: { plugins: [router] } })
+    expect(wrapper.html()).toContain('Home')
+  })
+})
+```
+
+- [ ] **Step 9: Run all tests to confirm green**
 
 ```bash
 npx vitest run
 ```
 
-Expected: Smoke test may need updating since App.vue now uses router-link. Update the smoke test to provide the router:
+Expected: All tests pass — smoke (2) + router (3) = 5 tests.
 
-```typescript
-import { describe, it, expect } from 'vitest'
-import { mount } from '@vue/test-utils'
-import { createRouter, createWebHistory } from 'vue-router'
-import App from '../App.vue'
-
-describe('App', () => {
-  it('renders the app title', async () => {
-    const router = createRouter({
-      history: createWebHistory(),
-      routes: [{ path: '/', component: { template: '<div>Home</div>' } }],
-    })
-    router.push('/')
-    await router.isReady()
-
-    const wrapper = mount(App, { global: { plugins: [router] } })
-    expect(wrapper.text()).toContain('Spacer')
-  })
-})
-```
-
-- [ ] **Step 7: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
-git add -A
-git commit -m "feat: add Vue Router with home, deck, and review route stubs"
+git add src/router/ src/views/ src/__tests__/ src/App.vue src/main.ts package.json package-lock.json
+git commit -m "feat: add Vue Router with home, deck, and review route stubs
+
+AI-Used: [claude]"
 ```
 
 ---
 
-### Task 5: Install Pinia
+### Task 5: Install Pinia with store stubs
 
 **Files:**
+- Create: `src/stores/decks.ts`, `src/stores/reviews.ts`
+- Create: `src/stores/__tests__/decks.test.ts`
 - Modify: `src/main.ts`
 
 - [ ] **Step 1: Install Pinia**
@@ -334,7 +423,67 @@ git commit -m "feat: add Vue Router with home, deck, and review route stubs"
 npm install pinia
 ```
 
-- [ ] **Step 2: Wire Pinia into `src/main.ts`**
+- [ ] **Step 2: Write failing store test**
+
+Create `src/stores/__tests__/decks.test.ts`:
+
+```typescript
+import { describe, it, expect, beforeEach } from 'vitest'
+import { setActivePinia, createPinia } from 'pinia'
+import { useDecksStore } from '../decks'
+
+describe('decks store', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('starts with empty decks', () => {
+    const store = useDecksStore()
+    expect(store.decks).toEqual([])
+  })
+})
+```
+
+- [ ] **Step 3: Run test to confirm red**
+
+```bash
+npx vitest run src/stores
+```
+
+Expected: FAIL — module `../decks` not found.
+
+- [ ] **Step 4: Create store stubs**
+
+Create `src/stores/decks.ts`:
+
+```typescript
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import type { Deck } from '../db/models'
+
+export const useDecksStore = defineStore('decks', () => {
+  const decks = ref<Deck[]>([])
+  return { decks }
+})
+```
+
+Create `src/stores/reviews.ts`:
+
+```typescript
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import type { Card } from '../db/models'
+
+export const useReviewsStore = defineStore('reviews', () => {
+  const currentCards = ref<Card[]>([])
+  const currentIndex = ref(0)
+  return { currentCards, currentIndex }
+})
+```
+
+Note: These stores reference `../db/models` which is created in Task 6. If running tasks out of order, create `src/db/models.ts` first. When running in sequence, the test will import only `decks.ts` which imports `Deck` — the type-only import won't cause a runtime error in Vitest even if the file doesn't exist yet, but if it does fail, create a minimal `src/db/models.ts` with just the type exports first.
+
+- [ ] **Step 5: Wire Pinia into `src/main.ts`**
 
 ```typescript
 import { createApp } from 'vue'
@@ -346,23 +495,32 @@ import './assets/main.css'
 createApp(App).use(createPinia()).use(router).mount('#app')
 ```
 
-- [ ] **Step 3: Run tests**
+- [ ] **Step 6: Update smoke test to include Pinia**
+
+In `src/__tests__/smoke.test.ts`, update the mount calls to include Pinia:
+
+```typescript
+import { createPinia } from 'pinia'
+
+// Update both test mounts to:
+const wrapper = mount(App, { global: { plugins: [router, createPinia()] } })
+```
+
+- [ ] **Step 7: Run all tests to confirm green**
 
 ```bash
 npx vitest run
 ```
 
-Expected: All tests pass. Update smoke test to include Pinia if needed:
-```typescript
-import { createPinia } from 'pinia'
-// in mount: global: { plugins: [router, createPinia()] }
-```
+Expected: All tests pass — smoke (2) + router (3) + decks store (1) = 6 tests.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add -A
-git commit -m "feat: install and wire Pinia"
+git add src/stores/ src/main.ts src/__tests__/smoke.test.ts package.json package-lock.json
+git commit -m "feat: install Pinia with deck and review store stubs
+
+AI-Used: [claude]"
 ```
 
 ---
@@ -435,6 +593,8 @@ Expected: FAIL — module `../index` not found.
 
 - [ ] **Step 4: Create `src/db/models.ts`**
 
+If this file already exists as a stub from Task 5, verify it has the full content. Otherwise create:
+
 ```typescript
 export interface Card {
   id: string
@@ -486,8 +646,10 @@ Expected: 2 tests pass.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add -A
-git commit -m "feat: set up Dexie.js with Card and Deck schema"
+git add src/db/ package.json package-lock.json
+git commit -m "feat: set up Dexie.js with Card and Deck schema
+
+AI-Used: [claude]"
 ```
 
 ---
@@ -516,6 +678,12 @@ describe('sm2', () => {
     const result = sm2(2, { easeFactor: 2.5, interval: 10, repetitions: 5 })
     expect(result.repetitions).toBe(0)
     expect(result.interval).toBe(1)
+  })
+
+  it('adjusts ease factor even on failed reviews', () => {
+    // Standard SM-2 adjusts EF on every review, not just successful ones
+    const result = sm2(1, { easeFactor: 2.5, interval: 10, repetitions: 5 })
+    expect(result.easeFactor).not.toBe(2.5)
   })
 
   it('sets interval to 1 on first successful review', () => {
@@ -604,13 +772,15 @@ export function sm2(quality: number, state: SM2State): SM2State {
 npx vitest run src/lib
 ```
 
-Expected: 6 tests pass.
+Expected: 7 tests pass.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add -A
-git commit -m "feat: implement SM-2 spaced repetition algorithm"
+git add src/lib/
+git commit -m "feat: implement SM-2 spaced repetition algorithm
+
+AI-Used: [claude]"
 ```
 
 ---
@@ -620,6 +790,7 @@ git commit -m "feat: implement SM-2 spaced repetition algorithm"
 **Files:**
 - Modify: `vite.config.ts`
 - Create: `public/favicon.svg`
+- Create: `src/__tests__/pwa.test.ts`
 
 - [ ] **Step 1: Install vite-plugin-pwa**
 
@@ -627,7 +798,42 @@ git commit -m "feat: implement SM-2 spaced repetition algorithm"
 npm install -D vite-plugin-pwa
 ```
 
-- [ ] **Step 2: Create a simple SVG favicon**
+- [ ] **Step 2: Write failing PWA build test**
+
+Create `src/__tests__/pwa.test.ts`:
+
+```typescript
+import { describe, it, expect } from 'vitest'
+import { readFileSync, existsSync } from 'fs'
+import { resolve } from 'path'
+import { execSync } from 'child_process'
+
+describe('PWA manifest', () => {
+  it('build generates a web manifest with correct metadata', () => {
+    execSync('npx vite build', { stdio: 'pipe' })
+    const distDir = resolve(__dirname, '../../dist')
+
+    // Find the manifest file
+    const manifestPath = resolve(distDir, 'manifest.webmanifest')
+    expect(existsSync(manifestPath)).toBe(true)
+
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'))
+    expect(manifest.name).toBe('Spacer')
+    expect(manifest.display).toBe('standalone')
+    expect(manifest.theme_color).toBe('#6366f1')
+  })
+})
+```
+
+- [ ] **Step 3: Run test to confirm red**
+
+```bash
+npx vitest run src/__tests__/pwa.test.ts
+```
+
+Expected: FAIL — either build doesn't produce manifest, or file doesn't exist.
+
+- [ ] **Step 4: Create a simple SVG favicon**
 
 Create `public/favicon.svg`:
 
@@ -638,7 +844,9 @@ Create `public/favicon.svg`:
 </svg>
 ```
 
-- [ ] **Step 3: Update `vite.config.ts` with PWA config**
+- [ ] **Step 5: Update `vite.config.ts` with PWA config**
+
+Note: `vite-plugin-pwa` with `registerType: 'autoUpdate'` auto-injects the service worker registration into the build output. No manual registration code in `main.ts` is needed.
 
 ```typescript
 import { defineConfig } from 'vite'
@@ -673,31 +881,62 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 4: Build and verify PWA manifest is generated**
+- [ ] **Step 6: Run PWA test to confirm green**
 
 ```bash
-npx vite build 2>&1 | tail -10
-ls dist/*.webmanifest 2>/dev/null || ls dist/manifest.webmanifest 2>/dev/null || echo "Check dist/ for manifest"
+npx vitest run src/__tests__/pwa.test.ts
 ```
 
-Expected: Build succeeds, manifest file exists in `dist/`.
+Expected: PASS — manifest exists with correct metadata.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add -A
-git commit -m "feat: configure PWA manifest with vite-plugin-pwa"
+git add vite.config.ts public/favicon.svg src/__tests__/pwa.test.ts package.json package-lock.json
+git commit -m "feat: configure PWA manifest with vite-plugin-pwa
+
+AI-Used: [claude]"
 ```
 
 ---
 
-### Task 9: Create dev scripts + update .gitignore
+### Task 9: Create component stubs + dev scripts + update .gitignore
 
 **Files:**
+- Create: `src/components/CardEditor.vue`, `src/components/ReviewCard.vue`, `src/components/DeckList.vue`
 - Create: `dev/test`, `dev/dev`
 - Modify: `.gitignore`
 
-- [ ] **Step 1: Create `dev/` directory and scripts**
+- [ ] **Step 1: Create component stubs**
+
+Create `src/components/CardEditor.vue`:
+```vue
+<template>
+  <div class="card-editor">
+    <!-- Card create/edit form — implemented in a future increment -->
+  </div>
+</template>
+```
+
+Create `src/components/ReviewCard.vue`:
+```vue
+<template>
+  <div class="review-card">
+    <!-- Flip card during review — implemented in a future increment -->
+  </div>
+</template>
+```
+
+Create `src/components/DeckList.vue`:
+```vue
+<template>
+  <div class="deck-list">
+    <!-- Deck overview — implemented in a future increment -->
+  </div>
+</template>
+```
+
+- [ ] **Step 2: Create `dev/` directory and scripts**
 
 Create `dev/test`:
 ```bash
@@ -713,13 +952,13 @@ set -euo pipefail
 npx vite "$@"
 ```
 
-- [ ] **Step 2: Make scripts executable**
+- [ ] **Step 3: Make scripts executable**
 
 ```bash
 chmod +x dev/test dev/dev
 ```
 
-- [ ] **Step 3: Update `.gitignore`**
+- [ ] **Step 4: Update `.gitignore`**
 
 Replace contents with:
 ```
@@ -729,27 +968,31 @@ dist/
 .DS_Store
 ```
 
-- [ ] **Step 4: Verify scripts work**
+- [ ] **Step 5: Verify scripts work**
 
 ```bash
 ./dev/test
 ```
 
-Expected: All tests pass (smoke + db + sm2).
+Expected: All tests pass (smoke + router + decks store + db + sm2 + pwa).
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add -A
-git commit -m "feat: add dev scripts and update .gitignore"
+git add src/components/ dev/ .gitignore
+git commit -m "feat: add component stubs, dev scripts, and update .gitignore
+
+AI-Used: [claude]"
 ```
 
 ---
 
 ### Task 10: Set up docs for 5-minute increment workflow
 
+**Supplementary:** These files are not in the spec's Bootstrap Deliverables but are required by the 5-minute increment skill to function. Creating them here so the workflow is ready immediately after bootstrap.
+
 **Files:**
-- Create: `docs/status.md`, `docs/retros.md`, `docs/issues/`
+- Create: `docs/status.md`, `docs/retros.md`, `docs/issues/001-bootstrap.md`
 
 - [ ] **Step 1: Create `docs/status.md`**
 
@@ -776,9 +1019,7 @@ git commit -m "feat: add dev scripts and update .gitignore"
 # Spacer — Retrospectives
 ```
 
-- [ ] **Step 3: Create `docs/issues/` directory with bootstrap issue**
-
-Create `docs/issues/001-bootstrap.md`:
+- [ ] **Step 3: Create `docs/issues/001-bootstrap.md`**
 
 ```markdown
 # Bootstrap project with chosen stack
@@ -808,8 +1049,10 @@ Bootstrap increment — allowed to exceed 5 minutes per workflow rules.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add -A
-git commit -m "docs: set up status, retros, and bootstrap issue for increment workflow"
+git add docs/status.md docs/retros.md docs/issues/
+git commit -m "docs: set up status, retros, and bootstrap issue for increment workflow
+
+AI-Used: [claude]"
 ```
 
 ---
@@ -822,7 +1065,7 @@ git commit -m "docs: set up status, retros, and bootstrap issue for increment wo
 ./dev/test
 ```
 
-Expected: All tests pass (smoke, db, sm2).
+Expected: All tests pass (smoke, router, decks store, db, sm2, pwa).
 
 - [ ] **Step 2: Verify dev server starts**
 
@@ -841,17 +1084,19 @@ Expected: "Spacer" in output.
 npx vite build && ls dist/
 ```
 
-Expected: Build succeeds, contains `manifest.webmanifest` (or similar), JS/CSS assets.
+Expected: Build succeeds, contains `manifest.webmanifest`, JS/CSS assets.
 
 - [ ] **Step 4: Update issue and status to done**
 
-Update `docs/issues/001-bootstrap.md`: set Status to `done`, check all AC boxes, set Closed date.
+Update `docs/issues/001-bootstrap.md`: set Status to `done`, check all AC boxes, set Closed date to 2026-03-14.
 
 Update `docs/status.md`: move #1 to Done, clear In Progress, set streak to 1.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add -A
-git commit -m "docs: close bootstrap issue #1"
+git add docs/issues/001-bootstrap.md docs/status.md
+git commit -m "docs: close bootstrap issue #1
+
+AI-Used: [claude]"
 ```
