@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { createPinia } from 'pinia'
 import App from '../App.vue'
 
 function createTestRouter() {
@@ -19,7 +20,7 @@ describe('App', () => {
     const router = createTestRouter()
     router.push('/')
     await router.isReady()
-    const wrapper = mount(App, { global: { plugins: [router] } })
+    const wrapper = mount(App, { global: { plugins: [router, createPinia()] } })
     expect(wrapper.text()).toContain('Spacer')
   })
 
@@ -27,7 +28,7 @@ describe('App', () => {
     const router = createTestRouter()
     router.push('/')
     await router.isReady()
-    const wrapper = mount(App, { global: { plugins: [router] } })
+    const wrapper = mount(App, { global: { plugins: [router, createPinia()] } })
     expect(wrapper.html()).toContain('Home')
   })
 })
