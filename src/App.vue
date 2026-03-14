@@ -1,7 +1,5 @@
-<script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
-</script>
-
 <template>
-  <HelloWorld />
+  <div class="min-h-screen bg-gray-50">
+    <h1 class="text-2xl font-bold p-4">Spacer</h1>
+  </div>
 </template>
