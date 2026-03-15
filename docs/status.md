@@ -52,7 +52,7 @@ Batched five quick wins as autonomous work. Rationale: clear friction and hygien
 - **#026** Fix errors, don't report them → convention added to CLAUDE.md: read error, identify cause, fix, re-run; only stop after two failed attempts or genuine ambiguity
 - **#027** Claims need code → convention added to CLAUDE.md: don't document capabilities that aren't backed by working code
 
-### Cycle 8 — Premortems (#014–#017) ← current
+### Cycle 8 — Premortems (#014–#017)
 
 Interactive walk-through of four premortem documents to identify weaknesses before the next feature cycle. Also merged `issue-close` and `issue-archive` targ targets into a single `issue-close` command.
 
@@ -60,3 +60,5 @@ Interactive walk-through of four premortem documents to identify weaknesses befo
 - **#015** UX/design premortem → filed #032–#036 (action feedback, design tokens, navigation structure, review rating labels, view state patterns)
 - **#016** Testing premortem → filed #037–#042 (test standards with BDD/property-based/DI/expressive matchers, SM-2 unit tests, view testing, test file organization, E2E coverage gaps, test conventions doc)
 - **#017** Implementation premortem → filed #043–#047 (type safety at DB boundary, DB migration pattern, DB error handling, input validation, stale state across views)
+
+**Retro:** Process-focused retro identified 5 process/tooling gaps. Filed #048–#052 (issue template scaffolding, streamlined issue-close flow, issue-writing conventions, commit skill adherence, interactive discovery enforcement).
