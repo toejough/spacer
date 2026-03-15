@@ -52,13 +52,11 @@ Batched five quick wins as autonomous work. Rationale: clear friction and hygien
 - **#026** Fix errors, don't report them → convention added to CLAUDE.md: read error, identify cause, fix, re-run; only stop after two failed attempts or genuine ambiguity
 - **#027** Claims need code → convention added to CLAUDE.md: don't document capabilities that aren't backed by working code
 
-### Cycle 8 — Premortems (#014–#017) ← next
+### Cycle 8 — Premortems (#014–#017) ← current
 
-Interactive walk-through of four premortem documents to identify weaknesses before the next feature cycle.
+Interactive walk-through of four premortem documents to identify weaknesses before the next feature cycle. Also merged `issue-close` and `issue-archive` targ targets into a single `issue-close` command.
 
-| Order | # | Title | Phase | Type |
-|-------|---|-------|-------|------|
-| 1 | 014 | Architecture premortem | queued | Prevention |
-| 2 | 015 | UX/design premortem | queued | Prevention |
-| 3 | 016 | Testing premortem | queued | Prevention |
-| 4 | 017 | Implementation premortem | queued | Prevention |
+- **#014** Architecture premortem → filed #028–#031 (due-card query duplication, SM-2 default factory, data-access layer, card model separation)
+- **#015** UX/design premortem → filed #032–#036 (action feedback, design tokens, navigation structure, review rating labels, view state patterns)
+- **#016** Testing premortem → filed #037–#042 (test standards with BDD/property-based/DI/expressive matchers, SM-2 unit tests, view testing, test file organization, E2E coverage gaps, test conventions doc)
+- **#017** Implementation premortem → queued
