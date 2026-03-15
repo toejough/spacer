@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { SpacerDB } from "../db";
-import { sm2 } from "../sm2";
+import { SpacerDB } from "../../src/db";
+import { sm2 } from "../../src/sm2";
 
 let testDbCounter = 0;
 

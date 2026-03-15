@@ -19,7 +19,7 @@ targ history-show P  # Show a deleted file from git history
 
 ## Conventions
 
-- **TDD always** — write failing tests first, then minimum code to pass
+- **TDD always** — write failing tests first, then minimum code to pass. See `docs/testing.md` for full testing strategy
 - **Vertical slices** — every increment delivers a working user-facing feature
 - **No empty stubs** — only create files with real, working code
 - **Integration tests** — at least one test per feature that exercises the full data path
@@ -44,5 +44,4 @@ targ history-show P  # Show a deleted file from git history
 
 - DB: Dexie with EntityTable for type-safe IndexedDB
 - SM-2: pure function in `src/sm2.ts`
-- Unit tests: Vitest + happy-dom + fake-indexeddb; each test gets its own DB instance
-- E2E tests: Playwright in `e2e/`, runs against production build (SW requires it)
+- Tests: `tests/{unit,behavior,integration,e2e}/` — see `docs/testing.md` for strategy
