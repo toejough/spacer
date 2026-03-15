@@ -1,6 +1,6 @@
 # 050 — Document issue-writing conventions
 
-**Status:** open
+**Status:** closed
 **Type:** process
 
 ## Problem
