@@ -5,11 +5,11 @@ Spaced repetition flashcard app. Vue 3 + TypeScript + Vite + Dexie (IndexedDB) +
 ## Build Commands
 
 ```bash
-./targ dev       # Start Vite dev server
-./targ test      # Run Vitest
-./targ build     # Type-check + production build
-./targ check     # Type-check + tests
-./targ clean     # Remove build/test artifacts
+targ dev       # Start Vite dev server
+targ test      # Run Vitest
+targ build     # Type-check + production build
+targ check     # Type-check + tests
+targ clean     # Remove build/test artifacts
 ```
 
 ## Conventions

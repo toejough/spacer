@@ -1,6 +1,6 @@
 # 025 — Fix targ setup: shell script shadows system targ
 
-**Status:** open
+**Status:** closed
 **Type:** bug
 
 ## Context
@@ -15,9 +15,9 @@ The whole point of targ is that you write Go target files in `dev/` and the syst
 
 ## Acceptance Criteria
 
-- [ ] `./targ` shell script removed from project root
-- [ ] `targs.go` (broken) removed from project root
-- [ ] `dev/targets.go` created with proper targ string targets
-- [ ] `targ --help` shows all targets (dev, test, build, check, clean)
-- [ ] `targ test` runs successfully
-- [ ] CLAUDE.md updated: `./targ` → `targ`
+- [x] `./targ` shell script removed from project root
+- [x] `targs.go` (broken) removed from project root (was never committed)
+- [x] `dev/targets.go` created with proper targ string targets
+- [x] `targ --help` shows all targets (dev, test, build, check, clean)
+- [x] `targ test` runs successfully
+- [x] CLAUDE.md updated: `./targ` → `targ`
