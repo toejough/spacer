@@ -9,7 +9,7 @@
 
 **Status:** open | in-progress | done | blocked | wont-fix
 **Priority:** p0 | p1 | p2
-**Labels:** feature | bug | tooling | docs | infra
+**Labels:** feature | bug | tooling | docs | infra | issue-N-retro
 **Created:** {date}
 **Closed:** {date}
 

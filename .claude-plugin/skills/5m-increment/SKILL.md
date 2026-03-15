@@ -69,6 +69,19 @@ Read `docs/status.md` on load to pick up context from previous sessions.
 
 5. **Ask, don't assume.** The user has preferences for architecture, tooling, quality. Surface questions during PLAN. Don't guess.
 
+6. **Bootstrap must deliver a vertical slice.** The bootstrap AC must include: "a user can complete one full action end-to-end." Scaffolding empty stubs across all layers is not acceptable. Pick the thinnest possible vertical slice and make it work.
+
+7. **Match process weight to task uncertainty.**
+   - High uncertainty (new features, design decisions): full brainstorming → spec → plan → review
+   - Low uncertainty (scaffolds, wiring, known patterns): plan → execute → review result
+   - The 5-minute increment itself is already a light process — don't layer heavy process on top of it.
+
+8. **Integration tests from the start.** The bootstrap smoke test must verify the vertical slice works end-to-end, not just that isolated units exist. A test that mounts a view, interacts with it, and checks the DB changed is worth more than 10 tests on disconnected pieces.
+
+9. **Don't create empty stubs as deliverables.** If a component will be completely rewritten when it's actually implemented, don't create it during bootstrap. Only create files that contain real, working code.
+
+10. **Code quality review on aggregate.** Per-task reviews can be skipped for speed during bootstrap, but at least one quality review must cover the full output before the issue is closed.
+
 ## Integrations
 
 - **CLOSE phase:** Use `/commit` for commits
