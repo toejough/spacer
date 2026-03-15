@@ -67,11 +67,11 @@ Interactive walk-through of four premortem documents to identify weaknesses befo
 
 Documented issue-writing conventions (Problem/Principle/Guidance template) in CLAUDE.md. Added `targ issue-new` command to scaffold issue files with auto-incremented numbers, scanning both current files and git history for highest number.
 
-### Cycle 10 — Test Standards (#037, absorbing #040, #042) ← next
+### Cycle 10 — Test Standards (#037, absorbing #040, #042)
 
-Establish BDD, property-based, DI, and expressive matcher conventions before any code work. Research ecosystem (fast-check, chai/vitest matchers), pick libraries, document conventions. #040 (file organization) and #042 (conventions doc) are naturally part of this — the output is both the standards and where tests live.
+Created `docs/testing.md` with full testing strategy: BDD spec-first workflow (identify properties → given/when/then specs → migrate to test comments → implement → delete spec), property-based testing via `@fast-check/vitest`, assertions via Vitest built-in + jest-extended, DI via composable functions with explicit parameters. Reorganized test files into `tests/{unit,behavior,integration,e2e}/`. Coverage (80% per-function smell signal), mutation testing (Stryker on-demand), fuzzing (fast-check as best JS approximation, ecosystem gap noted).
 
-### Cycle 11 — Data-Access Layer (#030 + #047 + #028 + #029)
+### Cycle 11 — Data-Access Layer (#030 + #047 + #028 + #029) ← next
 
 Biggest structural change. Adopt Dexie liveQuery as the reactive data-access pattern, rewriting how all views consume data. Subsumes #028 (due-card query) and #029 (SM-2 factory) into the access layer. Solves #047 (stale state) via reactive queries. Creates the seam where #043 (type safety) and #045 (error handling) will later be enforced.
 
