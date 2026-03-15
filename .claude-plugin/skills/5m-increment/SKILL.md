@@ -25,6 +25,7 @@ Read `docs/status.md` on load to pick up context from previous sessions.
 - State the approach in ≤3 bullet points
 - If architecture decisions are needed, ask NOW — don't assume
 - If this is a new area, check `docs/decisions/` for existing ADRs
+- **GATE: If the task creates or modifies 3+ files, you MUST write a plan document to `docs/plans/` and get explicit user approval before writing any code. The plan is a committed deliverable, not a mental note. No exceptions.**
 
 ### 3. RED (≤60s)
 - Write failing tests FIRST — no implementation yet
