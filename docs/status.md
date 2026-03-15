@@ -61,4 +61,24 @@ Interactive walk-through of four premortem documents to identify weaknesses befo
 - **#016** Testing premortem → filed #037–#042 (test standards with BDD/property-based/DI/expressive matchers, SM-2 unit tests, view testing, test file organization, E2E coverage gaps, test conventions doc)
 - **#017** Implementation premortem → filed #043–#047 (type safety at DB boundary, DB migration pattern, DB error handling, input validation, stale state across views)
 
-**Retro:** Process-focused retro identified 5 process/tooling gaps. Filed #048–#052 (issue template scaffolding, streamlined issue-close flow, issue-writing conventions, commit skill adherence, interactive discovery enforcement).
+**Retro:** Process-focused retro identified 5 process/tooling gaps. Filed #048–#052 (issue template scaffolding, streamlined issue-close flow, issue-writing conventions, commit skill adherence, interactive discovery enforcement). Prioritized remaining issues by structural impact and dependency overlap to minimize rework.
+
+### Cycle 9 — Issue Conventions (#050, #048) ← next
+
+Tiny meta-leverage: document how issues should be written, then encode it in a `targ issue-new` scaffolding command. Every issue filed after this benefits.
+
+### Cycle 10 — Test Standards (#037, absorbing #040, #042)
+
+Establish BDD, property-based, DI, and expressive matcher conventions before any code work. Research ecosystem (fast-check, chai/vitest matchers), pick libraries, document conventions. #040 (file organization) and #042 (conventions doc) are naturally part of this — the output is both the standards and where tests live.
+
+### Cycle 11 — Data-Access Layer (#030 + #047 + #028 + #029)
+
+Biggest structural change. Adopt Dexie liveQuery as the reactive data-access pattern, rewriting how all views consume data. Subsumes #028 (due-card query) and #029 (SM-2 factory) into the access layer. Solves #047 (stale state) via reactive queries. Creates the seam where #043 (type safety) and #045 (error handling) will later be enforced.
+
+### Cycle 12 — Type Safety at DB Boundary (#043)
+
+With the access layer in place from cycle 11, enforce types at the insertion/query boundary. Eliminate `as Card` / `as any` casts. Small scope after the access layer exists.
+
+### Cycle 13 — UI Foundations (#033 + #036)
+
+Establish design tokens and view state patterns. Views were just rewritten for data (cycle 11), now standardize their styling and loading/error/empty representation. All subsequent UX issues (#032, #034, #035) inherit these patterns.
