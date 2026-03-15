@@ -1,6 +1,6 @@
 # 047 — Stale state after mutations across views
 
-**Status:** open
+**Status:** closed
 **Type:** quality / prevention
 **Source:** #017 implementation premortem
 
