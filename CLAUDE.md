@@ -30,6 +30,7 @@ targ history-show P  # Show a deleted file from git history
 - **Docs lifecycle** — HEAD contains only current/open docs. Closed issues, executed plans, and absorbed retros are deleted after a close commit + archive commit. `docs/status.md` indexes all historical work. To find deleted docs: `targ history` then `targ history-show <path>`
 - **Retro format** — `docs/retros/{date}-{number}-{slug}.md`. Sections: **Plus** (reinforce/repeat), **Delta** (change next time), **Other observations**, **Action items**. Every action item must either be filed as an issue or absorbed into CLAUDE.md before the retro can be archived. Retros are archived once all action items are handled.
 - **Test runner isolation** — when adding a new test runner, update all existing test configs to exclude the new runner's directory in the same commit
+- **Claims need code** — if CLAUDE.md, package.json, or project descriptions claim a capability, working code must back it. Don't document features that don't exist yet.
 
 ## Architecture
 
