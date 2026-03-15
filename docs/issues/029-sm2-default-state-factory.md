@@ -1,6 +1,6 @@
 # 029 — SM-2 default state factory
 
-**Status:** open
+**Status:** closed
 **Type:** tech-debt
 **Source:** #014 architecture premortem
 
