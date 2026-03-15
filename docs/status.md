@@ -46,7 +46,8 @@ Batched five quick wins as autonomous work. Rationale: clear friction and hygien
 - **#022** Remove unused vue/test-utils → `npm uninstall @vue/test-utils`
 - **#023** Test runner isolation convention → added to CLAUDE.md
 - **#020** Move specs to docs/plans/ → migrated `docs/superpowers/` content, removed directory, added convention to CLAUDE.md
-- **#024** Migrate dev/ to targ → created `./targ` dispatcher with dev/test/build/check/clean subcommands, removed `dev/` scripts, updated CLAUDE.md, added `test-results/` to `.gitignore`
+- **#024** Migrate dev/ to targ → build targets in `dev/targets.go`, system `targ` discovers them; added `test-results/` to `.gitignore` (approach fixed by #025)
+- **#025** Fix targ setup → replaced root `./targ` shell script with proper `dev/targets.go` string targets; added doc lifecycle targets (`issues`, `issue-close`, `issue-archive`, `history`, `history-show`); adopted "HEAD = current state" convention for docs
 
 ### Cycle 8 — Premortems (#014–#017) ← next
 

@@ -110,8 +110,8 @@ func issueArchive(args archiveArgs) error {
 	if err != nil {
 		return err
 	}
-	if status != "closed" {
-		return fmt.Errorf("issue %s is not closed (status: %s) — close it first with: targ issue-close %s", args.Number, status, args.Number)
+	if status == "open" {
+		return fmt.Errorf("issue %s is still open — close it first with: targ issue-close %s", args.Number, args.Number)
 	}
 
 	slug := strings.TrimSuffix(filepath.Base(path), ".md")
@@ -196,7 +196,10 @@ func verifyStatusEntry(number string) error {
 	if err != nil {
 		return fmt.Errorf("cannot read docs/status.md: %w", err)
 	}
-	if !strings.Contains(string(data), "#"+number) {
+	content := string(data)
+	// Check both padded (#025) and unpadded (#25) forms
+	unpadded := strings.TrimLeft(number, "0")
+	if !strings.Contains(content, "#"+number) && !strings.Contains(content, "#"+unpadded) {
 		return fmt.Errorf("docs/status.md has no reference to #%s — add a status entry before closing", number)
 	}
 	return nil
