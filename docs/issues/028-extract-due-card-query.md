@@ -1,6 +1,6 @@
 # 028 — Extract shared due-card query
 
-**Status:** open
+**Status:** closed
 **Type:** tech-debt
 **Source:** #014 architecture premortem
 
