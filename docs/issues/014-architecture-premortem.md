@@ -1,6 +1,6 @@
 # 014 — Architecture Premortem
 
-**Status:** open
+**Status:** closed
 **Type:** tech-debt / prevention
 
 ## Context
