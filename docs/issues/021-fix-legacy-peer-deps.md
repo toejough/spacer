@@ -1,6 +1,6 @@
 # 021 — Fix --legacy-peer-deps requirement
 
-**Status:** open
+**Status:** closed
 **Type:** tech-debt
 **Source:** retro #18 (also noted in retro #1)
 
@@ -16,4 +16,4 @@ Options:
 
 ## Acceptance Criteria
 
-- [ ] `npm install` works without `--legacy-peer-deps`, or the workaround is documented in CLAUDE.md
+- [x] `npm install` works without `--legacy-peer-deps` — downgraded Vite from 8.x to 7.x

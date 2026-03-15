@@ -1,6 +1,6 @@
 # 022 — Remove or use @vue/test-utils
 
-**Status:** open
+**Status:** closed
 **Type:** tech-debt
 **Source:** retro #18
 
@@ -10,4 +10,4 @@
 
 ## Acceptance Criteria
 
-- [ ] `@vue/test-utils` is either used in tests or removed from package.json
+- [x] `@vue/test-utils` removed from package.json
