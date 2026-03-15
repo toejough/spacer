@@ -5,11 +5,16 @@ Spaced repetition flashcard app. Vue 3 + TypeScript + Vite + Dexie (IndexedDB) +
 ## Build Commands
 
 ```bash
-targ dev       # Start Vite dev server
-targ test      # Run Vitest
-targ build     # Type-check + production build
-targ check     # Type-check + tests
-targ clean     # Remove build/test artifacts
+targ dev             # Start Vite dev server
+targ test            # Run Vitest
+targ build           # Type-check + production build
+targ check           # Type-check + tests
+targ clean           # Remove build/test artifacts
+targ issues          # List open issues
+targ issue-close N   # Close issue and commit (requires status.md entry)
+targ issue-archive N # Delete closed issue and commit
+targ history         # List deleted docs from git history
+targ history-show P  # Show a deleted file from git history
 ```
 
 ## Conventions
@@ -19,9 +24,10 @@ targ clean     # Remove build/test artifacts
 - **No empty stubs** — only create files with real, working code
 - **Integration tests** — at least one test per feature that exercises the full data path
 - **Commits** — use `/commit`, conventional commits format
-- **Issues** — `docs/issues/{number}-{slug}.md`
+- **Issues** — `docs/issues/{number}-{slug}.md`, open issues only; use `targ issue-close` / `targ issue-archive`
 - **Status** — `docs/status.md` is a narrative project log (timeline + rationale), updated every cycle
 - **Plans/specs** — write to `docs/plans/`, not `docs/superpowers/`
+- **Docs lifecycle** — HEAD contains only current/open docs. Closed issues, executed plans, and absorbed retros are deleted after a close commit + archive commit. `docs/status.md` indexes all historical work. To find deleted docs: `targ history` then `targ history-show <path>`
 - **Test runner isolation** — when adding a new test runner, update all existing test configs to exclude the new runner's directory in the same commit
 
 ## Tech Notes
