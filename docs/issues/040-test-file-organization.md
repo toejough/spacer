@@ -1,6 +1,6 @@
 # 040 — No convention for test file organization
 
-**Status:** open
+**Status:** closed
 **Type:** quality / prevention
 **Source:** #016 testing premortem
 
