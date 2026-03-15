@@ -63,11 +63,11 @@ Interactive walk-through of four premortem documents to identify weaknesses befo
 
 **Retro:** Process-focused retro identified 5 process/tooling gaps. Filed #048–#052 (issue template scaffolding, streamlined issue-close flow, issue-writing conventions, commit skill adherence, interactive discovery enforcement). Prioritized remaining issues by structural impact and dependency overlap to minimize rework.
 
-### Cycle 9 — Issue Conventions (#050, #048) ← next
+### Cycle 9 — Issue Conventions (#050, #048)
 
-Tiny meta-leverage: document how issues should be written, then encode it in a `targ issue-new` scaffolding command. Every issue filed after this benefits.
+Documented issue-writing conventions (Problem/Principle/Guidance template) in CLAUDE.md. Added `targ issue-new` command to scaffold issue files with auto-incremented numbers, scanning both current files and git history for highest number.
 
-### Cycle 10 — Test Standards (#037, absorbing #040, #042)
+### Cycle 10 — Test Standards (#037, absorbing #040, #042) ← next
 
 Establish BDD, property-based, DI, and expressive matcher conventions before any code work. Research ecosystem (fast-check, chai/vitest matchers), pick libraries, document conventions. #040 (file organization) and #042 (conventions doc) are naturally part of this — the output is both the standards and where tests live.
 
