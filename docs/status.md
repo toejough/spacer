@@ -38,19 +38,17 @@ Filed four premortem issues to identify weaknesses before they compound: archite
 
 **Picked** this process issue. Decision: keep `docs/status.md` as a narrative project log (not a duplicated issue board). Redesigned format to track timeline and per-issue cycle phases.
 
-### Cycle 7 — Housekeeping Sprint (#022, #023, #021, #020, #024) ← current
+### Cycle 7 — Housekeeping Sprint (#022, #023, #021, #020, #024)
 
-Batching five quick wins as autonomous work. Rationale: clear friction and hygiene issues first so premortems can inform the next feature cycle cleanly.
+Batched five quick wins as autonomous work. Rationale: clear friction and hygiene issues first so premortems can inform the next feature cycle cleanly.
 
-| Order | # | Title | Phase | Type |
-|-------|---|-------|-------|------|
-| 1 | 022 | Remove unused vue/test-utils | queued | Tech debt |
-| 2 | 023 | Test runner isolation convention | queued | Process |
-| 3 | 021 | Fix --legacy-peer-deps | queued | Tech debt |
-| 4 | 020 | Move specs to docs/plans/ | queued | Process |
-| 5 | 024 | Migrate dev/ to targ + clean target | queued | Tooling |
+- **#021** Fix --legacy-peer-deps → downgraded Vite 8.x to 7.x; `npm install` now works clean
+- **#022** Remove unused vue/test-utils → `npm uninstall @vue/test-utils`
+- **#023** Test runner isolation convention → added to CLAUDE.md
+- **#020** Move specs to docs/plans/ → migrated `docs/superpowers/` content, removed directory, added convention to CLAUDE.md
+- **#024** Migrate dev/ to targ → created `./targ` dispatcher with dev/test/build/check/clean subcommands, removed `dev/` scripts, updated CLAUDE.md, added `test-results/` to `.gitignore`
 
-### Cycle 8 — Premortems (#014–#017)
+### Cycle 8 — Premortems (#014–#017) ← next
 
 Interactive walk-through of four premortem documents to identify weaknesses before the next feature cycle.
 
