@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { SpacerDB } from "../../src/db";
+import {
+  SpacerDB,
+  createDeck,
+  createCard,
+  getDeckCards,
+  getDueCards,
+  updateCardReview,
+} from "../../src/db";
 import { sm2 } from "../../src/sm2";
 
 let testDbCounter = 0;
@@ -16,34 +23,18 @@ describe("Full flow: create deck → add card → review → SM-2 update", () =>
   });
 
   it("completes the entire user journey", async () => {
-    // Create a deck
-    const deckId = await db.decks.add({
-      name: "Test Deck",
-      createdAt: new Date(),
-    } as any);
-
-    // Add a card with default SM-2 state
+    const deckId = await createDeck(db, "Test Deck");
     const now = new Date();
-    const cardId = await db.cards.add({
-      deckId,
-      front: "What is 2+2?",
-      back: "4",
-      easeFactor: 2.5,
-      interval: 0,
-      repetitions: 0,
-      nextReview: now,
-    } as any);
 
-    // Verify card is queryable by deckId
-    const cards = await db.cards.where("deckId").equals(deckId).toArray();
+    await createCard(db, deckId, "What is 2+2?", "4");
+
+    const cards = await getDeckCards(db, deckId);
     expect(cards).toHaveLength(1);
     expect(cards[0].front).toBe("What is 2+2?");
 
-    // Filter due cards (nextReview <= now)
-    const dueCards = cards.filter((c) => c.nextReview <= now);
+    const dueCards = await getDueCards(db, deckId, now);
     expect(dueCards).toHaveLength(1);
 
-    // Review: apply SM-2 with quality=4 (good)
     const card = dueCards[0];
     const result = sm2(
       {
@@ -54,61 +45,38 @@ describe("Full flow: create deck → add card → review → SM-2 update", () =>
       4
     );
 
-    // Persist SM-2 result
-    await db.cards.update(card.id, {
-      easeFactor: result.easeFactor,
-      interval: result.interval,
-      repetitions: result.repetitions,
-      nextReview: result.nextReview,
-    });
+    await updateCardReview(db, card.id, result);
 
-    // Verify persisted state
     const updated = await db.cards.get(card.id);
     expect(updated!.repetitions).toBe(1);
     expect(updated!.interval).toBe(1);
     expect(updated!.easeFactor).toBeGreaterThanOrEqual(2.5);
     expect(updated!.nextReview.getTime()).toBeGreaterThan(now.getTime());
 
-    // Card should no longer be due (nextReview is tomorrow)
-    const stillDue = (await db.cards.where("deckId").equals(deckId).toArray())
-      .filter((c) => c.nextReview <= now);
+    const stillDue = await getDueCards(db, deckId, now);
     expect(stillDue).toHaveLength(0);
   });
 
   it("handles failed review (quality < 3) by resetting repetitions", async () => {
-    const deckId = await db.decks.add({
-      name: "Fail Deck",
-      createdAt: new Date(),
-    } as any);
+    const deckId = await createDeck(db, "Fail Deck");
+    const cardId = await createCard(db, deckId, "Hard question", "Hard answer");
 
-    await db.cards.add({
-      deckId,
-      front: "Hard question",
-      back: "Hard answer",
-      easeFactor: 2.5,
-      interval: 6,
-      repetitions: 2,
-      nextReview: new Date(),
-    } as any);
+    // Push card to look like it has prior review history
+    await db.cards.update(cardId, { interval: 6, repetitions: 2 });
 
-    const card = (await db.cards.where("deckId").equals(deckId).toArray())[0];
+    const card = (await db.cards.get(cardId))!;
     const result = sm2(
       {
         easeFactor: card.easeFactor,
         interval: card.interval,
         repetitions: card.repetitions,
       },
-      1 // fail
+      1
     );
 
-    await db.cards.update(card.id, {
-      easeFactor: result.easeFactor,
-      interval: result.interval,
-      repetitions: result.repetitions,
-      nextReview: result.nextReview,
-    });
+    await updateCardReview(db, cardId, result);
 
-    const updated = await db.cards.get(card.id);
+    const updated = await db.cards.get(cardId);
     expect(updated!.repetitions).toBe(0);
     expect(updated!.interval).toBe(0);
   });

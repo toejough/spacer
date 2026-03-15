@@ -8,6 +8,10 @@ export interface SM2Result extends SM2State {
   nextReview: Date;
 }
 
+export function newSM2State(now = new Date()): SM2Result {
+  return { easeFactor: 2.5, interval: 0, repetitions: 0, nextReview: now };
+}
+
 export function sm2(state: SM2State, quality: number, now = new Date()): SM2Result {
   const q = Math.max(0, Math.min(5, Math.round(quality)));
 

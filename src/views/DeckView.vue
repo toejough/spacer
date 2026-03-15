@@ -1,45 +1,28 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { useRoute } from "vue-router";
-import { db, type Card, type Deck } from "../db";
+import { db, getDeck, getDeckCards, getDueCards, createCard as createCardDb } from "../db";
+import { useLiveQuery } from "../use-live-query";
 
 const route = useRoute();
 const deckId = Number(route.params.id);
 
-const deck = ref<Deck | undefined>();
-const cards = ref<Card[]>([]);
+const deck = useLiveQuery(() => getDeck(db, deckId), undefined);
+const cards = useLiveQuery(() => getDeckCards(db, deckId), []);
+const dueCards = useLiveQuery(() => getDueCards(db, deckId), []);
 const front = ref("");
 const back = ref("");
 
-async function load() {
-  deck.value = await db.decks.get(deckId);
-  cards.value = await db.cards.where("deckId").equals(deckId).toArray();
-}
+const dueCount = computed(() => dueCards.value.length);
 
 async function addCard() {
   const f = front.value.trim();
   const b = back.value.trim();
   if (!f || !b) return;
-  await db.cards.add({
-    deckId,
-    front: f,
-    back: b,
-    easeFactor: 2.5,
-    interval: 0,
-    repetitions: 0,
-    nextReview: new Date(),
-  } as Card);
+  await createCardDb(db, deckId, f, b);
   front.value = "";
   back.value = "";
-  await load();
 }
-
-function dueCount() {
-  const now = new Date();
-  return cards.value.filter((c) => c.nextReview <= now).length;
-}
-
-onMounted(load);
 </script>
 
 <template>
@@ -48,11 +31,11 @@ onMounted(load);
       <h2 class="text-lg font-semibold">{{ deck.name }}</h2>
       <router-link
         :to="`/review/${deckId}`"
-        v-if="dueCount() > 0"
+        v-if="dueCount > 0"
         class="bg-indigo-600 text-white px-4 py-2 rounded text-sm"
         data-testid="start-review-btn"
       >
-        Review ({{ dueCount() }} due)
+        Review ({{ dueCount }} due)
       </router-link>
     </div>
 

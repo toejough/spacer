@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { db, type Card } from "../db";
+import { db, getDueCards, updateCardReview, type Card } from "../db";
 import { sm2 } from "../sm2";
 
 const route = useRoute();
@@ -16,9 +16,7 @@ const done = ref(false);
 const current = computed(() => dueCards.value[currentIndex.value]);
 
 async function load() {
-  const now = new Date();
-  const all = await db.cards.where("deckId").equals(deckId).toArray();
-  dueCards.value = all.filter((c) => c.nextReview <= now);
+  dueCards.value = await getDueCards(db, deckId);
   if (dueCards.value.length === 0) {
     done.value = true;
   }
@@ -41,12 +39,7 @@ async function rate(quality: number) {
     quality
   );
 
-  await db.cards.update(card.id, {
-    easeFactor: result.easeFactor,
-    interval: result.interval,
-    repetitions: result.repetitions,
-    nextReview: result.nextReview,
-  });
+  await updateCardReview(db, card.id, result);
 
   flipped.value = false;
   if (currentIndex.value < dueCards.value.length - 1) {

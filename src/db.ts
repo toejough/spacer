@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable } from "dexie";
+import { newSM2State, type SM2Result } from "./sm2";
 
 export interface Deck {
   id: number;
@@ -31,3 +32,47 @@ export class SpacerDB extends Dexie {
 }
 
 export const db = new SpacerDB();
+
+// Queries
+
+export function getAllDecks(db: SpacerDB): Promise<Deck[]> {
+  return db.decks.toArray();
+}
+
+export function getDeck(db: SpacerDB, id: number): Promise<Deck | undefined> {
+  return db.decks.get(id);
+}
+
+export function getDeckCards(db: SpacerDB, deckId: number): Promise<Card[]> {
+  return db.cards.where("deckId").equals(deckId).toArray();
+}
+
+export async function getDueCards(db: SpacerDB, deckId: number, now = new Date()): Promise<Card[]> {
+  const cards = await db.cards.where("deckId").equals(deckId).toArray();
+  return cards.filter((c) => c.nextReview <= now);
+}
+
+// Mutations
+
+export async function createDeck(db: SpacerDB, name: string): Promise<number> {
+  return db.decks.add({ name, createdAt: new Date() } as Deck);
+}
+
+export async function createCard(db: SpacerDB, deckId: number, front: string, back: string): Promise<number> {
+  const sm2 = newSM2State();
+  return db.cards.add({
+    deckId,
+    front,
+    back,
+    ...sm2,
+  } as Card);
+}
+
+export async function updateCardReview(db: SpacerDB, cardId: number, result: SM2Result): Promise<void> {
+  await db.cards.update(cardId, {
+    easeFactor: result.easeFactor,
+    interval: result.interval,
+    repetitions: result.repetitions,
+    nextReview: result.nextReview,
+  });
+}

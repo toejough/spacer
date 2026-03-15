@@ -1,23 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { db, type Deck } from "../db";
+import { ref } from "vue";
+import { db, getAllDecks, createDeck as createDeckDb } from "../db";
+import { useLiveQuery } from "../use-live-query";
 
-const decks = ref<Deck[]>([]);
+const decks = useLiveQuery(() => getAllDecks(db), []);
 const newDeckName = ref("");
-
-async function loadDecks() {
-  decks.value = await db.decks.toArray();
-}
 
 async function createDeck() {
   const name = newDeckName.value.trim();
   if (!name) return;
-  await db.decks.add({ name, createdAt: new Date() } as Deck);
+  await createDeckDb(db, name);
   newDeckName.value = "";
-  await loadDecks();
 }
-
-onMounted(loadDecks);
 </script>
 
 <template>
