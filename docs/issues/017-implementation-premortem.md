@@ -1,6 +1,6 @@
 # 017 — Implementation Details Premortem
 
-**Status:** open
+**Status:** closed
 **Type:** quality / prevention
 
 ## Context
