@@ -1,6 +1,6 @@
 # 020 — Move spec location from docs/superpowers/ to docs/plans/
 
-**Status:** open
+**Status:** closed
 **Type:** process
 **Source:** retro #18
 
@@ -10,6 +10,6 @@ The brainstorming skill defaults to writing specs to `docs/superpowers/specs/`, 
 
 ## Acceptance Criteria
 
-- [ ] CLAUDE.md specifies `docs/plans/` as the spec location
-- [ ] Any existing content in `docs/superpowers/` migrated or removed
-- [ ] Future brainstorming specs land in `docs/plans/`
+- [x] CLAUDE.md specifies `docs/plans/` as the spec location
+- [x] Any existing content in `docs/superpowers/` migrated or removed
+- [x] Future brainstorming specs land in `docs/plans/`

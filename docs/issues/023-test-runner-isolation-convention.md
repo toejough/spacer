@@ -1,6 +1,6 @@
 # 023 — Add test runner isolation convention to CLAUDE.md
 
-**Status:** open
+**Status:** closed
 **Type:** process
 **Source:** retro #18
 
@@ -12,4 +12,4 @@ Add a convention: when introducing a new test runner, update all existing test c
 
 ## Acceptance Criteria
 
-- [ ] Convention documented in CLAUDE.md
+- [x] Convention documented in CLAUDE.md
