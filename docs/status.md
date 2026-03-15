@@ -34,21 +34,29 @@ Filed four premortem issues to identify weaknesses before they compound: archite
 
 **Retro:** Filed 5 action items (#19–#23) covering status doc maintenance, spec location, legacy-peer-deps, unused test-utils dep, and test runner isolation convention.
 
-### Cycle 6 — Status Doc (#19) ← current
+### Cycle 6 — Status Doc (#19)
 
 **Picked** this process issue. Decision: keep `docs/status.md` as a narrative project log (not a duplicated issue board). Redesigned format to track timeline and per-issue cycle phases.
 
-## Open Issues
+### Cycle 7 — Housekeeping Sprint (#022, #023, #021, #020, #024) ← current
 
-| # | Title | Phase | Notes |
-|---|-------|-------|-------|
-| 014 | Architecture premortem | open | Living document |
-| 015 | UX/design premortem | open | Living document |
-| 016 | Testing premortem | open | Living document |
-| 017 | Implementation premortem | open | Living document |
-| 019 | Update status doc | implement | This cycle |
-| 020 | Move specs to docs/plans/ | picked | Process change |
-| 021 | Fix --legacy-peer-deps | picked | Tech debt |
-| 022 | Remove unused vue/test-utils | picked | Tech debt |
-| 023 | Test runner isolation convention | picked | Process change |
-| 024 | Migrate dev/ to targ + clean target | open | Tooling |
+Batching five quick wins as autonomous work. Rationale: clear friction and hygiene issues first so premortems can inform the next feature cycle cleanly.
+
+| Order | # | Title | Phase | Type |
+|-------|---|-------|-------|------|
+| 1 | 022 | Remove unused vue/test-utils | queued | Tech debt |
+| 2 | 023 | Test runner isolation convention | queued | Process |
+| 3 | 021 | Fix --legacy-peer-deps | queued | Tech debt |
+| 4 | 020 | Move specs to docs/plans/ | queued | Process |
+| 5 | 024 | Migrate dev/ to targ + clean target | queued | Tooling |
+
+### Cycle 8 — Premortems (#014–#017)
+
+Interactive walk-through of four premortem documents to identify weaknesses before the next feature cycle.
+
+| Order | # | Title | Phase | Type |
+|-------|---|-------|-------|------|
+| 1 | 014 | Architecture premortem | queued | Prevention |
+| 2 | 015 | UX/design premortem | queued | Prevention |
+| 3 | 016 | Testing premortem | queued | Prevention |
+| 4 | 017 | Implementation premortem | queued | Prevention |
