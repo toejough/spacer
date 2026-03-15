@@ -31,9 +31,16 @@ targ history-show P  # Show a deleted file from git history
 - **Retro format** — `docs/retros/{date}-{number}-{slug}.md`. Sections: **Plus** (reinforce/repeat), **Delta** (change next time), **Other observations**, **Action items**. Every action item must either be filed as an issue or absorbed into CLAUDE.md before the retro can be archived. Retros are archived once all action items are handled.
 - **Test runner isolation** — when adding a new test runner, update all existing test configs to exclude the new runner's directory in the same commit
 
+## Architecture
+
+- **No stores** — views query Dexie directly. Add a store layer only when cross-component reactivity is needed.
+- **No extracted components** — all UI lives in 3 view files (Home, Deck, Review). Extract components when there's duplication or complexity, not preemptively.
+- **Routes** — `/` (Home), `/deck/:id` (Deck), `/review/:deckId` (Review), all lazy-loaded
+- **PWA** — Workbox via `vite-plugin-pwa`, `generateSW` strategy, precaches all build assets including lazy chunks
+
 ## Tech Notes
 
 - DB: Dexie with EntityTable for type-safe IndexedDB
 - SM-2: pure function in `src/sm2.ts`
-- Test env: happy-dom + fake-indexeddb
-- Each test gets its own DB instance (no shared mutable state)
+- Unit tests: Vitest + happy-dom + fake-indexeddb; each test gets its own DB instance
+- E2E tests: Playwright in `e2e/`, runs against production build (SW requires it)
