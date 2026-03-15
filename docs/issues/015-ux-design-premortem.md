@@ -1,6 +1,6 @@
 # 015 — UX & Visual Design Premortem
 
-**Status:** open
+**Status:** closed
 **Type:** design / prevention
 
 ## Context
