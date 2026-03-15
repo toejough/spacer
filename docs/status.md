@@ -59,4 +59,4 @@ Interactive walk-through of four premortem documents to identify weaknesses befo
 - **#014** Architecture premortem → filed #028–#031 (due-card query duplication, SM-2 default factory, data-access layer, card model separation)
 - **#015** UX/design premortem → filed #032–#036 (action feedback, design tokens, navigation structure, review rating labels, view state patterns)
 - **#016** Testing premortem → filed #037–#042 (test standards with BDD/property-based/DI/expressive matchers, SM-2 unit tests, view testing, test file organization, E2E coverage gaps, test conventions doc)
-- **#017** Implementation premortem → queued
+- **#017** Implementation premortem → filed #043–#047 (type safety at DB boundary, DB migration pattern, DB error handling, input validation, stale state across views)
