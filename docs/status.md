@@ -1,18 +1,54 @@
-# Spacer — Project Status
+# Spacer — Project Log
 
-**Last updated:** 2026-03-14
-**Current increment:** 2
-**Streak:** 1
+High-level timeline of project decisions and actions. Updated every cycle.
 
-## Done
-- #1 Bootstrap project with full stack (2026-03-14) — reverted in reset
-- #12 Rebuild: vertical slice bootstrap (2026-03-14)
+## Cycle Phases
 
-## Closed (wont-fix)
-- #2-#11 — superseded by rebuild
+Each issue progresses through: **pick → plan → implement (red/green/refactor) → retro → file action items → close**
 
-## In Progress
+## Timeline
 
-## Up Next
+### Cycle 1 — Bootstrap (#1)
 
-## Blocked
+Scaffolded the project with horizontal layers: Vite, Vue Router, Pinia, Dexie, SM-2, PWA manifest, Tailwind. Created stubs for all components. No working end-to-end flow.
+
+**Retro:** Filed 10 issues (#2–#11) covering missing vertical slice, code quality, tooling gaps. Realized the horizontal-layer approach left nothing usable. Reverted all application code and closed #1–#11.
+
+### Cycle 2 — Rebuild (#12)
+
+Started fresh with a vertical-slice approach: one working flow (create deck → add card → review with SM-2) delivered incrementally. Each commit added a working layer.
+
+**Retro:** Process worked much better. Filed #13 (plan gate) to prevent future multi-file changes without a written plan.
+
+### Cycle 3 — Plan Gate (#13)
+
+Added structural plan gate to the 5-minute increment skill: any change touching 3+ files requires a written plan in `docs/plans/` with user approval. Closed immediately — process change, no code.
+
+### Cycle 4 — Premortems (#14–#17)
+
+Filed four premortem issues to identify weaknesses before they compound: architecture (#14), UX/design (#15), testing (#16), implementation details (#17). All still open — intended as living documents.
+
+### Cycle 5 — PWA Offline Fix (#18)
+
+**Picked** because the app crashed without a dev server — the PWA promise was broken. Added service worker with Workbox precaching, fixed manifest, added E2E tests with Playwright.
+
+**Retro:** Filed 5 action items (#19–#23) covering status doc maintenance, spec location, legacy-peer-deps, unused test-utils dep, and test runner isolation convention.
+
+### Cycle 6 — Status Doc (#19) ← current
+
+**Picked** this process issue. Decision: keep `docs/status.md` as a narrative project log (not a duplicated issue board). Redesigned format to track timeline and per-issue cycle phases.
+
+## Open Issues
+
+| # | Title | Phase | Notes |
+|---|-------|-------|-------|
+| 014 | Architecture premortem | open | Living document |
+| 015 | UX/design premortem | open | Living document |
+| 016 | Testing premortem | open | Living document |
+| 017 | Implementation premortem | open | Living document |
+| 019 | Update status doc | implement | This cycle |
+| 020 | Move specs to docs/plans/ | picked | Process change |
+| 021 | Fix --legacy-peer-deps | picked | Tech debt |
+| 022 | Remove unused vue/test-utils | picked | Tech debt |
+| 023 | Test runner isolation convention | picked | Process change |
+| 024 | Migrate dev/ to targ + clean target | open | Tooling |

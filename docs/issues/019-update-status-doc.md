@@ -1,6 +1,6 @@
 # 019 — Update docs/status.md or drop the convention
 
-**Status:** open
+**Status:** closed
 **Type:** process
 **Source:** retro #18
 
@@ -10,6 +10,6 @@ CLAUDE.md says "Status — docs/status.md updated every cycle" but it hasn't bee
 
 ## Acceptance Criteria
 
-- [ ] Decide: keep or drop
-- [ ] If keep: update docs/status.md to reflect current state, add reminder to commit workflow
-- [ ] If drop: remove the convention from CLAUDE.md
+- [x] Decide: keep or drop → **keep** as narrative project log
+- [x] If keep: update docs/status.md to reflect current state, add reminder to commit workflow
+- [ ] ~~If drop: remove the convention from CLAUDE.md~~ N/A

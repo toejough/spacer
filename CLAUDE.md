@@ -19,7 +19,7 @@ dev/check        # Type-check + tests
 - **Integration tests** — at least one test per feature that exercises the full data path
 - **Commits** — use `/commit`, conventional commits format
 - **Issues** — `docs/issues/{number}-{slug}.md`
-- **Status** — `docs/status.md` updated every cycle
+- **Status** — `docs/status.md` is a narrative project log (timeline + rationale), updated every cycle
 
 ## Tech Notes
 
