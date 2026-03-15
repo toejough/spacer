@@ -1,6 +1,6 @@
 # 030 — Introduce data-access query functions
 
-**Status:** open
+**Status:** closed
 **Type:** tech-debt
 **Source:** #014 architecture premortem
 
