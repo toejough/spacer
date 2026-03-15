@@ -1,6 +1,6 @@
 # 027 — Project identity claims must be backed by infrastructure
 
-**Status:** open
+**Status:** closed
 **Type:** convention
 
 ## Context
