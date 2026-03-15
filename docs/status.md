@@ -49,6 +49,7 @@ Batched five quick wins as autonomous work. Rationale: clear friction and hygien
 - **#024** Migrate dev/ to targ → build targets in `dev/targets.go`, system `targ` discovers them; added `test-results/` to `.gitignore` (approach fixed by #025)
 - **#025** Fix targ setup → replaced root `./targ` shell script with proper `dev/targets.go` string targets; added doc lifecycle targets (`issues`, `issue-close`, `issue-archive`, `history`, `history-show`); adopted "HEAD = current state" convention for docs
 
+- **#026** Fix errors, don't report them → convention added to CLAUDE.md: read error, identify cause, fix, re-run; only stop after two failed attempts or genuine ambiguity
 - **#027** Claims need code → convention added to CLAUDE.md: don't document capabilities that aren't backed by working code
 
 ### Cycle 8 — Premortems (#014–#017) ← next

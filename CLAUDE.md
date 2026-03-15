@@ -31,6 +31,7 @@ targ history-show P  # Show a deleted file from git history
 - **Retro format** — `docs/retros/{date}-{number}-{slug}.md`. Sections: **Plus** (reinforce/repeat), **Delta** (change next time), **Other observations**, **Action items**. Every action item must either be filed as an issue or absorbed into CLAUDE.md before the retro can be archived. Retros are archived once all action items are handled.
 - **Test runner isolation** — when adding a new test runner, update all existing test configs to exclude the new runner's directory in the same commit
 - **Claims need code** — if CLAUDE.md, package.json, or project descriptions claim a capability, working code must back it. Don't document features that don't exist yet.
+- **Fix errors, don't report them** — when a command, build, or test fails: (1) read the error, (2) identify the cause, (3) fix it, (4) re-run to verify. Only stop and ask if you've attempted a fix and it failed twice, or if the error is genuinely ambiguous with multiple plausible causes.
 
 ## Architecture
 
