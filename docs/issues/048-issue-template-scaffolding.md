@@ -1,6 +1,6 @@
 # 048 — Add `targ issue-new` to scaffold issue files
 
-**Status:** open
+**Status:** closed
 **Type:** tooling
 
 ## Problem
