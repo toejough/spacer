@@ -20,8 +20,7 @@ func init() {
 		targ.Targ("npx vue-tsc --noEmit && npx vitest run").Name("check"),
 		targ.Targ("rm -rf dist/ test-results/").Name("clean"),
 		targ.Targ(issues).Description("List open issues"),
-		targ.Targ(issueClose).Description("Close an issue and commit"),
-		targ.Targ(issueArchive).Description("Delete a closed issue and commit"),
+		targ.Targ(issueClose).Description("Close an issue, archive it, and commit"),
 		targ.Targ(history).Description("List deleted docs from git history"),
 		targ.Targ(historyShow).Description("Show a deleted file from git history"),
 	)
@@ -85,40 +84,23 @@ func issueClose(args closeArgs) error {
 		return err
 	}
 
+	slug := strings.TrimSuffix(filepath.Base(path), ".md")
+
+	// Close: update status and commit
 	if err := replaceInFile(path, "**Status:** open", "**Status:** closed"); err != nil {
 		return fmt.Errorf("failed to update status: %w", err)
 	}
-
 	if err := targ.Run("git", "add", path); err != nil {
 		return err
 	}
-	slug := strings.TrimSuffix(filepath.Base(path), ".md")
-	return targ.Run("git", "commit", "-m", fmt.Sprintf("docs: close #%s (%s)", args.Number, slug))
-}
-
-type archiveArgs struct {
-	Number string `targ:"positional,placeholder=NUMBER,desc=Issue number (e.g. 025)"`
-}
-
-func issueArchive(args archiveArgs) error {
-	path, err := findIssueFile(args.Number)
-	if err != nil {
+	if err := targ.Run("git", "commit", "-m", fmt.Sprintf("docs: close #%s (%s)", args.Number, slug)); err != nil {
 		return err
 	}
 
-	status, err := readIssueStatus(path)
-	if err != nil {
-		return err
-	}
-	if status == "open" {
-		return fmt.Errorf("issue %s is still open — close it first with: targ issue-close %s", args.Number, args.Number)
-	}
-
-	slug := strings.TrimSuffix(filepath.Base(path), ".md")
+	// Archive: delete file and commit
 	if err := os.Remove(path); err != nil {
 		return fmt.Errorf("failed to delete %s: %w", path, err)
 	}
-
 	if err := targ.Run("git", "add", path); err != nil {
 		return err
 	}

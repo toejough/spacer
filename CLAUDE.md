@@ -11,8 +11,7 @@ targ build           # Type-check + production build
 targ check           # Type-check + tests
 targ clean           # Remove build/test artifacts
 targ issues          # List open issues
-targ issue-close N   # Close issue and commit (requires status.md entry)
-targ issue-archive N # Delete closed issue and commit
+targ issue-close N   # Close and archive issue (requires status.md entry)
 targ history         # List deleted docs from git history
 targ history-show P  # Show a deleted file from git history
 ```
@@ -24,10 +23,10 @@ targ history-show P  # Show a deleted file from git history
 - **No empty stubs** — only create files with real, working code
 - **Integration tests** — at least one test per feature that exercises the full data path
 - **Commits** — use `/commit`, conventional commits format
-- **Issues** — `docs/issues/{number}-{slug}.md`, open issues only; use `targ issue-close` / `targ issue-archive`
+- **Issues** — `docs/issues/{number}-{slug}.md`, open issues only; use `targ issue-close`
 - **Status** — `docs/status.md` is a narrative project log (timeline + rationale), updated every cycle
 - **Plans/specs** — write to `docs/plans/`, not `docs/superpowers/`
-- **Docs lifecycle** — HEAD contains only current/open docs. Closed issues, executed plans, and absorbed retros are deleted after a close commit + archive commit. `docs/status.md` indexes all historical work. To find deleted docs: `targ history` then `targ history-show <path>`
+- **Docs lifecycle** — HEAD contains only current/open docs. `targ issue-close` closes and archives in one step (two commits). `docs/status.md` indexes all historical work. To find deleted docs: `targ history` then `targ history-show <path>`
 - **Retro format** — `docs/retros/{date}-{number}-{slug}.md`. Sections: **Plus** (reinforce/repeat), **Delta** (change next time), **Other observations**, **Action items**. Every action item must either be filed as an issue or absorbed into CLAUDE.md before the retro can be archived. Retros are archived once all action items are handled.
 - **Test runner isolation** — when adding a new test runner, update all existing test configs to exclude the new runner's directory in the same commit
 - **Claims need code** — if CLAUDE.md, package.json, or project descriptions claim a capability, working code must back it. Don't document features that don't exist yet.
