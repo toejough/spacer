@@ -1,6 +1,6 @@
 # 037 — Establish test standards: BDD, property-based, DI, expressive matchers
 
-**Status:** open
+**Status:** closed
 **Type:** quality / prevention
 **Source:** #016 testing premortem
 
