@@ -1,6 +1,6 @@
 # 026 — Don't pause on clear errors
 
-**Status:** open
+**Status:** closed
 **Type:** convention
 
 ## Context
