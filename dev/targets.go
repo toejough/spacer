@@ -20,6 +20,7 @@ func init() {
 		targ.Targ("npx vue-tsc --noEmit && npx vitest run").Name("check"),
 		targ.Targ("rm -rf dist/ test-results/").Name("clean"),
 		targ.Targ(issues).Description("List open issues"),
+		targ.Targ(issueNew).Description("Scaffold a new issue file with next number"),
 		targ.Targ(issueClose).Description("Close an issue, archive it, and commit"),
 		targ.Targ(history).Description("List deleted docs from git history"),
 		targ.Targ(historyShow).Description("Show a deleted file from git history"),
@@ -59,6 +60,109 @@ func issues() error {
 		fmt.Printf("\n%d open issue(s).\n", found)
 	}
 	return nil
+}
+
+type newArgs struct {
+	Slug string `targ:"positional,placeholder=SLUG,desc=Issue slug (e.g. fix-login-bug)"`
+}
+
+func issueNew(args newArgs) error {
+	if args.Slug == "" {
+		return fmt.Errorf("slug is required")
+	}
+
+	// Ensure docs/issues/ exists
+	if err := os.MkdirAll("docs/issues", 0o755); err != nil {
+		return fmt.Errorf("failed to create docs/issues/: %w", err)
+	}
+
+	// Find next issue number by scanning existing files and git history
+	next, err := nextIssueNumber()
+	if err != nil {
+		return err
+	}
+
+	number := fmt.Sprintf("%03d", next)
+	filename := fmt.Sprintf("%s-%s.md", number, args.Slug)
+	path := filepath.Join("docs/issues", filename)
+
+	template := fmt.Sprintf(`# %s — %s
+
+**Status:** open
+**Type:**
+
+## Problem
+
+
+
+## Principle
+
+
+
+## Guidance
+
+Before implementing, read the current codebase to understand what's changed since this issue was filed. Research external best practices relevant to the problem. Tailor the solution to the current state, not the state when this issue was written.
+`, number, toTitle(args.Slug))
+
+	if err := os.WriteFile(path, []byte(template), 0o644); err != nil {
+		return fmt.Errorf("failed to write %s: %w", path, err)
+	}
+
+	fmt.Printf("Created %s\n", path)
+	return nil
+}
+
+func nextIssueNumber() (int, error) {
+	max := 0
+
+	// Check current files
+	entries, err := os.ReadDir("docs/issues")
+	if err != nil && !os.IsNotExist(err) {
+		return 0, fmt.Errorf("cannot read docs/issues/: %w", err)
+	}
+	for _, e := range entries {
+		n := parseIssueNumber(e.Name())
+		if n > max {
+			max = n
+		}
+	}
+
+	// Check git history for deleted issues
+	output, err := targ.Output("git", "log", "--diff-filter=D", "--name-only", "--pretty=format:", "--", "docs/issues/")
+	if err == nil {
+		for _, line := range strings.Split(output, "\n") {
+			base := filepath.Base(strings.TrimSpace(line))
+			n := parseIssueNumber(base)
+			if n > max {
+				max = n
+			}
+		}
+	}
+
+	return max + 1, nil
+}
+
+func parseIssueNumber(filename string) int {
+	parts := strings.SplitN(filename, "-", 2)
+	if len(parts) < 2 {
+		return 0
+	}
+	n := 0
+	for _, c := range parts[0] {
+		if c < '0' || c > '9' {
+			return 0
+		}
+		n = n*10 + int(c-'0')
+	}
+	return n
+}
+
+func toTitle(slug string) string {
+	words := strings.Split(slug, "-")
+	if len(words) > 0 {
+		words[0] = strings.ToUpper(words[0][:1]) + words[0][1:]
+	}
+	return strings.Join(words, " ")
 }
 
 type closeArgs struct {

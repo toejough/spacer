@@ -11,6 +11,7 @@ targ build           # Type-check + production build
 targ check           # Type-check + tests
 targ clean           # Remove build/test artifacts
 targ issues          # List open issues
+targ issue-new SLUG  # Scaffold a new issue file with next number
 targ issue-close N   # Close and archive issue (requires status.md entry)
 targ history         # List deleted docs from git history
 targ history-show P  # Show a deleted file from git history
@@ -23,7 +24,7 @@ targ history-show P  # Show a deleted file from git history
 - **No empty stubs** — only create files with real, working code
 - **Integration tests** — at least one test per feature that exercises the full data path
 - **Commits** — use `/commit`, conventional commits format
-- **Issues** — `docs/issues/{number}-{slug}.md`, open issues only; use `targ issue-close`
+- **Issues** — `docs/issues/{NNN}-{slug}.md`, open issues only; use `targ issue-new` to scaffold, `targ issue-close` to close+archive. Every issue has three sections: **Problem** (concrete description with code/file references), **Principle** (the underlying design principle), **Guidance** (direction for the resolver — including external research recommendations — but leave room to re-evaluate against the codebase as it exists when the issue is picked up, not when it was filed)
 - **Status** — `docs/status.md` is a narrative project log (timeline + rationale), updated every cycle
 - **Plans/specs** — write to `docs/plans/`, not `docs/superpowers/`
 - **Docs lifecycle** — HEAD contains only current/open docs. `targ issue-close` closes and archives in one step (two commits). `docs/status.md` indexes all historical work. To find deleted docs: `targ history` then `targ history-show <path>`
