@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cmd="${1:-help}"
+shift 2>/dev/null || true
+
+case "$cmd" in
+  dev)
+    exec npx vite
+    ;;
+  test)
+    exec npx vitest run "$@"
+    ;;
+  build)
+    npx vue-tsc --noEmit && npx vite build
+    ;;
+  check)
+    npx vue-tsc --noEmit && npx vitest run
+    ;;
+  clean)
+    rm -rf dist/ test-results/
+    echo "Cleaned: dist/ test-results/"
+    ;;
+  help|*)
+    echo "Usage: targ <command>"
+    echo ""
+    echo "Commands:"
+    echo "  dev     Start Vite dev server"
+    echo "  test    Run Vitest (accepts extra args)"
+    echo "  build   Type-check + production build"
+    echo "  check   Type-check + tests"
+    echo "  clean   Remove build/test artifacts"
+    ;;
+esac

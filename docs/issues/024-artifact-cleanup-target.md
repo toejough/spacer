@@ -1,6 +1,6 @@
 # 024 — Migrate dev/ scripts to targ and add clean target
 
-**Status:** open
+**Status:** closed
 **Type:** tooling
 
 ## Context
@@ -11,7 +11,7 @@ Additionally, build and test tools leave artifacts that accumulate in the workin
 
 ## Acceptance Criteria
 
-- [ ] `targ` dispatches to subcommands (dev, build, test, check, clean, etc.)
-- [ ] `targ clean` removes build and test artifacts (dist/, test-results/, etc.)
-- [ ] Existing `dev/*` scripts migrated to targ subcommands
-- [ ] CLAUDE.md updated with new build commands
+- [x] `targ` dispatches to subcommands (dev, build, test, check, clean, etc.)
+- [x] `targ clean` removes build and test artifacts (dist/, test-results/, etc.)
+- [x] Existing `dev/*` scripts migrated to targ subcommands
+- [x] CLAUDE.md updated with new build commands

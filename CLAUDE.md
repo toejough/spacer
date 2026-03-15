@@ -5,10 +5,11 @@ Spaced repetition flashcard app. Vue 3 + TypeScript + Vite + Dexie (IndexedDB) +
 ## Build Commands
 
 ```bash
-dev/dev          # Start Vite dev server
-dev/test         # Run Vitest
-dev/build        # Type-check + production build
-dev/check        # Type-check + tests
+./targ dev       # Start Vite dev server
+./targ test      # Run Vitest
+./targ build     # Type-check + production build
+./targ check     # Type-check + tests
+./targ clean     # Remove build/test artifacts
 ```
 
 ## Conventions
@@ -20,6 +21,8 @@ dev/check        # Type-check + tests
 - **Commits** — use `/commit`, conventional commits format
 - **Issues** — `docs/issues/{number}-{slug}.md`
 - **Status** — `docs/status.md` is a narrative project log (timeline + rationale), updated every cycle
+- **Plans/specs** — write to `docs/plans/`, not `docs/superpowers/`
+- **Test runner isolation** — when adding a new test runner, update all existing test configs to exclude the new runner's directory in the same commit
 
 ## Tech Notes
 
