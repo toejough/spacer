@@ -1,6 +1,6 @@
 # 016 — Testing Premortem
 
-**Status:** open
+**Status:** closed
 **Type:** quality / prevention
 
 ## Context
