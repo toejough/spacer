@@ -1,6 +1,6 @@
 # 042 — No test conventions documented
 
-**Status:** open
+**Status:** closed
 **Type:** quality / prevention
 **Source:** #016 testing premortem
 
