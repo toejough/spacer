@@ -1,1 +1,28 @@
 @import "tailwindcss";
+
+@theme {
+  --color-bg: #e8e4dc;
+  --color-surface: #ddd8ce;
+  --color-surface-raised: #ece8e0;
+  --color-primary: #0891b2;
+  --color-primary-hover: #0e7490;
+  --color-secondary: #65a30d;
+  --color-accent: #86195e;
+  --color-accent-hover: #701a50;
+  --color-text: #4a4a4a;
+  --color-text-muted: #6b6560;
+  --color-text-faint: #9b958e;
+  --color-border: #d0cabe;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-skeleton {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
