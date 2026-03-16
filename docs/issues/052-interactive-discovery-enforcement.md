@@ -1,6 +1,6 @@
 # 052 — LLM skips interactive/discovery steps
 
-**Status:** open
+**Status:** closed
 **Type:** process
 
 ## Problem
