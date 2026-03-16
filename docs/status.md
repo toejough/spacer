@@ -75,10 +75,10 @@ Created `docs/testing.md` with full testing strategy: BDD spec-first workflow (i
 
 Extracted 7 framework-agnostic query/mutation functions into `db.ts`, added `newSM2State()` factory to `sm2.ts`, and created a thin `useLiveQuery` composable (~15 lines) as the only Vue-aware piece. All 3 views rewritten: HomeView and DeckView use reactive `liveQuery` subscriptions (solving stale state #047), ReviewView uses the shared `getDueCards` query (solving duplication #028). Card creation uses `newSM2State()` (#029). 14 new tests across unit/behavioral/integration layers.
 
-### Cycle 12 — Type Safety at DB Boundary (#043) ← next
+### Cycle 12 — Type Safety at DB Boundary (#043)
 
-With the access layer in place from cycle 11, enforce types at the insertion/query boundary. Eliminate `as Card` / `as any` casts. Small scope after the access layer exists.
+Removed `as Deck` and `as Card` type assertion casts from `createDeck` and `createCard` in `db.ts`. Dexie's `EntityTable<T, "id">` already computes `InsertType` making `id` optional for auto-incremented keys — the casts were suppressing this built-in safety. Inserts are now structurally verified by the compiler; a missing or mistyped field is a compile error.
 
-### Cycle 13 — UI Foundations (#033 + #036)
+### Cycle 13 — UI Foundations (#033 + #036) ← next
 
 Establish design tokens and view state patterns. Views were just rewritten for data (cycle 11), now standardize their styling and loading/error/empty representation. All subsequent UX issues (#032, #034, #035) inherit these patterns.
