@@ -96,7 +96,7 @@ Removed `as Deck` and `as Card` type assertion casts from `createDeck` and `crea
 
 Established design tokens via Tailwind v4 `@theme` ("Warm Stone" palette — cream backgrounds, cyan/green primaries, dark magenta accent) and a `ViewState<T>` discriminated union (`loading | loaded | empty | error | not-found`). Built `useLiveViewState` composable subscribing directly to Dexie's `liveQuery` with error handling and `notFoundWhen` option. Migrated all 3 views: HomeView (single view state), DeckView (dual view state for deck + cards), ReviewView (manual ref for imperative loading). Added Lucide icons for empty/not-found/error states, skeleton loading placeholders, and consistent "Back to decks" navigation. 38 tests across 9 files (unit, behavioral, integration).
 
-### Cycle 14 — Process Improvements (#053, #049, #051)
+### Cycle 14 — Process Improvements (#053, #049, #051, #052)
 **Completed:** 2026-03-15
 
 Batch of process/tooling fixes.
