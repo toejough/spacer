@@ -55,7 +55,7 @@ export async function getDueCards(db: SpacerDB, deckId: number, now = new Date()
 // Mutations
 
 export async function createDeck(db: SpacerDB, name: string): Promise<number> {
-  return db.decks.add({ name, createdAt: new Date() } as Deck);
+  return db.decks.add({ name, createdAt: new Date() });
 }
 
 export async function createCard(db: SpacerDB, deckId: number, front: string, back: string): Promise<number> {
@@ -65,7 +65,7 @@ export async function createCard(db: SpacerDB, deckId: number, front: string, ba
     front,
     back,
     ...sm2,
-  } as Card);
+  });
 }
 
 export async function updateCardReview(db: SpacerDB, cardId: number, result: SM2Result): Promise<void> {
