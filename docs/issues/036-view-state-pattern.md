@@ -1,6 +1,6 @@
 # 036 — No consistent pattern for empty/error/loading states
 
-**Status:** open
+**Status:** closed
 **Type:** ux / prevention
 **Source:** #015 UX/design premortem
 
