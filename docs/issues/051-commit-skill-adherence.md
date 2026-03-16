@@ -1,6 +1,6 @@
 # 051 — LLM drifts from `/commit` skill over long sessions
 
-**Status:** open
+**Status:** closed
 **Type:** process
 
 ## Problem
