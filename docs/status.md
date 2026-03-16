@@ -79,6 +79,6 @@ Extracted 7 framework-agnostic query/mutation functions into `db.ts`, added `new
 
 Removed `as Deck` and `as Card` type assertion casts from `createDeck` and `createCard` in `db.ts`. Dexie's `EntityTable<T, "id">` already computes `InsertType` making `id` optional for auto-incremented keys — the casts were suppressing this built-in safety. Inserts are now structurally verified by the compiler; a missing or mistyped field is a compile error.
 
-### Cycle 13 — UI Foundations (#033 + #036) ← next
+### Cycle 13 — UI Foundations (#033 + #036)
 
-Establish design tokens and view state patterns. Views were just rewritten for data (cycle 11), now standardize their styling and loading/error/empty representation. All subsequent UX issues (#032, #034, #035) inherit these patterns.
+Established design tokens via Tailwind v4 `@theme` ("Warm Stone" palette — cream backgrounds, cyan/green primaries, dark magenta accent) and a `ViewState<T>` discriminated union (`loading | loaded | empty | error | not-found`). Built `useLiveViewState` composable subscribing directly to Dexie's `liveQuery` with error handling and `notFoundWhen` option. Migrated all 3 views: HomeView (single view state), DeckView (dual view state for deck + cards), ReviewView (manual ref for imperative loading). Added Lucide icons for empty/not-found/error states, skeleton loading placeholders, and consistent "Back to decks" navigation. 38 tests across 9 files (unit, behavioral, integration).
