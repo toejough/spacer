@@ -1,6 +1,6 @@
 # 049 — Streamline the issue-close workflow
 
-**Status:** open
+**Status:** closed
 **Type:** tooling
 
 ## Problem
