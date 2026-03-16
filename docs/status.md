@@ -104,3 +104,12 @@ Batch of process/tooling fixes.
 - **#051** Commit skill adherence → resolved via engram memory. Root cause was no memory about using `/commit`; now captured as `use-slash-commit-for-git` standing instruction that surfaces on `git commit` tool calls.
 - **#053** Cycle timestamps → backfilled completion dates for all cycles from git history. Added `**Completed:**` / `**Started:**` metadata lines under each cycle heading.
 - **#049** Streamline issue-close → added three gates to `targ issue-close`: (1) clean working tree check, (2) status.md reference check with helpful error guiding user to add to current cycle or start a new one. The tool enforces the process without automating the judgment parts (writing the summary).
+- **#052** Interactive discovery enforcement → engram already has `autonomous-interactive-task-modes` (tier A) capturing the autonomous/interactive segmentation preference, and `hooks-for-interactive-llm-prompting` for hook-based prompting. Combined with the existing CLAUDE.md instruction and the brainstorming skill's "one question at a time" enforcement, structural coverage is sufficient. Monitor for recurrence.
+
+### Cycle 15 — Testing (#038, #039, #041)
+
+### Cycle 16 — Infrastructure (#044, #045, #046)
+
+### Cycle 17 — Architecture (#031)
+
+### Cycle 18 — UX (#032, #034, #035)
