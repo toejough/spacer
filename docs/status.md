@@ -9,36 +9,43 @@ Each issue progresses through: **pick → plan → implement (red/green/refactor
 ## Timeline
 
 ### Cycle 1 — Bootstrap (#1)
+**Completed:** 2026-03-14
 
 Scaffolded the project with horizontal layers: Vite, Vue Router, Pinia, Dexie, SM-2, PWA manifest, Tailwind. Created stubs for all components. No working end-to-end flow.
 
 **Retro:** Filed 10 issues (#2–#11) covering missing vertical slice, code quality, tooling gaps. Realized the horizontal-layer approach left nothing usable. Reverted all application code and closed #1–#11.
 
 ### Cycle 2 — Rebuild (#12)
+**Completed:** 2026-03-14
 
 Started fresh with a vertical-slice approach: one working flow (create deck → add card → review with SM-2) delivered incrementally. Each commit added a working layer.
 
 **Retro:** Process worked much better. Filed #13 (plan gate) to prevent future multi-file changes without a written plan.
 
 ### Cycle 3 — Plan Gate (#13)
+**Completed:** 2026-03-15
 
 Added structural plan gate to the 5-minute increment skill: any change touching 3+ files requires a written plan in `docs/plans/` with user approval. Closed immediately — process change, no code.
 
 ### Cycle 4 — Premortems (#14–#17)
+**Completed:** 2026-03-15
 
 Filed four premortem issues to identify weaknesses before they compound: architecture (#14), UX/design (#15), testing (#16), implementation details (#17). All still open — intended as living documents.
 
 ### Cycle 5 — PWA Offline Fix (#18)
+**Completed:** 2026-03-15
 
 **Picked** because the app crashed without a dev server — the PWA promise was broken. Added service worker with Workbox precaching, fixed manifest, added E2E tests with Playwright.
 
 **Retro:** Filed 5 action items (#19–#23) covering status doc maintenance, spec location, legacy-peer-deps, unused test-utils dep, and test runner isolation convention.
 
 ### Cycle 6 — Status Doc (#19)
+**Completed:** 2026-03-15
 
 **Picked** this process issue. Decision: keep `docs/status.md` as a narrative project log (not a duplicated issue board). Redesigned format to track timeline and per-issue cycle phases.
 
 ### Cycle 7 — Housekeeping Sprint (#022, #023, #021, #020, #024)
+**Completed:** 2026-03-15
 
 Batched five quick wins as autonomous work. Rationale: clear friction and hygiene issues first so premortems can inform the next feature cycle cleanly.
 
@@ -53,6 +60,7 @@ Batched five quick wins as autonomous work. Rationale: clear friction and hygien
 - **#027** Claims need code → convention added to CLAUDE.md: don't document capabilities that aren't backed by working code
 
 ### Cycle 8 — Premortems (#014–#017)
+**Completed:** 2026-03-15
 
 Interactive walk-through of four premortem documents to identify weaknesses before the next feature cycle. Also merged `issue-close` and `issue-archive` targ targets into a single `issue-close` command.
 
@@ -64,23 +72,31 @@ Interactive walk-through of four premortem documents to identify weaknesses befo
 **Retro:** Process-focused retro identified 5 process/tooling gaps. Filed #048–#052 (issue template scaffolding, streamlined issue-close flow, issue-writing conventions, commit skill adherence, interactive discovery enforcement). Prioritized remaining issues by structural impact and dependency overlap to minimize rework.
 
 ### Cycle 9 — Issue Conventions (#050, #048)
+**Completed:** 2026-03-15
 
 Documented issue-writing conventions (Problem/Principle/Guidance template) in CLAUDE.md. Added `targ issue-new` command to scaffold issue files with auto-incremented numbers, scanning both current files and git history for highest number.
 
 ### Cycle 10 — Test Standards (#037, absorbing #040, #042)
+**Completed:** 2026-03-15
 
 Created `docs/testing.md` with full testing strategy: BDD spec-first workflow (identify properties → given/when/then specs → migrate to test comments → implement → delete spec), property-based testing via `@fast-check/vitest`, assertions via Vitest built-in + jest-extended, DI via composable functions with explicit parameters. Reorganized test files into `tests/{unit,behavior,integration,e2e}/`. Coverage (80% per-function smell signal), mutation testing (Stryker on-demand), fuzzing (fast-check as best JS approximation, ecosystem gap noted).
 
 ### Cycle 11 — Data-Access Layer (#030 + #047 + #028 + #029)
+**Completed:** 2026-03-15
 
 Extracted 7 framework-agnostic query/mutation functions into `db.ts`, added `newSM2State()` factory to `sm2.ts`, and created a thin `useLiveQuery` composable (~15 lines) as the only Vue-aware piece. All 3 views rewritten: HomeView and DeckView use reactive `liveQuery` subscriptions (solving stale state #047), ReviewView uses the shared `getDueCards` query (solving duplication #028). Card creation uses `newSM2State()` (#029). 14 new tests across unit/behavioral/integration layers.
 
 ### Cycle 12 — Type Safety at DB Boundary (#043)
+**Completed:** 2026-03-15
 
 Removed `as Deck` and `as Card` type assertion casts from `createDeck` and `createCard` in `db.ts`. Dexie's `EntityTable<T, "id">` already computes `InsertType` making `id` optional for auto-incremented keys — the casts were suppressing this built-in safety. Inserts are now structurally verified by the compiler; a missing or mistyped field is a compile error.
 
 ### Cycle 13 — UI Foundations (#033 + #036)
+**Completed:** 2026-03-15
 
 Established design tokens via Tailwind v4 `@theme` ("Warm Stone" palette — cream backgrounds, cyan/green primaries, dark magenta accent) and a `ViewState<T>` discriminated union (`loading | loaded | empty | error | not-found`). Built `useLiveViewState` composable subscribing directly to Dexie's `liveQuery` with error handling and `notFoundWhen` option. Migrated all 3 views: HomeView (single view state), DeckView (dual view state for deck + cards), ReviewView (manual ref for imperative loading). Added Lucide icons for empty/not-found/error states, skeleton loading placeholders, and consistent "Back to decks" navigation. 38 tests across 9 files (unit, behavioral, integration).
 
-Also closed #051 (commit skill adherence) — root cause was no engram memory about using `/commit`. Engram now has `use-slash-commit-for-git` as a standing instruction, which surfaces on `git commit` tool calls. Will monitor whether the memory-based nudge is sufficient or if a hook is needed.
+### Cycle 14 — Process Improvements (#053, #049, #051)
+**Started:** 2026-03-15
+
+Batch of process/tooling fixes. #051 (commit skill adherence) resolved via engram memory — root cause was no memory about using `/commit`, now captured as `use-slash-commit-for-git` standing instruction. #053 (cycle timestamps) and #049 (streamline issue-close) in progress.
