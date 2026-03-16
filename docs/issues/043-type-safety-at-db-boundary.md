@@ -1,6 +1,6 @@
 # 043 — Type assertions bypass safety at the DB boundary
 
-**Status:** open
+**Status:** closed
 **Type:** quality / prevention
 **Source:** #017 implementation premortem
 
