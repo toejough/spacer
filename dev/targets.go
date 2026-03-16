@@ -184,6 +184,12 @@ func issueClose(args closeArgs) error {
 		return nil
 	}
 
+	// Gate 1: working tree must be clean (all related work committed)
+	if err := verifyCleanWorkingTree(); err != nil {
+		return err
+	}
+
+	// Gate 2: status.md must reference this issue
 	if err := verifyStatusEntry(args.Number); err != nil {
 		return err
 	}
@@ -277,6 +283,17 @@ func replaceInFile(path, old, new string) error {
 	return os.WriteFile(path, []byte(updated), 0o644)
 }
 
+func verifyCleanWorkingTree() error {
+	output, err := targ.Output("git", "status", "--porcelain")
+	if err != nil {
+		return fmt.Errorf("failed to check working tree: %w", err)
+	}
+	if strings.TrimSpace(output) != "" {
+		return fmt.Errorf("working tree has uncommitted changes — commit or stash them first, then re-run:\n%s", output)
+	}
+	return nil
+}
+
 func verifyStatusEntry(number string) error {
 	data, err := os.ReadFile("docs/status.md")
 	if err != nil {
@@ -286,7 +303,7 @@ func verifyStatusEntry(number string) error {
 	// Check both padded (#025) and unpadded (#25) forms
 	unpadded := strings.TrimLeft(number, "0")
 	if !strings.Contains(content, "#"+number) && !strings.Contains(content, "#"+unpadded) {
-		return fmt.Errorf("docs/status.md has no reference to #%s — add a status entry before closing", number)
+		return fmt.Errorf("#%s not found in status.md — add it to the current cycle's section, or start a new cycle if this is new work", number)
 	}
 	return nil
 }
