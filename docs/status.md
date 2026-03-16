@@ -99,4 +99,8 @@ Established design tokens via Tailwind v4 `@theme` ("Warm Stone" palette — cre
 ### Cycle 14 — Process Improvements (#053, #049, #051)
 **Started:** 2026-03-15
 
-Batch of process/tooling fixes. #051 (commit skill adherence) resolved via engram memory — root cause was no memory about using `/commit`, now captured as `use-slash-commit-for-git` standing instruction. #053 (cycle timestamps) and #049 (streamline issue-close) in progress.
+Batch of process/tooling fixes.
+
+- **#051** Commit skill adherence → resolved via engram memory. Root cause was no memory about using `/commit`; now captured as `use-slash-commit-for-git` standing instruction that surfaces on `git commit` tool calls.
+- **#053** Cycle timestamps → backfilled completion dates for all cycles from git history. Added `**Completed:**` / `**Started:**` metadata lines under each cycle heading.
+- **#049** Streamline issue-close → added three gates to `targ issue-close`: (1) clean working tree check, (2) status.md reference check with helpful error guiding user to add to current cycle or start a new one. The tool enforces the process without automating the judgment parts (writing the summary).
