@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { db, getAllDecks, createDeck as createDeckDb } from "../db";
-import { useLiveQuery } from "../use-live-query";
+import { useLiveViewState } from "../view-state";
+import { Library } from "lucide-vue-next";
 
-const decks = useLiveQuery(() => getAllDecks(db), []);
+const decksState = useLiveViewState(() => getAllDecks(db), (d) => d.length === 0);
 const newDeckName = ref("");
 
 async function createDeck() {
@@ -22,27 +23,50 @@ async function createDeck() {
       <input
         v-model="newDeckName"
         placeholder="New deck name"
-        class="flex-1 border rounded px-3 py-2"
+        class="flex-1 border border-border rounded-sm bg-surface-raised px-3 py-2 text-text placeholder:text-text-faint"
         data-testid="deck-name-input"
       />
       <button
         type="submit"
-        class="bg-indigo-600 text-white px-4 py-2 rounded"
+        class="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-sm"
         data-testid="create-deck-btn"
       >
         Create
       </button>
     </form>
 
-    <p v-if="decks.length === 0" class="text-gray-500" data-testid="empty-state">
-      No decks yet. Create one above.
-    </p>
+    <!-- Loading skeleton -->
+    <div v-if="decksState.status === 'loading'" data-testid="loading-skeleton" class="space-y-2">
+      <div v-for="i in 3" :key="i" class="h-12 bg-surface rounded-md animate-skeleton" />
+    </div>
 
-    <ul class="space-y-2">
-      <li v-for="deck in decks" :key="deck.id">
+    <!-- Empty state -->
+    <div
+      v-else-if="decksState.status === 'empty'"
+      data-testid="empty-state"
+      class="text-center py-12"
+    >
+      <Library class="mx-auto mb-2 text-text-faint" :size="36" />
+      <p class="text-text-muted font-medium">No decks yet</p>
+      <p class="text-text-faint text-sm">Create your first deck to start studying</p>
+    </div>
+
+    <!-- Error state -->
+    <div
+      v-else-if="decksState.status === 'error'"
+      data-testid="error-state"
+      class="text-center py-12"
+    >
+      <p class="text-text-muted font-medium">Something went wrong</p>
+      <p class="text-text-faint text-sm">{{ decksState.message }}</p>
+    </div>
+
+    <!-- Loaded state -->
+    <ul v-else-if="decksState.status === 'loaded'" class="space-y-2">
+      <li v-for="deck in decksState.data" :key="deck.id">
         <router-link
           :to="`/deck/${deck.id}`"
-          class="block p-3 bg-white rounded shadow hover:shadow-md"
+          class="block p-3 bg-surface rounded-md shadow-card hover:shadow-md border-l-[3px] border-secondary"
           :data-testid="`deck-${deck.id}`"
         >
           {{ deck.name }}
