@@ -82,3 +82,5 @@ Removed `as Deck` and `as Card` type assertion casts from `createDeck` and `crea
 ### Cycle 13 — UI Foundations (#033 + #036)
 
 Established design tokens via Tailwind v4 `@theme` ("Warm Stone" palette — cream backgrounds, cyan/green primaries, dark magenta accent) and a `ViewState<T>` discriminated union (`loading | loaded | empty | error | not-found`). Built `useLiveViewState` composable subscribing directly to Dexie's `liveQuery` with error handling and `notFoundWhen` option. Migrated all 3 views: HomeView (single view state), DeckView (dual view state for deck + cards), ReviewView (manual ref for imperative loading). Added Lucide icons for empty/not-found/error states, skeleton loading placeholders, and consistent "Back to decks" navigation. 38 tests across 9 files (unit, behavioral, integration).
+
+Also closed #051 (commit skill adherence) — root cause was no engram memory about using `/commit`. Engram now has `use-slash-commit-for-git` as a standing instruction, which surfaces on `git commit` tool calls. Will monitor whether the memory-based nudge is sufficient or if a hook is needed.
