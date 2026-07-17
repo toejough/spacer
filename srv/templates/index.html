@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Remember Everything</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#4361ee">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>🧠 Remember Everything</h1>
+      <div class="review-badge" id="reviewBadge" onclick="switchTab('review')" style="display:none">
+        <span id="reviewCount">0</span> due for review
+      </div>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="review" onclick="switchTab('review')">📋 Review</button>
+      <button class="tab" data-tab="todos" onclick="switchTab('todos')">✅ Todos</button>
+      <button class="tab" data-tab="notes" onclick="switchTab('notes')">📝 Notes</button>
+      <button class="tab" data-tab="search" onclick="switchTab('search')">🔍 Search</button>
+      <button class="tab" data-tab="help" onclick="switchTab('help')">❓ Help</button>
+    </nav>
+
+    <!-- Review Tab -->
+    <section id="tab-review" class="tab-content active">
+      <div id="reviewCards" class="review-area">
+        <div class="empty-state">🎉 All caught up! Nothing to review.</div>
+      </div>
+    </section>
+
+    <!-- Help Tab -->
+    <section id="tab-help" class="tab-content" style="display:none">
+      <div class="help-content">
+        <h2>Welcome to Remember Everything</h2>
+        <p>A todo and notes app with spaced repetition. Here’s how it works.</p>
+
+        <h3>📋 Review</h3>
+        <p>The Review tab shows items that are due for spaced repetition using the <strong>SM-2 algorithm</strong>:</p>
+        <p>You rate yourself 0–5 on each card:</p>
+        <ul>
+          <li><strong>0 – Forgot</strong>: complete blackout</li>
+          <li><strong>1 – Hard</strong>: incorrect, but remembered</li>
+          <li><strong>2 – Struggled</strong>: incorrect, seemed easy</li>
+          <li><strong>3 – OK</strong>: correct with difficulty</li>
+          <li><strong>4 – Good</strong>: correct with hesitation</li>
+          <li><strong>5 – Easy</strong>: perfect recall</li>
+        </ul>
+        <p>A rating of 3 or higher means you remembered — the interval grows. Below 3 resets the item to the beginning. Higher ratings increase the ease factor, making future intervals grow faster.</p>
+
+        <h3>✅ Todos</h3>
+        <p>Quickly add todos. Check them off when done. Todos are also eligible for spaced repetition — making sure you <em>remember</em> to do things, not just list them.</p>
+
+        <h3>📝 Notes</h3>
+        <p>Jot down knowledge you want to retain. Add <strong>cloze deletions</strong> (fill-in-the-blank prompts) to turn a note into multiple review cards.</p>
+
+        <h3>🔍 Search</h3>
+        <p>Find any item instantly. Searches both titles and content.</p>
+
+        <h3>✂️ Cloze Deletions</h3>
+        <p>A cloze deletion hides part of a note so you can test yourself on it. To make one:</p>
+        <ol>
+          <li>Open a note for editing.</li>
+          <li>Select the text you want to hide.</li>
+          <li>Click <strong>Make cloze</strong> or press <strong>Ctrl+Shift+C</strong> (Cmd+Shift+C on Mac).</li>
+        </ol>
+        <p>For example, a note titled <code>The capital of France is {{Paris}}</code> becomes a review card that asks: <em>“The capital of France is […]”</em></p>
+        <p>You can have multiple clozes in one note — each is reviewed independently. Only one cloze per note is shown per day so you don’t see the answer on the next card.</p>
+
+        <h3>💡 Tips</h3>
+        <ul>
+          <li>Items with clozes automatically use cloze-based spaced repetition instead of whole-item review.</li>
+          <li>You can disable reviews for any item in the edit modal.</li>
+          <li>Resetting reviews clears the history and starts the item from scratch.</li>
+          <li>Works offline thanks to the service worker.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Todos Tab -->
+    <section id="tab-todos" class="tab-content" style="display:none">
+      <div class="quick-add">
+        <input type="text" id="todoAddInput" placeholder="Add a todo..." onkeydown="if(event.key==='Enter')quickAdd('todo')">
+        <button onclick="quickAdd('todo')" class="btn-primary">Add</button>
+      </div>
+      <div id="todoList" class="item-list"></div>
+    </section>
+
+    <!-- Notes Tab -->
+    <section id="tab-notes" class="tab-content" style="display:none">
+      <div class="quick-add">
+        <textarea id="noteAddInput" placeholder="Add a note..." rows="3" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();quickAdd('note')}"></textarea>
+        <button onclick="quickAdd('note')" class="btn-primary">Add</button>
+      </div>
+      <div id="noteList" class="item-list"></div>
+    </section>
+
+    <!-- Search Tab -->
+    <section id="tab-search" class="tab-content" style="display:none">
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search todos & notes..." onkeydown="if(event.key==='Enter')doSearch()">
+        <button onclick="doSearch()" class="btn-primary">Search</button>
+      </div>
+      <div id="searchResults" class="item-list"></div>
+    </section>
+
+    <!-- Edit Modal -->
+    <div class="modal-overlay" id="editModal" style="display:none" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h2 id="modalTitle">Edit Item</h2>
+        <input type="hidden" id="editId">
+        <div class="modal-row">
+          <label>Type
+            <select id="editType" onchange="onEditTypeChange()">
+              <option value="todo">Todo</option>
+              <option value="note">Note</option>
+            </select>
+          </label>
+          <label id="editDoneLabel">Status
+            <select id="editDone">
+              <option value="0">Not done</option>
+              <option value="1">Done</option>
+            </select>
+          </label>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <label for="editTitle" style="margin-bottom:0;font-size:.85rem;font-weight:600;color:var(--text2);">Title</label>
+            <button type="button" id="clozeToggleBtn" onclick="toggleClozeSelection('editTitle')" class="btn-secondary" style="padding:4px 12px;font-size:.8rem;" title="Wrap or unwrap selected text as a cloze deletion">Make cloze</button>
+          </div>
+          <textarea id="editTitle" rows="3"></textarea>
+          <div id="clozeHint" style="font-size:.75rem;color:var(--text2);margin-top:4px;opacity:.7;font-style:italic;">Tip: Select text, then click Make cloze or press Ctrl+Shift+C</div>
+        </div>
+        <div class="modal-row">
+          <label>Reviews
+            <select id="editReviewEnabled">
+              <option value="1">Enabled</option>
+              <option value="0">Disabled</option>
+            </select>
+          </label>
+          <label>&nbsp;
+            <button type="button" onclick="resetReviews()" class="btn-secondary" style="width:100%">Reset Reviews</button>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button onclick="closeModal()" class="btn-secondary">Cancel</button>
+          <button onclick="saveEdit()" class="btn-primary">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-version">v17</footer>
+
+  <script src="/static/script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

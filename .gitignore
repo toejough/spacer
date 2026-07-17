@@ -1,18 +1,10 @@
-# Binaries for programs and plugins
+# Binaries
+todo-srv
 *.exe
-*.exe~
-*.dll
-*.so
-*.dylib
 
-# Test binary, built with `go test -c`
-*.test
+# Database
+db.sqlite3
+*.db
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-# Deployment
-.firebase
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
+# Environment
+.env
