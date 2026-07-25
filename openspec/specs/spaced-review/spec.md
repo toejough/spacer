@@ -15,6 +15,11 @@ The system SHALL identify items that are due for review.
 - **WHEN** no items are due for review
 - **THEN** the Review tab displays an empty state message
 
+#### Scenario: Finished todos are excluded
+- **WHEN** a todo item is marked as done
+- **THEN** it is not counted as due for review
+- **AND** it does not appear in the Review tab
+
 ### Requirement: Review an item
 The system SHALL present a due item and accept a quality rating.
 

@@ -9,7 +9,7 @@ package main
 
 import (
 	"errors"
-	"spacer/dev/protest"
+	"srv.exe.dev/dev/protest"
 	"testing"
 	"time"
 

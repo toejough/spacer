@@ -1,4 +1,4 @@
-.PHONY: build clean stop start restart test openspec-status openspec-validate openspec-list
+.PHONY: build clean stop start restart test test-js openspec-status openspec-validate openspec-list
 
 build:
 	go build -o todo-srv ./cmd/srv
@@ -8,6 +8,9 @@ clean:
 
 test:
 	go test ./...
+
+test-js:
+	node srv/static/script.test.js
 
 openspec-status:
 	@openspec status || true

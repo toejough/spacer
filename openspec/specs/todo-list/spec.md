@@ -30,6 +30,7 @@ The system SHALL allow the user to mark a todo as complete.
 - **WHEN** the user clicks the checkbox on a todo
 - **THEN** the todo's done state toggles between complete and incomplete
 - **AND** the todo list is refreshed
+- **AND** finished todos are removed from the review list
 
 ### Requirement: Edit a todo
 The system SHALL allow the user to edit a todo's title.

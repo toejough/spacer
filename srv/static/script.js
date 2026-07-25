@@ -135,6 +135,7 @@ function getDueReviewEntries() {
   const entries = [];
   for (const item of loadItems()) {
     if (item.archived || item.review_enabled === false) continue;
+    if (item.item_type === 'todo' && item.done === 1) continue;
     if (hasClozes(item.title)) {
       ensureClozeData(item);
       // Collect due clozes for this item and pick the one due earliest

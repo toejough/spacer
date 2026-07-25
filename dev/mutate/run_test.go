@@ -8,7 +8,7 @@ package main
 // run, or how its output is conveyed.
 
 import (
-	"spacer/dev/protest"
+	"srv.exe.dev/dev/protest"
 	"testing"
 	"time"
 )

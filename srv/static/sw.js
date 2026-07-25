@@ -1,4 +1,4 @@
-const CACHE_NAME = 'remember-everything-v17';
+const CACHE_NAME = 'remember-everything-v18';
 const ASSETS = [
   '/',
   '/static/style.css',

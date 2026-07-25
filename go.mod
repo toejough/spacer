@@ -2,11 +2,17 @@ module srv.exe.dev
 
 go 1.26.5
 
-require modernc.org/sqlite v1.48.0
+require (
+	github.com/alexflint/go-arg v1.6.1
+	github.com/magefile/mage v1.17.2
+	modernc.org/sqlite v1.48.0
+	pgregory.net/rapid v1.3.0
+)
 
 require (
 	cel.dev/expr v0.24.0 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/alexflint/go-scalar v1.2.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/cubicdaiya/gonp v1.0.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
