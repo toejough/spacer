@@ -13,6 +13,7 @@ function makeStubElement() {
     textContent: '',
     value: '',
     querySelector: () => null,
+    querySelectorAll: () => [],
     addEventListener: () => {},
     setSelectionRange: () => {},
     focus: () => {},
@@ -88,6 +89,7 @@ function runScriptWithItemsAndDOM(items) {
         contains: (c) => classes.has(c),
       },
       querySelector: () => null,
+      querySelectorAll: () => [],
       addEventListener: (type, fn) => listeners.push({ type, fn }),
       getListeners: () => listeners,
       focus: () => {},
@@ -186,7 +188,7 @@ test('SM-2 advances on successful review', () => {
   assert.strictEqual(result.interval, 1);
 });
 
-test('submitReview locks pointer events to prevent hover carry-over', () => {
+test('review buttons render without hovered class after submission', () => {
   const now = new Date().toISOString();
   const { context, document } = runScriptWithItemsAndDOM([
     baseItem({ id: 1, next_review: now }),
@@ -200,5 +202,7 @@ test('submitReview locks pointer events to prevent hover carry-over', () => {
   context.submitReview(1, -1, 4);
 
   const reviewCards = document.getElementById('reviewCards');
-  assert(reviewCards.classList.contains('review-pointer-locked'), 'review cards should be pointer-locked after submission');
+  assert(!reviewCards.innerHTML.includes('hovered'), 'rendered cards should not start with hovered class');
+  assert(!reviewCards.classList.contains('review-pointer-locked'), 'review-pointer-locked should not be used');
+  assert.strictEqual(typeof context.attachReviewButtonHover, 'function', 'attachReviewButtonHover should be defined');
 });

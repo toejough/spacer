@@ -3,11 +3,11 @@
 ## 1. Diagnose and fix the bug
 
 - [x] 1.1 Locate review rendering and submission logic in `srv/static/script.js`.
-- [x] 1.2 Identify that hover/focus state carries over to the next card because the DOM is replaced under the pointer.
-- [x] 1.3 Add `lockReviewPointerEvents()` and call it from `submitReview()` to suppress pointer events during re-render.
+- [x] 1.2 Identify that CSS `:hover` state is transferred by the browser to the next card when the DOM is replaced under the pointer.
+- [x] 1.3 Replace CSS `:hover` with a JavaScript-driven `hovered` class on `mouseenter`/`mouseleave`. Add `attachReviewButtonHover(container)` to wire listeners after every render and cloze reveal.
 - [x] 1.4 Blur the active review button in `submitReview()` to prevent focus from jumping to the next card.
-- [x] 1.5 Add the corresponding CSS rule to `srv/static/style.css`.
-- [x] 1.6 Add a regression test in `srv/static/script.test.js`.
+- [x] 1.5 Remove the unreliable `.review-pointer-locked` and pointer-events CSS rules.
+- [x] 1.6 Add a regression test in `srv/static/script.test.js` that asserts no `hovered` class exists in newly rendered HTML after `submitReview`.
 - [x] 1.7 Run `node ./srv/static/script.test.js` to verify the fix.
 - [x] 1.8 Run `go test ./...` to verify Go tests still pass.
 
@@ -20,5 +20,5 @@
 
 ## 3. Bump version
 
-- [x] 3.1 Update `srv/templates/index.html` from `v18` to `v19`.
-- [x] 3.2 Update `srv/static/sw.js` cache name from `remember-everything-v18` to `remember-everything-v19`.
+- [x] 3.1 Update `srv/templates/index.html` from `v19` to `v20`.
+- [x] 3.2 Update `srv/static/sw.js` cache name from `remember-everything-v19` to `remember-everything-v20`.

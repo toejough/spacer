@@ -172,17 +172,15 @@ function loadReview() {
     return;
   }
   container.innerHTML = entries.map(renderReviewEntry).join('');
+  attachReviewButtonHover(container);
 }
 
-// Prevent hover/focus state from carrying over to a freshly rendered card when
-// the previous card is removed from under the pointer.
-function lockReviewPointerEvents() {
-  const container = document.getElementById('reviewCards');
+function attachReviewButtonHover(container) {
   if (!container) return;
-  container.classList.add('review-pointer-locked');
-  const unlock = () => container.classList.remove('review-pointer-locked');
-  document.addEventListener('pointermove', unlock, { once: true });
-  setTimeout(unlock, 50);
+  container.querySelectorAll('.review-btn').forEach(btn => {
+    btn.addEventListener('mouseenter', () => btn.classList.add('hovered'));
+    btn.addEventListener('mouseleave', () => btn.classList.remove('hovered'));
+  });
 }
 
 function renderReviewEntry(entry) {
@@ -243,6 +241,7 @@ function revealCloze(itemId, clozeIndex) {
     <button class="review-btn r3" onclick="submitReview(${itemId},${clozeIndex},3)">3 - OK</button>
     <button class="review-btn r4" onclick="submitReview(${itemId},${clozeIndex},4)">4 - Good</button>
     <button class="review-btn r5" onclick="submitReview(${itemId},${clozeIndex},5)">5 - Easy</button>`;
+  attachReviewButtonHover(card);
 }
 
 function submitReview(id, clozeIndex, rating) {
@@ -303,7 +302,6 @@ function submitReview(id, clozeIndex, rating) {
   if (document.activeElement && document.activeElement.classList.contains('review-btn')) {
     document.activeElement.blur();
   }
-  lockReviewPointerEvents();
   loadReview();
   updateReviewBadge();
 }
