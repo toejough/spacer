@@ -91,9 +91,28 @@ let currentTab = 'review';
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  const helpBtn = document.getElementById('helpBtn');
+  if (helpBtn) {
+    helpBtn.classList.toggle('active', tab === 'help');
+    helpBtn.setAttribute('aria-pressed', tab === 'help' ? 'true' : 'false');
+  }
   document.querySelectorAll('.tab-content').forEach(s => s.style.display = 'none');
   document.getElementById('tab-' + tab).style.display = 'block';
   refreshCurrent();
+  // Scroll the active tab into view within the tab bar (defensive: tests stub a minimal DOM).
+  const activeBtn = document.querySelector && document.querySelector('.tab.active');
+  if (activeBtn && activeBtn.scrollIntoView) activeBtn.scrollIntoView({ inline: 'center', block: 'nearest' });
+}
+
+// Toggle an edge-fade hint on the tab bar only when it actually overflows.
+function updateTabScrollHint() {
+  const tabs = document.querySelector && document.querySelector('.tabs');
+  if (!tabs) return;
+  tabs.classList.toggle('scrollable', tabs.scrollWidth > tabs.clientWidth + 1);
+}
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('resize', updateTabScrollHint);
+  window.addEventListener('load', updateTabScrollHint);
 }
 
 // ===== Quick Add =====

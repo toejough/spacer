@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Remember Everything</title>
-  <link rel="stylesheet" href="/static/style.css?v=21">
-  <link rel="manifest" href="/static/manifest.json?v=21">
+  <link rel="stylesheet" href="/static/style.css?v=22">
+  <link rel="manifest" href="/static/manifest.json?v=22">
   <meta name="theme-color" content="#4361ee">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14,8 +14,11 @@
   <div id="app">
     <header>
       <h1>🧠 Remember Everything</h1>
-      <div class="review-badge" id="reviewBadge" onclick="switchTab('review')" style="display:none">
-        <span id="reviewCount">0</span> due for review
+      <div class="header-actions">
+        <div class="review-badge" id="reviewBadge" onclick="switchTab('review')" style="display:none">
+          <span id="reviewCount">0</span> due for review
+        </div>
+        <button id="helpBtn" class="help-btn" onclick="switchTab('help')" aria-label="Help" aria-pressed="false" title="Help">❓</button>
       </div>
     </header>
 
@@ -24,7 +27,6 @@
       <button class="tab" data-tab="todos" onclick="switchTab('todos')">✅ Todos</button>
       <button class="tab" data-tab="notes" onclick="switchTab('notes')">📝 Notes</button>
       <button class="tab" data-tab="search" onclick="switchTab('search')">🔍 Search</button>
-      <button class="tab" data-tab="help" onclick="switchTab('help')">❓ Help</button>
     </nav>
 
     <!-- Review Tab -->
@@ -155,12 +157,12 @@
     </div>
   </div>
 
-  <footer class="app-version">v21</footer>
+  <footer class="app-version">v22</footer>
 
-  <script src="/static/script.js?v=21"></script>
+  <script src="/static/script.js?v=22"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js?v=21').catch(() => {});
+      navigator.serviceWorker.register('/sw.js?v=22').catch(() => {});
     }
   </script>
 </body>
