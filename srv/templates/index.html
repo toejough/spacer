@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Remember Everything</title>
-  <link rel="stylesheet" href="/static/style.css">
-  <link rel="manifest" href="/static/manifest.json">
+  <link rel="stylesheet" href="/static/style.css?v=21">
+  <link rel="manifest" href="/static/manifest.json?v=21">
   <meta name="theme-color" content="#4361ee">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -155,12 +155,12 @@
     </div>
   </div>
 
-  <footer class="app-version">v20</footer>
+  <footer class="app-version">v21</footer>
 
-  <script src="/static/script.js"></script>
+  <script src="/static/script.js?v=21"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
+      navigator.serviceWorker.register('/sw.js?v=21').catch(() => {});
     }
   </script>
 </body>
