@@ -68,6 +68,67 @@ function baseItem(overrides = {}) {
   };
 }
 
+function runScriptWithItemsAndDOM(items) {
+  const store = { ['remember_everything_items']: JSON.stringify(items) };
+  const timeouts = [];
+  const elements = new Map();
+
+  function makeElement(id) {
+    const classes = new Set();
+    const listeners = [];
+    return {
+      id,
+      innerHTML: '',
+      style: {},
+      textContent: '',
+      value: '',
+      classList: {
+        add: (c) => classes.add(c),
+        remove: (c) => classes.delete(c),
+        contains: (c) => classes.has(c),
+      },
+      querySelector: () => null,
+      addEventListener: (type, fn) => listeners.push({ type, fn }),
+      getListeners: () => listeners,
+      focus: () => {},
+      blur: () => {},
+    };
+  }
+
+  const document = {
+    addEventListener: (type, fn) => {
+      const el = elements.get('document') || makeElement('document');
+      elements.set('document', el);
+      el.addEventListener(type, fn);
+    },
+    querySelectorAll: () => [],
+    activeElement: null,
+    getElementById: (id) => {
+      if (!elements.has(id)) elements.set(id, makeElement(id));
+      return elements.get(id);
+    },
+  };
+
+  const globals = {
+    console,
+    Date,
+    Math,
+    JSON,
+    setInterval: () => {},
+    setTimeout: (fn, ms) => { timeouts.push(fn); return timeouts.length; },
+    navigator: {},
+    window: {},
+    localStorage: {
+      getItem: (k) => store[k] ?? null,
+      setItem: (k, v) => { store[k] = v; },
+    },
+    document,
+  };
+  const context = vm.createContext(globals);
+  vm.runInContext(scriptSource, context, { filename: 'script.js' });
+  return { context, store, document, timeouts };
+}
+
 function test(name, fn) {
   try {
     fn();
@@ -123,4 +184,21 @@ test('SM-2 advances on successful review', () => {
   const result = context.calculateSM2(4, 2.5, 0, 0);
   assert.strictEqual(result.repetitions, 1);
   assert.strictEqual(result.interval, 1);
+});
+
+test('submitReview locks pointer events to prevent hover carry-over', () => {
+  const now = new Date().toISOString();
+  const { context, document } = runScriptWithItemsAndDOM([
+    baseItem({ id: 1, next_review: now }),
+    baseItem({ id: 2, next_review: now }),
+  ]);
+
+  const activeBtn = document.getElementById('activeBtn');
+  activeBtn.classList.add('review-btn');
+  document.activeElement = activeBtn;
+
+  context.submitReview(1, -1, 4);
+
+  const reviewCards = document.getElementById('reviewCards');
+  assert(reviewCards.classList.contains('review-pointer-locked'), 'review cards should be pointer-locked after submission');
 });

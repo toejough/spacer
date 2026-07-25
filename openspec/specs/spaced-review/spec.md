@@ -33,6 +33,7 @@ The system SHALL present a due item and accept a quality rating.
 - **THEN** the SM-2 algorithm is applied to update the item's ease factor, interval, and repetitions
 - **AND** the next review date is set based on the interval
 - **AND** the next due item is shown
+- **AND** the next due item does not display any rating option as preselected or visually selected from the previous card
 
 ### Requirement: Cloze review
 The system SHALL review each cloze deletion independently.

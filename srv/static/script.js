@@ -174,6 +174,17 @@ function loadReview() {
   container.innerHTML = entries.map(renderReviewEntry).join('');
 }
 
+// Prevent hover/focus state from carrying over to a freshly rendered card when
+// the previous card is removed from under the pointer.
+function lockReviewPointerEvents() {
+  const container = document.getElementById('reviewCards');
+  if (!container) return;
+  container.classList.add('review-pointer-locked');
+  const unlock = () => container.classList.remove('review-pointer-locked');
+  document.addEventListener('pointermove', unlock, { once: true });
+  setTimeout(unlock, 50);
+}
+
 function renderReviewEntry(entry) {
   const { item, clozeIndex, cloze } = entry;
   const typeBadge = `<span class="review-type-badge ${item.item_type}">${item.item_type}</span>`;
@@ -288,6 +299,11 @@ function submitReview(id, clozeIndex, rating) {
 
   item.updated_at = new Date().toISOString();
   saveItems(items);
+  // Blur any focused review button so focus does not jump to the next card.
+  if (document.activeElement && document.activeElement.classList.contains('review-btn')) {
+    document.activeElement.blur();
+  }
+  lockReviewPointerEvents();
   loadReview();
   updateReviewBadge();
 }
