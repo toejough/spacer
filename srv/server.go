@@ -40,25 +40,18 @@ func New(dbPath, hostname string) (*Server, error) {
 func (s *Server) Serve(addr string) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.handleIndex)
-	mux.Handle("/static/", noStore(http.StripPrefix("/static/", http.FileServer(http.Dir(s.StaticDir)))))
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(s.StaticDir))))
 	// Serve sw.js from root so it can control the whole origin
 	mux.HandleFunc("GET /sw.js", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Cache-Control", "no-cache")
 		http.ServeFile(w, r, filepath.Join(s.StaticDir, "sw.js"))
 	})
 	slog.Info("starting server", "addr", addr)
 	return http.ListenAndServe(addr, mux)
 }
 
-func noStore(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "no-store")
-		next.ServeHTTP(w, r)
-	})
-}
-
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Cache-Control", "no-cache")
 	path := filepath.Join(s.TemplatesDir, "index.html")
 	http.ServeFile(w, r, path)
 }
