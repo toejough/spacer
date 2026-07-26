@@ -16,7 +16,8 @@
         <FlashcardList v-model:flashcards="flashcards" v-model:notes="notes" />
       </q-tab-panel>
       <q-tab-panel name="todos">
-        <MobileTodoList />
+        <MobileTodoList v-if="showMobileTodo" />
+        <div v-else class="small">Mobile equal-access feature disabled</div>
       </q-tab-panel>
     </q-tab-panels>
   </q-page>
@@ -28,6 +29,7 @@ import { useStorage } from '@vueuse/core'
 import NoteList from '../components/NoteList.vue'
 import FlashcardList from '../components/FlashcardList.vue'
 import MobileTodoList from '../components/MobileTodoList.vue'
+const showMobileTodo = import.meta.env.VITE_MOBILE_EQUAL_ACCESS !== 'false'
 import type { flashcard } from '../components/FlashcardList.vue'
 import { uid } from 'quasar';
 import { useNoteCardStore } from 'src/stores/noteCards';
