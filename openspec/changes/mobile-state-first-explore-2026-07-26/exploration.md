@@ -6,7 +6,7 @@
 - Safety: protections against accidental Abandon
 - Accessibility and implementation complexity
 
-## Variant comparison (focused on parity)
+## Chosen approach: Two visible actions (Variant A)
 - Variant A (Two visible buttons)
   - Parity: excellent (both visible)
   - Speed: high

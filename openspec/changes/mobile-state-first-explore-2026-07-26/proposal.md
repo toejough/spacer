@@ -1,3 +1,6 @@
+Apologies — I misunderstood earlier. You approved the buttons-only approach. I updated the exploration to make Variant A the chosen path and archived swipe variants.
+
+"""
 # Explore: Mobile-first state-focused Todo UX (equal accessibility for Done & Abandon)
 
 ## Goal
@@ -6,11 +9,10 @@ Explore mobile interactions that treat "Done" (completed) and "Abandon" (decided
 ## Why
 Some users need to mark items as "decided not to do" as quickly as they mark them Done; hiding Abandon reduces discoverability and slows workflows. We must balance parity of access with safeguards against accidental destructive actions. Additionally, users must be able to quickly reopen items marked Done or Abandoned so that state changes are reversible and low-friction.
 
-## Variants to explore (updated)
-- Variant A: Two visible buttons per card — Done and Abandon — with distinct affordances and undo. When a card is in Done or Abandoned state it shows a primary Reopen action.
-- Variant B: Split-swipe: swipe-right → Done, swipe-left → Abandon (both show undo; Abandon may require confirmation depending on sensitivity). Swiping an already-closed card left/right could reveal a Reopen affordance.
-- Variant C: Two-finger swipe / hold for Abandon + single-finger swipe for Done (less discoverable; optional).
-- Variant D: Reveal both actions on drag (drag left reveals Abandon, drag right reveals Done) — visually symmetric; closed cards show Reopen affordance.
+## Chosen approach
+- Variant A (chosen): Two visible buttons per card — Done and Abandon — with distinct affordances and undo. When a card is in Done or Abandoned state it shows a primary Reopen action.
+
+- Note: Split-swipe and other swipe-based interactions are archived as experimental. They are available in the exploration archive but will not be implemented by default.
 
 ## Success criteria
 - Both Done and Abandon reachable in ≤2 taps for 90% of cases.
