@@ -54,3 +54,15 @@ The system SHALL allow the user to abandon a todo (archive it from view).
 - **AND** the modal closes
 - **AND** the todo list is refreshed
 
+#### Scenario: Abandon is not allowed for completed todos
+- **WHEN** the user attempts to Abandon a todo that is marked as Done
+- **THEN** the system prevents the abandon action
+- **AND** the system displays an informative message to the user
+- **AND** the todo remains unchanged
+
+#### Scenario: Abandon is available in edit modal UI
+- **WHEN** the user opens a todo's edit modal
+- **THEN** the edit modal shows an Abandon control (button)
+- **AND** the Abandon control is hidden or disabled when the todo is marked as Done
+- **AND** confirming Abandon marks the todo archived, closes the modal, and refreshes lists
+
