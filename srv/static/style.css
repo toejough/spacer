@@ -71,6 +71,9 @@ header h1{font-size:1.5rem;font-weight:700}
 .item-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1)}
 .item-card.done{opacity:.55}
 .item-card.done .item-title{text-decoration:line-through}
+.item-card.abandoned{opacity:.45;background:#f5f5f5;border-style:dashed;border-color:#bbb}
+.item-card.abandoned .item-title{text-decoration:line-through;font-style:italic}
+.item-card.abandoned .item-check.checked{background:#999;border-color:#999}
 
 .item-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);
   cursor:pointer;flex-shrink:0;margin-top:2px;display:flex;align-items:center;

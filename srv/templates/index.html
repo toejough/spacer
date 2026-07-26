@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Remember Everything</title>
-  <link rel="stylesheet" href="/static/style.css?v=24">
-  <link rel="manifest" href="/static/manifest.json?v=24">
+  <link rel="stylesheet" href="/static/style.css?v=25">
+  <link rel="manifest" href="/static/manifest.json?v=25">
   <meta name="theme-color" content="#4361ee">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -151,19 +151,19 @@
         </div>
         <div class="modal-actions">
           <button onclick="closeModal()" class="btn-secondary">Cancel</button>
-          <button type="button" id="abandonModalBtn" onclick="abandonFromModal()" class="btn-secondary" style="margin-left:8px">Abandon</button>
+          <button type="button" id="abandonModalBtn" class="btn-secondary" style="margin-left:8px">Abandon</button>
           <button onclick="saveEdit()" class="btn-primary">Save</button>
         </div>
       </div>
     </div>
   </div>
 
-  <footer class="app-version">v24</footer>
+  <footer class="app-version">v25</footer>
 
-  <script src="/static/script.js?v=24"></script>
+  <script src="/static/script.js?v=25"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js?v=24').catch(() => {});
+      navigator.serviceWorker.register('/sw.js?v=25').catch(() => {});
     }
   </script>
 </body>

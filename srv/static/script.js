@@ -340,8 +340,8 @@ function updateReviewBadge() {
 // ===== Todos =====
 function loadTodos() {
   const container = document.getElementById('todoList');
-  const items = loadItems().filter(i => i.item_type === 'todo' && !i.archived)
-    .sort((a, b) => a.done - b.done || b.priority - a.priority || new Date(b.created_at) - new Date(a.created_at));
+  const items = loadItems().filter(i => i.item_type === 'todo')
+    .sort((a, b) => a.archived - b.archived || a.done - b.done || b.priority - a.priority || new Date(b.created_at) - new Date(a.created_at));
   if (items.length === 0) {
     container.innerHTML = '<div class="empty-state">No todos yet. Add one above!</div>';
     return;
@@ -351,6 +351,7 @@ function loadTodos() {
 
 function renderTodoCard(item) {
   const done = item.done === 1;
+  const archived = item.archived === 1;
   let reviewInfo;
   if (item.review_enabled === false) {
     reviewInfo = `<span class="item-sr">Reviews off</span>`;
@@ -362,15 +363,28 @@ function renderTodoCard(item) {
     reviewInfo = `<span class="item-sr clickable" onclick="event.stopPropagation();showHistory(${item.id})">Next review: ${formatDate(item.next_review)}</span>`;
   }
 
-  return `<div class="item-card${done ? ' done' : ''}">
-    <div class="item-check${done ? ' checked' : ''}" onclick="toggleTodo(${item.id})">${done ? '\u2713' : ''}</div>
+  // Check circle: only clickable for open items (not done, not archived)
+  const checkCircle = (done || archived)
+    ? `<div class="item-check${done ? ' checked' : ''}">${done ? '\u2713' : ''}</div>`
+    : `<div class="item-check" onclick="toggleTodo(${item.id})"></div>`;
+
+  // Actions: Reopen only for end-of-life cards; Done + Abandon for open
+  let actionButtons = '';
+  if (archived || done) {
+    actionButtons = `<button class="btn-icon" onclick="reopenItem(${item.id})" title="Reopen">\u27f2</button>`;
+  } else {
+    actionButtons = `<button class="btn-icon" onclick="archiveItem(${item.id})" title="Abandon">\ud83c\udff3\ufe0f</button><button class="btn-icon" onclick="toggleTodo(${item.id})" title="Done">\u2713</button>`;
+  }
+
+  return `<div class="item-card${done ? ' done' : ''}${archived ? ' abandoned' : ''}">
+    ${checkCircle}
     <div class="item-body">
       <div class="item-title">${renderTitleWithClozeHints(item.title)}</div>
       <div class="item-meta">${reviewInfo}</div>
     </div>
     <div class="item-actions">
       <button class="btn-icon" onclick="openEdit(${item.id})" title="Edit">\u270f\ufe0f</button>
-      ${done ? '' : `<button class="btn-icon" onclick="archiveItem(${item.id})" title="Abandon">\ud83c\udff3\ufe0f</button>`}
+      ${actionButtons}
     </div>
   </div>`;
 }
@@ -443,13 +457,22 @@ function archiveItem(id) {
   const items = loadItems();
   const item = items.find(i => i.id === id);
   if (!item) return false;
-  // Abandon is only valid for active todos (not completed) and notes.
-  if (item.item_type === 'todo' && item.done === 1) {
-    alert('Cannot abandon a completed todo');
-    return false;
-  }
   if (!confirm('Abandon this item?')) return false;
   item.archived = 1;
+  item.done = 0; // clear done flag when abandoning
+  item.updated_at = new Date().toISOString();
+  saveItems(items);
+  refreshCurrent();
+  updateReviewBadge();
+  return true;
+}
+
+function reopenItem(id) {
+  const items = loadItems();
+  const item = items.find(i => i.id === id);
+  if (!item) return false;
+  item.archived = 0;
+  item.done = 0;
   item.updated_at = new Date().toISOString();
   saveItems(items);
   refreshCurrent();
@@ -461,22 +484,52 @@ function archiveItem(id) {
 function updateModalAbandonButton() {
   const btn = document.getElementById('abandonModalBtn');
   if (!btn) return;
-  const editTypeEl = document.getElementById('editType');
-  const editDoneEl = document.getElementById('editDone');
-  if (!editTypeEl || !editDoneEl) {
+  const id = parseInt(document.getElementById('editId').value || '0', 10);
+  if (!id) {
     btn.style.display = 'none';
     return;
   }
-  const isTodo = editTypeEl.value === 'todo';
-  const done = parseInt(editDoneEl.value || '0', 10);
-  // Show button for notes, or todos that are not done
-  btn.style.display = (!isTodo || done === 0) ? '' : 'none';
+  const items = loadItems();
+  const item = items.find(i => i.id === id);
+  if (!item) {
+    btn.style.display = 'none';
+    return;
+  }
+  const editTypeEl = document.getElementById('editType');
+  if (editTypeEl && editTypeEl.value === 'note') {
+    // Notes: always show Abandon
+    btn.style.display = '';
+    btn.textContent = 'Abandon';
+    btn.setAttribute('onclick', 'abandonFromModal()');
+    return;
+  }
+  // Todos: Abandon for open, Reopen for done/abandoned
+  if (item.done === 1 || item.archived === 1) {
+    btn.style.display = '';
+    btn.textContent = 'Reopen';
+    btn.setAttribute('onclick', 'reopenFromModal()');
+  } else {
+    btn.style.display = '';
+    btn.textContent = 'Abandon';
+    btn.setAttribute('onclick', 'abandonFromModal()');
+  }
 }
 
 function abandonFromModal() {
   const id = parseInt(document.getElementById('editId').value, 10);
   if (!id) { alert('Item not found'); return false; }
   const success = archiveItem(id);
+  if (success) {
+    closeModal();
+    return true;
+  }
+  return false;
+}
+
+function reopenFromModal() {
+  const id = parseInt(document.getElementById('editId').value, 10);
+  if (!id) { alert('Item not found'); return false; }
+  const success = reopenItem(id);
   if (success) {
     closeModal();
     return true;
