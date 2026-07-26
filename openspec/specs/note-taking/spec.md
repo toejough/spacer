@@ -50,11 +50,11 @@ The system SHALL allow the user to mark portions of a note as cloze deletions.
 - **AND** each cloze is reviewed separately
 
 ### Requirement: Delete a note
-The system SHALL allow the user to delete a note.
+The system SHALL allow the user to abandon a note (archive it from view).
 
 #### Scenario: Delete from edit modal
-- **WHEN** the user opens a note's edit modal and clicks Delete
-- **THEN** the note is removed
+- **WHEN** the user opens a note's edit modal and clicks Abandon
+- **THEN** the note is marked archived (removed from active lists)
 - **AND** the modal closes
 - **AND** the note list is refreshed
 
