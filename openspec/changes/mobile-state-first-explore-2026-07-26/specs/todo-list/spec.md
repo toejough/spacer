@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Mobile parity for Done and Abandon
-The system SHALL make both Done and Abandon equally accessible on mobile while providing safeguards for Abandon.
+The system SHALL make both Done and Abandon equally accessible on mobile while providing safeguards for Abandon, and SHALL provide a Reopen action from either closed state.
 
 #### Scenario: Two visible actions
 - **WHEN** a user views a todo card on mobile
@@ -19,4 +19,10 @@ The system SHALL make both Done and Abandon equally accessible on mobile while p
 - **WHEN** a screen reader user navigates a card
 - **THEN** the Done and Abandon controls are announced and reachable via standard keyboard focus
 - **AND** ARIA live regions announce successful state changes and undos
+
+#### Scenario: Reopen from closed states
+- **WHEN** a todo is in Done or Abandoned state
+- **THEN** the UI SHALL expose a Reopen control on the card (visible or reachable via overflow/menu)
+- **AND** activating Reopen sets completed_at and archived_at to null (or resets status to active) and places the item back into the appropriate swimlane/group for open todos
+- **AND** the Reopen action SHALL be announced via ARIA live region and support undo
 

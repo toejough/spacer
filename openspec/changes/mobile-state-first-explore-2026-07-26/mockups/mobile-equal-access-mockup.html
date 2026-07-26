@@ -47,7 +47,34 @@ body{font-family:Inter,system-ui,Arial,sans-serif;background:#f8fafc;padding:12p
         <button class="btn btn-abandon" onclick="abandon(this)">Abandon</button>
       </div>
     </div>
+  
+  <hr style="opacity:.06;margin:12px 0">
+  <h4 style="margin:6px 0">Closed items (examples)</h4>
+
+  <div class="list">
+    <div class="card" data-id="3">
+      <div>
+        <div class="title">Publish release notes</div>
+        <div class="small">completed 2d ago</div>
+      </div>
+      <div style="flex:1"></div>
+      <div class="actions">
+        <button class="btn btn-done" onclick="reopen(this)">Reopen</button>
+      </div>
+    </div>
+
+    <div class="card" data-id="4">
+      <div>
+        <div class="title">Experimental feature X</div>
+        <div class="small">abandoned 10d ago</div>
+      </div>
+      <div style="flex:1"></div>
+      <div class="actions">
+        <button class="btn btn-done" onclick="reopen(this)">Reopen</button>
+      </div>
+    </div>
   </div>
+
 
   <div style="height:12px"></div>
   <div class="hint">Alternative: Split-swipe symmetric gesture is also possible; we can test both.</div>
@@ -83,6 +110,14 @@ function showSnack(msg){
 document.getElementById('snack-undo').addEventListener('click',()=>{
   if(!lastAction) return; alert('Undo '+ lastAction.type + ' for '+ lastAction.title +' (prototype)'); lastAction=null; document.getElementById('snack').style.display='none';
 });
+
+function reopen(btn){
+  const card = btn.closest('.card');
+  const title = card.querySelector('.title').textContent;
+  lastAction = {type:'reopen',id:card.dataset.id,title};
+  card.style.opacity=1; // visual
+  alert('Reopen: would move '+title+' back to active (prototype)');
+}
 </script>
 </body>
 </html>
