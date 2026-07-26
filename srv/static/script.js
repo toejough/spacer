@@ -442,18 +442,46 @@ function doSearch() {
 function archiveItem(id) {
   const items = loadItems();
   const item = items.find(i => i.id === id);
-  if (!item) return;
+  if (!item) return false;
   // Abandon is only valid for active todos (not completed) and notes.
   if (item.item_type === 'todo' && item.done === 1) {
     alert('Cannot abandon a completed todo');
-    return;
+    return false;
   }
-  if (!confirm('Abandon this item?')) return;
+  if (!confirm('Abandon this item?')) return false;
   item.archived = 1;
   item.updated_at = new Date().toISOString();
   saveItems(items);
   refreshCurrent();
   updateReviewBadge();
+  return true;
+}
+
+// Show/hide the Abandon button inside the edit modal depending on item type and done state
+function updateModalAbandonButton() {
+  const btn = document.getElementById('abandonModalBtn');
+  if (!btn) return;
+  const editTypeEl = document.getElementById('editType');
+  const editDoneEl = document.getElementById('editDone');
+  if (!editTypeEl || !editDoneEl) {
+    btn.style.display = 'none';
+    return;
+  }
+  const isTodo = editTypeEl.value === 'todo';
+  const done = parseInt(editDoneEl.value || '0', 10);
+  // Show button for notes, or todos that are not done
+  btn.style.display = (!isTodo || done === 0) ? '' : 'none';
+}
+
+function abandonFromModal() {
+  const id = parseInt(document.getElementById('editId').value, 10);
+  if (!id) { alert('Item not found'); return false; }
+  const success = archiveItem(id);
+  if (success) {
+    closeModal();
+    return true;
+  }
+  return false;
 }
 
 // ===== Edit Modal =====
@@ -469,6 +497,7 @@ function openEdit(id) {
   document.getElementById('editReviewEnabled').value = item.review_enabled === false ? '0' : '1';
   document.getElementById('modalTitle').textContent = `Edit ${item.item_type === 'todo' ? 'Todo' : 'Note'}`;
   onEditTypeChange();
+  updateModalAbandonButton();
   document.getElementById('editModal').style.display = 'flex';
 }
 
@@ -477,6 +506,7 @@ function onEditTypeChange() {
   document.getElementById('editDoneLabel').style.display = isTodo ? '' : 'none';
   const typeLabel = isTodo ? 'Todo' : 'Note';
   document.getElementById('modalTitle').textContent = `Edit ${typeLabel}`;
+  updateModalAbandonButton();
 }
 
 function closeModal() {

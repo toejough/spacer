@@ -24,6 +24,17 @@ function runScriptWithItems(items) {
   const store = { ['remember_everything_items']: JSON.stringify(items) };
   const alerts = [];
   const confirms = [];
+
+  const elements = new Map();
+  function getElementById(id) {
+    if (!elements.has(id)) {
+      const el = makeStubElement();
+      el.id = id;
+      elements.set(id, el);
+    }
+    return elements.get(id);
+  }
+
   const globals = {
     console,
     Date,
@@ -42,7 +53,7 @@ function runScriptWithItems(items) {
       addEventListener: () => {},
       querySelectorAll: () => [],
       activeElement: null,
-      getElementById: () => makeStubElement(),
+      getElementById,
     },
   };
   const context = vm.createContext(globals);
@@ -229,5 +240,28 @@ test('archiveItem prevents abandoning completed todo', () => {
   const items = JSON.parse(store['remember_everything_items']);
   assert.strictEqual(items.find(i => i.id === 1).archived, 0, 'completed todo should not be archived');
   assert.strictEqual(alerts.length, 1, 'should alert user when trying to abandon completed todo');
+  assert.strictEqual(alerts[0], 'Cannot abandon a completed todo');
+});
+test('abandonFromModal archives active todo', () => {
+  const { context, store } = runScriptWithItems([
+    baseItem({ id: 1, done: 0 }),
+  ]);
+  const editId = context.document.getElementById('editId');
+  editId.value = '1';
+  context.abandonFromModal();
+  const items = JSON.parse(store['remember_everything_items']);
+  assert.strictEqual(items.find(i => i.id === 1).archived, 1, 'active todo should be archived from modal');
+});
+
+test('abandonFromModal prevents archiving done todo', () => {
+  const { context, store, alerts } = runScriptWithItems([
+    baseItem({ id: 1, done: 1 }),
+  ]);
+  const editId = context.document.getElementById('editId');
+  editId.value = '1';
+  context.abandonFromModal();
+  const items = JSON.parse(store['remember_everything_items']);
+  assert.strictEqual(items.find(i => i.id === 1).archived, 0, 'completed todo should not be archived from modal');
+  assert.strictEqual(alerts.length, 1, 'should alert user when trying to abandon completed todo from modal');
   assert.strictEqual(alerts[0], 'Cannot abandon a completed todo');
 });
