@@ -1,4 +1,4 @@
-## CHANGED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Abandon a todo
 The system SHALL allow the user to abandon a todo (archive it from view).

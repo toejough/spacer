@@ -1,4 +1,4 @@
-## CHANGED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Abandon a note
 The system SHALL allow the user to abandon a note (archive it from view).
