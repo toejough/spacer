@@ -1,23 +1,20 @@
-# Explore: Mobile-first state-focused Todo UX
+# Explore: Mobile-first state-focused Todo UX (equal accessibility for Done & Abandon)
 
 ## Goal
-Explore alternatives to the 3-column board for mobile: prioritize safe, discoverable, and efficient ways to change todo state (Todo → Done / Abandoned) while preserving the time-based swimlane grouping for context.
+Explore mobile interactions that treat "Done" (completed) and "Abandon" (decided not to do) as equally accessible states — both should be reachable quickly while remaining safe and discoverable.
 
 ## Why
-Columns are great on desktop but fragment the mobile experience. We want a mobile-first interaction that:
-- Prevents accidental destructive actions (Abandon)
-- Makes common actions (Done) fast and discoverable
-- Preserves temporal grouping for review (week/month/quarter/year)
-- Supports bulk operations and accessibility
+Some users need to mark items as "decided not to do" as quickly as they mark them Done; hiding Abandon reduces discoverability and slows workflows. We must balance parity of access with safeguards against accidental destructive actions.
 
-## Variants to explore
-- Variant A (recommended): Stacked swimlane list + visible Done button + long-press/overflow menu for Abandon + undo snackbar
-- Variant B (swipe-first): Swipe-right to Done (with undo), overflow menu for Abandon (no swipe for Abandon)
-- Variant C (action-sheet): Long-press or tap to open action-sheet with Done/Abandon and metadata (compact, discoverable for power users)
+## Variants to explore (updated)
+- Variant A: Two visible buttons per card — Done and Abandon — with distinct affordances and undo.
+- Variant B: Split-swipe: swipe-right → Done, swipe-left → Abandon (both show undo; Abandon may require confirmation depending on sensitivity).
+- Variant C: Two-finger swipe / hold for Abandon + single-finger swipe for Done (less discoverable; optional).
+- Variant D: Reveal both actions on drag (drag left reveals Abandon, drag right reveals Done) — visually symmetric.
 
 ## Success criteria
-- Users can mark a todo Done in ≤2 taps for 90% of cases
-- Abandon requires explicit confirm or provides undo for 95% of accidental cases
-- Accessibility: all actions reachable by keyboard and screen reader
-- Metrics: reduction in accidental Abandon events vs current baseline
+- Both Done and Abandon reachable in ≤2 taps for 90% of cases.
+- Accidental Abandon reduced via confirmation/undo to ≤5% of Abandon events.
+- Accessibility: both actions operable via keyboard and screen reader.
+- Metrics: parity in time-to-action between Done and Abandon, acceptable accidental rates.
 

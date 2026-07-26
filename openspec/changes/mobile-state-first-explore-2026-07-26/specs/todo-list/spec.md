@@ -1,24 +1,22 @@
 ## ADDED Requirements
 
-### Requirement: Mobile state-first UX
-The system SHALL provide a mobile-first representation for changing todo state that is safe and discoverable.
+### Requirement: Mobile parity for Done and Abandon
+The system SHALL make both Done and Abandon equally accessible on mobile while providing safeguards for Abandon.
 
-#### Scenario: Mark Done via visible button
-- **WHEN** a user views a todo in the mobile stacked swimlane list
-- **THEN** the card exposes a prominent "Done" control
-- **AND** tapping Done sets completed_at to now and shows an undo snackbar
+#### Scenario: Two visible actions
+- **WHEN** a user views a todo card on mobile
+- **THEN** the card exposes two visible, focusable controls: Done and Abandon
+- **AND** both controls are reachable within 2 taps
+- **AND** activating Abandon shows either a confirm or an undo snackbar depending on sensitivity
 
-#### Scenario: Abandon via menu with confirm
-- **WHEN** a user needs to Abandon an item on mobile
-- **THEN** they can open an overflow menu (or long-press) and select Abandon
-- **AND** the system asks for confirm or provides an undo snackbar before permanently archiving
+#### Scenario: Split-swipe symmetric gestures
+- **WHEN** split-swipe is enabled
+- **THEN** swipe-right marks Done and swipe-left marks Abandon
+- **AND** both actions show undo snackbar; Abandon may additionally require confirmation when enabled
+- **AND** keyboard/menu alternatives exist for both actions
 
-#### Scenario: Swipe to Done (optional variant)
-- **WHEN** swipe-right-to-Done is enabled
-- **THEN** a swipe sets completed_at to now and shows an undo snackbar
-- **AND** no swipe action shall perform Abandon
-
-#### Scenario: Bulk selection
-- **WHEN** the user enters multi-select mode
-- **THEN** they can apply Done or Abandon to multiple items and confirm Abandon actions
+#### Scenario: Accessibility parity
+- **WHEN** a screen reader user navigates a card
+- **THEN** the Done and Abandon controls are announced and reachable via standard keyboard focus
+- **AND** ARIA live regions announce successful state changes and undos
 

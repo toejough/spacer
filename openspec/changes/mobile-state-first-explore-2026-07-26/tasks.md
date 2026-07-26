@@ -1,10 +1,12 @@
-# Tasks for mobile-state-first exploration
+# Tasks for mobile-state-first exploration (updated)
 
-- [ ] Create high-fidelity mobile mockups for Variant A and Variant B (include action-sheet and overflow states)
-- [ ] Build lightweight interactive prototype (HTML/JS) for usability testing
-- [ ] Implement keyboard and screen-reader accessible flows (ARIA live regions, focus management)
-- [ ] Add analytics events and experiment flags
-- [ ] Run small internal usability test (5–8 participants)
-- [ ] Run A/B experiment comparing Variant A vs B
-- [ ] Iterate on results and update spec/change into a concrete implementation change
+- [ ] Create high-fidelity mobile mockups for:
+  - Variant A: two visible buttons (Done + Abandon) per card
+  - Variant B: split-swipe (left=Abandon, right=Done) with undo/confirm
+- [ ] Build lightweight interactive prototypes for A and B
+- [ ] Usability test (5–8 participants) comparing A vs B for speed, safety, and preference
+- [ ] Implement keyboard and screen-reader accessible flows and ARIA live announcements
+- [ ] Add analytics events and experiment flags (see exploration.md)
+- [ ] Run A/B experiment and analyze undo/accidental rates
+- [ ] Decide and roll out the approach; update OpenSpec change into concrete implementation
 
