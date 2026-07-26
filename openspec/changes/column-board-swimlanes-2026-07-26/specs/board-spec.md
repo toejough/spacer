@@ -2,38 +2,63 @@
 
 This spec describes the board UI with columns and time-based swimlanes and the behaviors required.
 
-## Requirement: Board view
+## ADDED Requirements
 
+### Requirement: Board view
 The system SHALL present a Board view accessible from the Todos tab or navigation.
 
-### Columns
-- The Board view SHALL show three columns labelled: Todo, Done, Abandoned.
-- Each column SHALL display cards representing todo items.
+#### Scenario: Open the Board view
+- **WHEN** the user opens the Todos tab and selects the Board view
+- **THEN** the Board view displays three columns labelled Todo, Done, and Abandoned
+- **AND** each column shows cards for the appropriate todo items
 
-### Swimlanes
-- Each column SHALL be partitioned into swimlanes by the item's last closed/archived timestamp (or "Open" for active items in Todo):
-  - Open / closed in last week (0–7 days)
-  - Closed in last month (8–30 days)
-  - Closed in last quarter (31–90 days)
-  - Closed in last year (91–365 days)
-  - Everything else (>365 days or null)
-- The system SHALL compute swimlane for a todo using the latest of completed_at and archived_at timestamps where applicable.
+### Requirement: Swimlanes
+The system SHALL partition columns into swimlanes based on closed/archived timestamps.
 
-### Drag-and-drop
-- The system SHALL allow dragging a card from the Todo column to a target swimlane inside Done or Abandoned.
-- Dropping into Done SHALL mark the todo as done (set completed_at to now) and refresh the board so the card appears in the correct swimlane.
-- Dropping into Abandoned SHALL mark the todo archived (set archived_at to now) and remove it from active Todo lists.
-- The system SHALL allow reordering cards within a swimlane; reorder order SHALL be persisted.
+#### Scenario: Swimlane bucketing
+- **WHEN** the Board view is rendered
+- **THEN** each todo is placed into one of the swimlanes: open/closed-in-last-week, closed-in-last-month, closed-in-last-quarter, closed-in-last-year, everything-else
+- **AND** swimlane calculation uses the latest of completed_at and archived_at where applicable
 
-### Keyboard & accessibility
-- All drag-and-drop actions SHALL have keyboard-accessible alternatives (move to Done/Abandon via item menu and keyboard shortcuts) and ARIA live announcements for status changes.
+### Requirement: Drag-and-drop
+The system SHALL support dragging cards between columns and swimlanes.
 
-### Mobile and responsiveness
-- On narrow viewports the Board view SHALL collapse into a stacked list grouped by swimlane and column, preserving the ability to change status via controls rather than drag-and-drop.
+#### Scenario: Drag todo to Done
+- **WHEN** the user drags a card from Todo and drops it into a Done swimlane
+- **THEN** the system sets completed_at to the current timestamp
+- **AND** the card appears in the correct Done swimlane
 
-### API notes
-- Add/extend endpoints:
-  - PATCH /api/todos/:id — accept fields { status: "done" | "archived", completed_at?: timestamp, archived_at?: timestamp }
-  - POST /api/todos/reorder — accept payload for ordering within a swimlane
-- Existing endpoints that return lists SHALL accept a query param view=board that returns items grouped/ordered suitable for rendering the board (or the client may compute swimlanes from a flat list).
+#### Scenario: Drag todo to Abandoned
+- **WHEN** the user drags a card from Todo and drops it into an Abandoned swimlane
+- **THEN** the system sets archived_at to the current timestamp
+- **AND** the card is removed from active Todo lists
 
+#### Scenario: Reorder within swimlane
+- **WHEN** the user reorders cards inside a swimlane
+- **THEN** the new order is persisted and reflected on subsequent loads
+
+### Requirement: Accessibility and keyboard support
+The system SHALL provide keyboard-accessible alternatives to drag-and-drop.
+
+#### Scenario: Move via keyboard
+- **WHEN** the user focuses a card and triggers the move-to-Done keyboard shortcut or selects it from the item's menu
+- **THEN** the system marks the item done and announces the change via ARIA live region
+
+### Requirement: Mobile and responsive layout
+The Board view SHALL render appropriately on narrow viewports.
+
+#### Scenario: Mobile fallback
+- **WHEN** viewport width is small
+- **THEN** the Board view collapses into a stacked list grouped by swimlane and column
+- **AND** status changes are available via controls rather than drag-and-drop
+
+### Requirement: API
+The system SHALL provide APIs for status updates and reordering.
+
+#### Scenario: Update status via API
+- **WHEN** the client sends PATCH /api/todos/:id with {status: "done"} or {status: "archived"}
+- **THEN** the server updates completed_at or archived_at timestamps and returns the updated todo
+
+#### Scenario: Persist reorder
+- **WHEN** the client POSTs to /api/todos/reorder with a swimlane id and ordered list of todo ids
+- **THEN** the server stores ordering metadata for the swimlane and responds with success
