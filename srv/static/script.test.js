@@ -22,6 +22,8 @@ function makeStubElement() {
 
 function runScriptWithItems(items) {
   const store = { ['remember_everything_items']: JSON.stringify(items) };
+  const alerts = [];
+  const confirms = [];
   const globals = {
     console,
     Date,
@@ -30,6 +32,8 @@ function runScriptWithItems(items) {
     setInterval: () => {},
     navigator: {},
     window: {},
+    alert: (m) => alerts.push(m),
+    confirm: (m) => { confirms.push(m); return true; },
     localStorage: {
       getItem: (k) => store[k] ?? null,
       setItem: (k, v) => { store[k] = v; },
@@ -43,7 +47,7 @@ function runScriptWithItems(items) {
   };
   const context = vm.createContext(globals);
   vm.runInContext(scriptSource, context, { filename: 'script.js' });
-  return { context, store };
+  return { context, store, alerts, confirms };
 }
 
 function baseItem(overrides = {}) {
@@ -111,6 +115,9 @@ function runScriptWithItemsAndDOM(items) {
     },
   };
 
+  const alerts = [];
+  const confirms = [];
+
   const globals = {
     console,
     Date,
@@ -120,6 +127,8 @@ function runScriptWithItemsAndDOM(items) {
     setTimeout: (fn, ms) => { timeouts.push(fn); return timeouts.length; },
     navigator: {},
     window: {},
+    alert: (m) => alerts.push(m),
+    confirm: (m) => { confirms.push(m); return true; },
     localStorage: {
       getItem: (k) => store[k] ?? null,
       setItem: (k, v) => { store[k] = v; },
@@ -128,9 +137,8 @@ function runScriptWithItemsAndDOM(items) {
   };
   const context = vm.createContext(globals);
   vm.runInContext(scriptSource, context, { filename: 'script.js' });
-  return { context, store, document, timeouts };
+  return { context, store, document, timeouts, alerts, confirms };
 }
-
 function test(name, fn) {
   try {
     fn();
@@ -205,4 +213,21 @@ test('review buttons render without hovered class after submission', () => {
   assert(!reviewCards.innerHTML.includes('hovered'), 'rendered cards should not start with hovered class');
   assert(!reviewCards.classList.contains('review-pointer-locked'), 'review-pointer-locked should not be used');
   assert.strictEqual(typeof context.attachReviewButtonHover, 'function', 'attachReviewButtonHover should be defined');
+});
+test('abandon button not shown for completed todo', () => {
+  const { context } = runScriptWithItems([
+    baseItem({ id: 1, done: 1 }),
+  ]);
+  const html = context.renderTodoCard(baseItem({ id: 1, done: 1 }));
+  assert(!html.includes('archiveItem('), 'abandon button should not be rendered for completed todo');
+});
+
+test('archiveItem prevents abandoning completed todo', () => {
+  const item = baseItem({ id: 1, done: 1 });
+  const { context, store, alerts } = runScriptWithItems([item]);
+  context.archiveItem(1);
+  const items = JSON.parse(store['remember_everything_items']);
+  assert.strictEqual(items.find(i => i.id === 1).archived, 0, 'completed todo should not be archived');
+  assert.strictEqual(alerts.length, 1, 'should alert user when trying to abandon completed todo');
+  assert.strictEqual(alerts[0], 'Cannot abandon a completed todo');
 });
