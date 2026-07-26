@@ -1,6 +1,6 @@
 ## MODIFIED Requirements
 
-### Requirement: Abandon a todo
+### Requirement: Delete a todo
 The system SHALL allow the user to abandon a todo (archive it from view).
 
 #### Scenario: Abandon from edit modal

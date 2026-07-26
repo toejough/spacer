@@ -1,6 +1,6 @@
 ## MODIFIED Requirements
 
-### Requirement: Abandon a note
+### Requirement: Delete a note
 The system SHALL allow the user to abandon a note (archive it from view).
 
 #### Scenario: Abandon from edit modal
