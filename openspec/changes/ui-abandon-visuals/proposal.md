@@ -8,7 +8,7 @@ We updated the app behavior to use an "Abandon" action instead of "Delete" and l
 - Add accessible labels (aria-label) and keyboard focus styles.
 - Update modal and list button placement and visual affordance so Abandon is distinct from permanent deletion.
 
-## What
+## What Changes
 
 This change is a UI-only refinement: provide an SVG icon, aria-labels, styling, and small layout tweaks. No behavior changes.
 
