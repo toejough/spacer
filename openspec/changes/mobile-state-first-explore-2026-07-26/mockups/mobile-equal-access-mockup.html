@@ -9,6 +9,13 @@ body{font-family:Inter,system-ui,Arial,sans-serif;background:#f8fafc;padding:12p
 .hint{font-size:13px;color:#475569;margin-bottom:10px}
 .list{display:flex;flex-direction:column;gap:10px}
 .card{display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;padding:12px;border:1px solid #e6edf3}
+.card.open{background:#fff;border-color:#e6edf3;color:#0f172a}
+.card.done{background:linear-gradient(90deg,#ecfdf5,#ffffff);border-color:#bbf7d0;color:#064e3b}
+.card.done .title{text-decoration:none}
+.card.abandoned{background:#f8fafc;border-color:#e6e7eb;color:#52525b;opacity:0.9}
+.card.abandoned .title{text-decoration:line-through;color:#71717a}
+.state-badge{font-size:11px;padding:4px 8px;border-radius:999px;background:#eef2ff;color:#0f172a;margin-left:6px}
+
 .title{font-weight:600}
 .meta{font-size:12px;color:#64748b}
 .actions{display:flex;gap:8px}
@@ -24,7 +31,7 @@ body{font-family:Inter,system-ui,Arial,sans-serif;background:#f8fafc;padding:12p
   <div class="hint">Both Done and Abandon are primary actions on the card. Abandon shows a confirm or undo to prevent mistakes.</div>
 
   <div class="list">
-    <div class="card" data-id="1" tabindex="0">
+    <div class="card open" data-id="1" tabindex="0">
       <div>
         <div class="title">Write project spec</div>
         <div class="small">due today • high</div>
@@ -36,7 +43,7 @@ body{font-family:Inter,system-ui,Arial,sans-serif;background:#f8fafc;padding:12p
       </div>
     </div>
 
-    <div class="card" data-id="2" tabindex="0">
+    <div class="card open" data-id="2" tabindex="0">
       <div>
         <div class="title">Refactor API</div>
         <div class="small">low priority</div>
@@ -52,25 +59,25 @@ body{font-family:Inter,system-ui,Arial,sans-serif;background:#f8fafc;padding:12p
   <h4 style="margin:6px 0">Closed items (examples)</h4>
 
   <div class="list">
-    <div class="card" data-id="3">
+    <div class="card done" data-id="3">
       <div>
-        <div class="title">Publish release notes</div>
+        <div style="display:flex;align-items:center;gap:8px"><div class="title">Publish release notes</div><div class="state-badge">Done</div></div>
         <div class="small">completed 2d ago</div>
       </div>
       <div style="flex:1"></div>
       <div class="actions">
-        <button class="btn btn-done" onclick="reopen(this)">Reopen</button>
+        <button class="btn btn-done" style="background:#2563eb;color:#fff" onclick="reopen(this)">Reopen</button>
       </div>
     </div>
 
-    <div class="card" data-id="4">
+    <div class="card abandoned" data-id="4">
       <div>
-        <div class="title">Experimental feature X</div>
+        <div style="display:flex;align-items:center;gap:8px"><div class="title">Experimental feature X</div><div class="state-badge" style="background:#fee2e2;color:#991b1b">Abandoned</div></div>
         <div class="small">abandoned 10d ago</div>
       </div>
       <div style="flex:1"></div>
       <div class="actions">
-        <button class="btn btn-done" onclick="reopen(this)">Reopen</button>
+        <button class="btn btn-done" style="background:#2563eb;color:#fff" onclick="reopen(this)">Reopen</button>
       </div>
     </div>
   </div>
