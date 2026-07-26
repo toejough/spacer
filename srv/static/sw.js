@@ -1,4 +1,4 @@
-const CACHE_NAME = 'remember-everything-v22';
+const CACHE_NAME = 'remember-everything-v23';
 const PRECACHE = [
   '/',
   '/static/style.css?v=22',
