@@ -370,7 +370,7 @@ function renderTodoCard(item) {
     </div>
     <div class="item-actions">
       <button class="btn-icon" onclick="openEdit(${item.id})" title="Edit">\u270f\ufe0f</button>
-      <button class="btn-icon" onclick="archiveItem(${item.id})" title="Delete">\ud83d\uddd1\ufe0f</button>
+      <button class="btn-icon" onclick="archiveItem(${item.id})" title="Abandon">\ud83d\uddd1\ufe0f</button>
     </div>
   </div>`;
 }
@@ -416,7 +416,7 @@ function renderNoteCard(item) {
     </div>
     <div class="item-actions">
       <button class="btn-icon" onclick="openEdit(${item.id})" title="Edit">\u270f\ufe0f</button>
-      <button class="btn-icon" onclick="archiveItem(${item.id})" title="Delete">\ud83d\uddd1\ufe0f</button>
+      <button class="btn-icon" onclick="archiveItem(${item.id})" title="Abandon">\ud83d\uddd1\ufe0f</button>
     </div>
   </div>`;
 }
@@ -440,7 +440,7 @@ function doSearch() {
 
 // ===== Archive =====
 function archiveItem(id) {
-  if (!confirm('Delete this item?')) return;
+  if (!confirm('Abandon this item?')) return;
   const items = loadItems();
   const item = items.find(i => i.id === id);
   if (!item) return;
