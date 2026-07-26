@@ -4,6 +4,7 @@
       <q-tab name="notes" label="notes" />
       <!-- <q-tab name="flashcards" label="flashcards" /> -->
       <q-tab name="flashcards" label="flashcards" @click="checkCards" />
+      <q-tab name="todos" label="todos" />
     </q-tabs>
     <q-tab-panels v-model="tabs">
       <q-tab-panel name="notes">
@@ -14,6 +15,9 @@
       <q-tab-panel name="flashcards">
         <FlashcardList v-model:flashcards="flashcards" v-model:notes="notes" />
       </q-tab-panel>
+      <q-tab-panel name="todos">
+        <MobileTodoList />
+      </q-tab-panel>
     </q-tab-panels>
   </q-page>
 </template>
@@ -23,6 +27,7 @@ import { ref } from 'vue'
 import { useStorage } from '@vueuse/core'
 import NoteList from '../components/NoteList.vue'
 import FlashcardList from '../components/FlashcardList.vue'
+import MobileTodoList from '../components/MobileTodoList.vue'
 import type { flashcard } from '../components/FlashcardList.vue'
 import { uid } from 'quasar';
 import { useNoteCardStore } from 'src/stores/noteCards';
