@@ -1,8 +1,8 @@
-const CACHE_NAME = 'remember-everything-v26';
+const CACHE_NAME = 'remember-everything-v27';
 const PRECACHE = [
   '/',
-  '/static/style.css?v=26',
-  '/static/script.js?v=26',
+  '/static/style.css?v=27',
+  '/static/script.js?v=27',
 ];
 
 self.addEventListener('install', e => {
