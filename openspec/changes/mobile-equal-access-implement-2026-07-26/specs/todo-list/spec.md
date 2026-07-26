@@ -5,7 +5,7 @@ The system SHALL make both Done and Abandon equally accessible on mobile while p
 
 #### Scenarios implemented
 - Two visible actions with Reopen on closed cards.
-- Split-swipe left/right supported as optional behavior in prototype.
+- Split-swipe left/right is NOT part of the default implementation; swipe-based interactions are archived as experimental. The default implementation uses two visible buttons per card (Done and Abandon) and Reopen on closed cards.
 - Keyboard and ARIA announcements implemented: controls are focusable and state changes use ARIA live regions.
 - Visual treatments for each state provided and contrast verified.
 
