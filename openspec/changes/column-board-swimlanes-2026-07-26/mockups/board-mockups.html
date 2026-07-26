@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Board Mockups — Todo App</title>
+<style>
+body{font-family: Inter, system-ui, Arial, sans-serif; margin:16px; background:#f6f8fa; color:#0f172a}
+.header{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.btn{background:#111827;color:#fff;padding:8px 12px;border-radius:8px;text-decoration:none;font-size:13px}
+.canvas{display:grid;gap:16px}
+.mockup{background:#fff;border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(17,24,39,0.06)}
+.board{display:flex;gap:12px}
+.column{flex:1;min-width:180px;background:#f8fafc;border-radius:8px;padding:8px;border:1px solid #e6eef6}
+.col-header{font-weight:600;padding:6px 8px;border-bottom:1px solid #e6eef6;margin-bottom:8px}
+.swimlane{border-top:1px dashed #e6eef6;padding:8px}
+.swimlane .lane-title{font-size:12px;color:#334155;margin-bottom:8px}
+.card{background:#fff;border-radius:8px;padding:8px;margin-bottom:8px;border:1px solid #e6eef6;display:flex;align-items:center;gap:8px}
+.card .handle{width:18px;height:18px;border-radius:4px;background:#e2e8f0;display:inline-block}
+.card .title{flex:1}
+.note{font-size:12px;color:#475569}
+.mobile-stack{display:flex;flex-direction:column;gap:8px}
+.stack-group{background:#fff;padding:10px;border-radius:8px;border:1px solid #e6eef6}
+.preview-actions{display:flex;gap:8px;margin-left:auto}
+.badge{font-size:12px;padding:2px 6px;border-radius:999px;background:#e2e8f0;color:#0f172a}
+.legend{font-size:13px;color:#475569}
+.small{font-size:12px}
+@media(max-width:800px){.board{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h3 style="margin:0">Board Mockups</h3>
+  <div class="legend">Columns: Todo • Done • Abandoned — Swimlanes: week, month, quarter, year, everything</div>
+  <div style="flex:1"></div>
+  <a class="btn" id="toggleView">Toggle Mobile/Desktop</a>
+</div>
+<div class="canvas">
+  <div id="desktop" class="mockup">
+    <h4 style="margin:6px 0">Desktop — 3-column board</h4>
+    <div class="board">
+      <div class="column" aria-label="Todo column">
+        <div class="col-header">Todo <span class="badge">active</span></div>
+        <div class="swimlane">
+          <div class="lane-title">Open / closed in last week</div>
+          <div class="card"><div class="handle" aria-hidden></div><div class="title">Write project spec</div><div class="small">due today</div></div>
+          <div class="card"><div class="handle"></div><div class="title">Refactor API</div><div class="small">low</div></div>
+        </div>
+        <div class="swimlane">
+          <div class="lane-title">Closed in last month</div>
+          <div class="note">(none)</div>
+        </div>
+      </div>
+
+      <div class="column" aria-label="Done column">
+        <div class="col-header">Done</div>
+        <div class="swimlane">
+          <div class="lane-title">Open / closed in last week</div>
+          <div class="card" style="background:linear-gradient(180deg,#ecfdf5,#ffffff)"><div class="handle"></div><div class="title">Publish release notes</div><div class="small">completed 2d</div></div>
+        </div>
+        <div class="swimlane">
+          <div class="lane-title">Closed in last month</div>
+          <div class="card"><div class="handle"></div><div class="title">Merge PR #42</div><div class="small">completed 18d</div></div>
+        </div>
+        <div class="swimlane">
+          <div class="lane-title">Closed in last quarter</div>
+          <div class="card"><div class="handle"></div><div class="title">Archive old notes</div><div class="small">completed 70d</div></div>
+        </div>
+      </div>
+
+      <div class="column" aria-label="Abandoned column">
+        <div class="col-header">Abandoned</div>
+        <div class="swimlane">
+          <div class="lane-title">Open / closed in last week</div>
+          <div class="note">(none)</div>
+        </div>
+        <div class="swimlane">
+          <div class="lane-title">Everything else</div>
+          <div class="card"><div class="handle"></div><div class="title">Experimental feature X</div><div class="small">abandoned 420d</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mobile" class="mockup" style="display:none">
+    <h4 style="margin:6px 0">Mobile — stacked swimlanes</h4>
+    <div class="mobile-stack">
+      <div class="stack-group">
+        <div style="display:flex;align-items:center;justify-content:space-between"><strong>Open / closed in last week</strong><span class="badge">3</span></div>
+        <div style="margin-top:8px">
+          <div class="card"><div class="handle"></div><div class="title">Write project spec</div></div>
+          <div class="card"><div class="handle"></div><div class="title">Publish release notes (done)</div></div>
+        </div>
+      </div>
+
+      <div class="stack-group">
+        <div style="display:flex;align-items:center;justify-content:space-between"><strong>Closed in last month</strong><span class="badge">1</span></div>
+        <div style="margin-top:8px">
+          <div class="card"><div class="handle"></div><div class="title">Merge PR #42</div></div>
+        </div>
+      </div>
+
+      <div class="stack-group">
+        <div style="display:flex;align-items:center;justify-content:space-between"><strong>Everything else</strong><span class="badge">1</span></div>
+        <div style="margin-top:8px">
+          <div class="card"><div class="handle"></div><div class="title">Experimental feature X (abandoned)</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="mockup small" style="margin-top:8px">
+    <strong>Notes</strong>
+    <ul>
+      <li>Drag from Todo to Done/Abandoned sets completed_at / archived_at to now.</li>
+      <li>Keyboard actions: focus card → context menu → Move → select target column/swimlane.</li>
+      <li>Feature-flagged; responsive fallback to stacked lists on narrow viewports.</li>
+    </ul>
+  </div>
+
+</div>
+<script>
+const toggle = document.getElementById('toggleView');
+let showingMobile = false;
+const desktop = document.getElementById('desktop');
+const mobile = document.getElementById('mobile');
+toggle.addEventListener('click', ()=>{
+  showingMobile = !showingMobile;
+  desktop.style.display = showingMobile ? 'none' : '';
+  mobile.style.display = showingMobile ? '' : 'none';
+  toggle.textContent = showingMobile ? 'Toggle Desktop' : 'Toggle Mobile';
+});
+</script>
+</body>
+</html>
