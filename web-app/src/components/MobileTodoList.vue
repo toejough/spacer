@@ -21,15 +21,39 @@ const todos = ref([{
 
 function onDone(todo){
   const t = todos.value.find(x=>x.id===todo.id);
-  if(t){ t.status='done'; t.completed_at = (new Date()).toISOString(); }
+  // call API to mark done
+  fetch(`/api/todos/${todo.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'done' })
+  }).then(res => {
+    if(!res.ok) throw new Error('failed')
+    if(t){ t.status='done'; t.completed_at = (new Date()).toISOString(); }
+  }).catch(err => { console.error('mark done failed', err) })
 }
+
 function onAbandon(todo){
   const t = todos.value.find(x=>x.id===todo.id);
-  if(t){ t.status='abandoned'; t.archived_at = (new Date()).toISOString(); }
+  fetch(`/api/todos/${todo.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'archived' })
+  }).then(res => {
+    if(!res.ok) throw new Error('failed')
+    if(t){ t.status='abandoned'; t.archived_at = (new Date()).toISOString(); }
+  }).catch(err => { console.error('abandon failed', err) })
 }
+
 function onReopen(todo){
   const t = todos.value.find(x=>x.id===todo.id);
-  if(t){ t.status='open'; t.completed_at=null; t.archived_at=null }
+  fetch(`/api/todos/${todo.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: 'reopen' })
+  }).then(res => {
+    if(!res.ok) throw new Error('failed')
+    if(t){ t.status='open'; t.completed_at=null; t.archived_at=null }
+  }).catch(err => { console.error('reopen failed', err) })
 }
 </script>
 
