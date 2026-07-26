@@ -363,28 +363,30 @@ function renderTodoCard(item) {
     reviewInfo = `<span class="item-sr clickable" onclick="event.stopPropagation();showHistory(${item.id})">Next review: ${formatDate(item.next_review)}</span>`;
   }
 
-  // Check circle: only clickable for open items (not done, not archived)
-  const checkCircle = (done || archived)
-    ? `<div class="item-check${done ? ' checked' : ''}">${done ? '\u2713' : ''}</div>`
-    : `<div class="item-check" onclick="toggleTodo(${item.id})"></div>`;
+  // SVG icons (feather-style)
+  const completeIcon = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>`;
+  const abandonIcon = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`;
+  const reopenIcon = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>`;
+  const editIcon = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`;
 
-  // Actions: Reopen only for end-of-life cards; Done + Abandon for open
-  let actionButtons = '';
+  // Left-side action icons: Complete + Abandon for open; Reopen for done/abandoned
+  let leftActions = '';
   if (archived || done) {
-    actionButtons = `<button class="btn-icon" onclick="reopenItem(${item.id})" title="Reopen">\u27f2</button>`;
+    leftActions = `<button class="btn-icon btn-reopen" onclick="reopenItem(${item.id})" aria-label="Reopen">${reopenIcon}</button>`;
   } else {
-    actionButtons = `<button class="btn-icon" onclick="archiveItem(${item.id})" title="Abandon">\ud83c\udff3\ufe0f</button><button class="btn-icon" onclick="toggleTodo(${item.id})" title="Done">\u2713</button>`;
+    leftActions = `<button class="btn-icon btn-abandon" onclick="archiveItem(${item.id})" aria-label="Abandon">${abandonIcon}</button><button class="btn-icon btn-complete" onclick="toggleTodo(${item.id})" aria-label="Complete">${completeIcon}</button>`;
   }
 
   return `<div class="item-card${done ? ' done' : ''}${archived ? ' abandoned' : ''}">
-    ${checkCircle}
+    <div class="item-icon-actions">
+      ${leftActions}
+    </div>
     <div class="item-body">
       <div class="item-title">${renderTitleWithClozeHints(item.title)}</div>
       <div class="item-meta">${reviewInfo}</div>
     </div>
     <div class="item-actions">
-      <button class="btn-icon" onclick="openEdit(${item.id})" title="Edit">\u270f\ufe0f</button>
-      ${actionButtons}
+      <button class="btn-icon btn-edit" onclick="openEdit(${item.id})" aria-label="Edit">${editIcon}</button>
     </div>
   </div>`;
 }
