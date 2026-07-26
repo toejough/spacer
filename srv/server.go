@@ -1,7 +1,6 @@
 package srv
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log/slog"
