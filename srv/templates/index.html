@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Remember Everything</title>
-  <link rel="stylesheet" href="/static/style.css?v=27">
-  <link rel="manifest" href="/static/manifest.json?v=27">
+  <link rel="stylesheet" href="/static/style.css?v=28">
+  <link rel="manifest" href="/static/manifest.json?v=28">
   <meta name="theme-color" content="#4361ee">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,18 +15,15 @@
     <header>
       <h1>🧠 Remember Everything</h1>
       <div class="header-actions">
-        <div class="review-badge" id="reviewBadge" onclick="switchTab('review')" style="display:none">
-          <span id="reviewCount">0</span> due for review
-        </div>
         <button id="helpBtn" class="help-btn" onclick="switchTab('help')" aria-label="Help" aria-pressed="false" title="Help">❓</button>
       </div>
     </header>
 
     <nav class="tabs">
-      <button class="tab active" data-tab="review" onclick="switchTab('review')">📋 Review</button>
-      <button class="tab" data-tab="todos" onclick="switchTab('todos')">✅ Todos</button>
-      <button class="tab" data-tab="notes" onclick="switchTab('notes')">📝 Notes</button>
-      <button class="tab" data-tab="search" onclick="switchTab('search')">🔍 Search</button>
+      <button class="tab active" data-tab="review" onclick="switchTab('review')">📋 Review <span class="tab-badge" id="tabBadgeReview">0</span></button>
+      <button class="tab" data-tab="todos" onclick="switchTab('todos')">✅ Todos <span class="tab-badge" id="tabBadgeTodos">0</span></button>
+      <button class="tab" data-tab="notes" onclick="switchTab('notes')">📝 Notes <span class="tab-badge" id="tabBadgeNotes">0</span></button>
+      <button class="tab" data-tab="search" onclick="switchTab('search')">🔍 Search <span class="tab-badge" id="tabBadgeSearch">0</span></button>
     </nav>
 
     <!-- Review Tab -->
@@ -158,12 +155,12 @@
     </div>
   </div>
 
-  <footer class="app-version">v27</footer>
+  <footer class="app-version">v28</footer>
 
-  <script src="/static/script.js?v=27"></script>
+  <script src="/static/script.js?v=28"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js?v=27').catch(() => {});
+      navigator.serviceWorker.register('/sw.js?v=28').catch(() => {});
     }
   </script>
 </body>

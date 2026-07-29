@@ -145,7 +145,7 @@ function quickAdd(itemType) {
   saveItems(items);
   input.value = '';
   refreshCurrent();
-  updateReviewBadge();
+  updateTabCounts();
 }
 
 // ===== Review =====
@@ -322,18 +322,43 @@ function submitReview(id, clozeIndex, rating) {
     document.activeElement.blur();
   }
   loadReview();
-  updateReviewBadge();
+  updateTabCounts();
 }
 
-function updateReviewBadge() {
-  const count = getDueCount();
-  const badge = document.getElementById('reviewBadge');
-  const countEl = document.getElementById('reviewCount');
-  if (count > 0) {
-    badge.style.display = '';
-    countEl.textContent = count;
-  } else {
-    badge.style.display = 'none';
+function getOpenTodoCount() {
+  return loadItems().filter(i => i.item_type === 'todo' && i.done === 0 && !i.archived).length;
+}
+
+function getNoteCount() {
+  return loadItems().filter(i => i.item_type === 'note' && !i.archived).length;
+}
+
+function updateTabCounts() {
+  const items = loadItems();
+  const reviewCount = getDueCount();
+  const todoCount = getOpenTodoCount();
+  const noteCount = getNoteCount();
+
+  let searchCount = 0;
+  if (currentTab === 'search') {
+    const searchResults = document.getElementById('searchResults');
+    if (searchResults) {
+      searchCount = searchResults.querySelectorAll('.item-card').length;
+    }
+  }
+
+  const badges = [
+    { id: 'tabBadgeReview', count: reviewCount },
+    { id: 'tabBadgeTodos', count: todoCount },
+    { id: 'tabBadgeNotes', count: noteCount },
+    { id: 'tabBadgeSearch', count: searchCount },
+  ];
+
+  for (const { id, count } of badges) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.textContent = count;
+    el.classList.toggle('visible', count > 0);
   }
 }
 
@@ -452,6 +477,7 @@ function doSearch() {
     if (item.item_type === 'todo') return renderTodoCard(item);
     return renderNoteCard(item);
   }).join('');
+  updateTabCounts();
 }
 
 // ===== Archive =====
@@ -465,7 +491,7 @@ function archiveItem(id) {
   item.updated_at = new Date().toISOString();
   saveItems(items);
   refreshCurrent();
-  updateReviewBadge();
+  updateTabCounts();
   return true;
 }
 
@@ -478,7 +504,7 @@ function reopenItem(id) {
   item.updated_at = new Date().toISOString();
   saveItems(items);
   refreshCurrent();
-  updateReviewBadge();
+  updateTabCounts();
   return true;
 }
 
@@ -592,7 +618,7 @@ function saveEdit() {
   saveItems(items);
   closeModal();
   refreshCurrent();
-  updateReviewBadge();
+  updateTabCounts();
 }
 
 function resetSM2(item) {
@@ -627,7 +653,7 @@ function resetReviews() {
   saveItems(items);
   closeModal();
   refreshCurrent();
-  updateReviewBadge();
+  updateTabCounts();
 }
 
 // ===== History Popup =====
@@ -757,6 +783,7 @@ function refreshCurrent() {
   if (currentTab === 'review') loadReview();
   else if (currentTab === 'todos') loadTodos();
   else if (currentTab === 'notes') loadNotes();
+  updateTabCounts();
 }
 
 function escHtml(s) {
@@ -854,5 +881,4 @@ document.addEventListener('selectionchange', updateClozeButtonLabel);
 
 // ===== Init =====
 loadReview();
-updateReviewBadge();
-setInterval(updateReviewBadge, 60000);
+updateTabCounts();
