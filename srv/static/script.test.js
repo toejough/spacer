@@ -341,61 +341,81 @@ test('exportData works when there are no items', () => {
   assert.deepStrictEqual(payload.items, [], 'payload items should be an empty array');
 });
 
-test('importDataFromText replace mode discards existing data', () => {
+test('importDataFromText always appends todos, even with a matching title', () => {
   const { context, store } = runScriptWithItems([
-    baseItem({ id: 1, title: 'old' }),
+    baseItem({ id: 1, item_type: 'todo', title: 'Buy milk' }),
   ]);
   const importJson = JSON.stringify({
     schema_version: 1,
     exported_at: new Date().toISOString(),
-    items: [baseItem({ id: 5, title: 'imported' })],
+    items: [baseItem({ id: 1, item_type: 'todo', title: 'Buy milk' })],
   });
-  context.importDataFromText(importJson, 'replace');
+  context.importDataFromText(importJson);
   const items = JSON.parse(store['remember_everything_items']);
-  assert.strictEqual(items.length, 1, 'replace should leave only imported items');
-  assert.strictEqual(items[0].id, 5, 'replace should keep imported item');
+  assert.strictEqual(items.length, 2, 'todos are never deduped, both should be present');
+  assert.strictEqual(items.filter(i => i.title === 'Buy milk').length, 2, 'duplicate-title todo should still be appended');
 });
 
-test('importDataFromText replace mode is skipped if user cancels confirmation', () => {
+test('importDataFromText assigns fresh ids to imported items so they never collide', () => {
   const { context, store } = runScriptWithItems([
-    baseItem({ id: 1, title: 'old' }),
+    baseItem({ id: 1, item_type: 'todo', title: 'existing' }),
   ]);
-  context.confirm = () => false;
   const importJson = JSON.stringify({
     schema_version: 1,
     exported_at: new Date().toISOString(),
-    items: [baseItem({ id: 5, title: 'imported' })],
+    items: [baseItem({ id: 1, item_type: 'todo', title: 'imported' })],
   });
-  context.importDataFromText(importJson, 'replace');
+  context.importDataFromText(importJson);
   const items = JSON.parse(store['remember_everything_items']);
-  assert.strictEqual(items.length, 1, 'declined replace should leave data untouched');
-  assert.strictEqual(items[0].id, 1, 'declined replace should keep original item');
+  assert.strictEqual(items.length, 2, 'both items should be present');
+  const ids = items.map(i => i.id);
+  assert.strictEqual(new Set(ids).size, 2, 'imported item should get a new, non-colliding id');
 });
 
-test('importDataFromText merge mode adds new items and keeps existing ones on id collision', () => {
+test('importDataFromText skips a note whose content duplicates an existing note, keeping local metadata', () => {
   const { context, store } = runScriptWithItems([
-    baseItem({ id: 1, title: 'existing' }),
+    baseItem({
+      id: 1, item_type: 'note', title: 'The capital of France is Paris',
+      next_review: '2020-01-01T00:00:00.000Z', ease_factor: 3.1, repetitions: 5,
+    }),
   ]);
   const importJson = JSON.stringify({
     schema_version: 1,
     exported_at: new Date().toISOString(),
     items: [
-      baseItem({ id: 1, title: 'colliding-imported' }),
-      baseItem({ id: 2, title: 'new-imported' }),
+      baseItem({
+        id: 9, item_type: 'note', title: 'The capital of France is Paris',
+        next_review: '2099-01-01T00:00:00.000Z', ease_factor: 2.5, repetitions: 0,
+      }),
     ],
   });
-  context.importDataFromText(importJson, 'merge');
+  context.importDataFromText(importJson);
   const items = JSON.parse(store['remember_everything_items']);
-  assert.strictEqual(items.length, 2, 'merge should add only the non-colliding item');
-  assert.strictEqual(items.find(i => i.id === 1).title, 'existing', 'existing item should win on id collision');
-  assert(items.find(i => i.id === 2), 'new item should be added by merge');
+  assert.strictEqual(items.length, 1, 'duplicate-content note should not be added');
+  assert.strictEqual(items[0].next_review, '2020-01-01T00:00:00.000Z', 'existing local review metadata should win');
+  assert.strictEqual(items[0].ease_factor, 3.1, 'existing local ease factor should win');
+});
+
+test('importDataFromText adds a note whose content is new', () => {
+  const { context, store } = runScriptWithItems([
+    baseItem({ id: 1, item_type: 'note', title: 'Existing note' }),
+  ]);
+  const importJson = JSON.stringify({
+    schema_version: 1,
+    exported_at: new Date().toISOString(),
+    items: [baseItem({ id: 9, item_type: 'note', title: 'A brand new note' })],
+  });
+  context.importDataFromText(importJson);
+  const items = JSON.parse(store['remember_everything_items']);
+  assert.strictEqual(items.length, 2, 'new-content note should be appended');
+  assert(items.find(i => i.title === 'A brand new note'), 'new note should be present');
 });
 
 test('importDataFromText rejects invalid JSON without modifying data', () => {
   const { context, store } = runScriptWithItems([
     baseItem({ id: 1 }),
   ]);
-  assert.throws(() => context.importDataFromText('not json', 'merge'), /not valid JSON/);
+  assert.throws(() => context.importDataFromText('not json'), /not valid JSON/);
   const items = JSON.parse(store['remember_everything_items']);
   assert.strictEqual(items.length, 1, 'invalid JSON import should not modify existing data');
 });
@@ -404,8 +424,9 @@ test('importDataFromText rejects a file missing an items array', () => {
   const { context, store } = runScriptWithItems([
     baseItem({ id: 1 }),
   ]);
-  assert.throws(() => context.importDataFromText(JSON.stringify({ schema_version: 1 }), 'merge'), /does not look like/);
+  assert.throws(() => context.importDataFromText(JSON.stringify({ schema_version: 1 })), /does not look like/);
   const items = JSON.parse(store['remember_everything_items']);
   assert.strictEqual(items.length, 1, 'invalid shape import should not modify existing data');
 });
+
 

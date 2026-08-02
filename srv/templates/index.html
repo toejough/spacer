@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Remember Everything</title>
-  <link rel="stylesheet" href="/static/style.css?v=29">
-  <link rel="manifest" href="/static/manifest.json?v=29">
+  <link rel="stylesheet" href="/static/style.css?v=30">
+  <link rel="manifest" href="/static/manifest.json?v=30">
   <meta name="theme-color" content="#4361ee">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -83,13 +83,11 @@
         <p>All your data lives in this browser only. Export it to a file so you never lose it — including when moving to a new device, browser, or hosting URL. No login required.</p>
         <div class="backup-restore-actions">
           <button type="button" onclick="exportData()" class="btn-primary">⬇️ Export data</button>
-          <button type="button" onclick="triggerImport('merge')" class="btn-secondary">⬆️ Import (merge)</button>
-          <button type="button" onclick="triggerImport('replace')" class="btn-secondary">⬆️ Import (replace all)</button>
+          <button type="button" onclick="triggerImport()" class="btn-secondary">⬆️ Import data</button>
           <input type="file" id="importFileInput" accept="application/json,.json" style="display:none" onchange="handleImportFileChange(event)">
         </div>
         <p style="font-size:.85rem;color:var(--text2);">
-          <strong>Import (merge)</strong> adds items from the file that don't already exist here.
-          <strong>Import (replace all)</strong> wipes current data and replaces it with the file's contents — use this after moving to a new host or browser.
+          Import always adds to your existing data — it never deletes or overwrites anything. Imported todos are always added, even if similar ones exist. Imported notes are skipped if their content exactly matches a note you already have, so your existing review progress on that note is kept.
         </p>
       </div>
     </section>
@@ -168,12 +166,12 @@
     </div>
   </div>
 
-  <footer class="app-version">v29</footer>
+  <footer class="app-version">v30</footer>
 
-  <script src="/static/script.js?v=29"></script>
+  <script src="/static/script.js?v=30"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js?v=29').catch(() => {});
+      navigator.serviceWorker.register('/sw.js?v=30').catch(() => {});
     }
   </script>
 </body>

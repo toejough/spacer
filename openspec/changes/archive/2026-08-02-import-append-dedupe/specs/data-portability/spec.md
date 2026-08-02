@@ -1,19 +1,10 @@
-# data-portability Specification
+## REMOVED Requirements
 
-## Purpose
-TBD - created by archiving change data-export-import. Update Purpose after archive.
-## Requirements
-### Requirement: Export all data as a file
-The system SHALL allow the user to export all their local todo/note data as a downloadable JSON file, without requiring login.
+### Requirement: Import data from a file
+**Reason**: Replaced by a simpler, safer import model below — import is always append-only (no destructive Replace mode, no id-based Merge), with note-content-based dedup that keeps existing local review metadata.
+**Migration**: Users who previously relied on Replace to fully restore onto a clean browser can clear site data/local storage first (or use a new browser profile), then use Import, which will append into an empty store — producing the same end result without a destructive code path.
 
-#### Scenario: Export from Help tab
-- **WHEN** the user clicks the "Export data" button in the Help tab
-- **THEN** a JSON file is generated containing all items currently in local storage, a schema version, and an export timestamp
-- **AND** the browser downloads the file with a name that includes the current date
-
-#### Scenario: Export with no items
-- **WHEN** the user exports data while no items exist
-- **THEN** a valid JSON file is still downloaded, containing an empty items list
+## ADDED Requirements
 
 ### Requirement: Import data from a file
 The system SHALL allow the user to import a previously exported JSON file, without requiring login. Import SHALL always append data — it SHALL NOT remove or overwrite any existing local item.
@@ -40,15 +31,3 @@ The system SHALL allow the user to import a previously exported JSON file, witho
 #### Scenario: Single import action
 - **WHEN** the user opens the Help tab
 - **THEN** there is a single "Import" action (no separate Merge/Replace choice)
-
-### Requirement: Exported file is portable and versioned
-The exported file SHALL be self-describing so it can be safely re-imported on a different host, browser, or app version.
-
-#### Scenario: Schema version included
-- **WHEN** data is exported
-- **THEN** the file includes a `schema_version` field describing the export format
-
-#### Scenario: Forward-compatible import
-- **WHEN** an older-format export file is imported into a newer app version
-- **THEN** the system upgrades the data to the current in-memory shape before loading it, without data loss
-

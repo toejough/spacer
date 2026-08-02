@@ -858,7 +858,6 @@ document.addEventListener('keydown', handleClozeKeydown);
 
 // ===== Backup & Restore (export/import) =====
 const EXPORT_SCHEMA_VERSION = 1;
-let pendingImportMode = 'merge';
 
 // Build the exportable payload from current local data.
 function buildExportPayload() {
@@ -885,9 +884,8 @@ function exportData() {
   URL.revokeObjectURL(url);
 }
 
-// Called by the Import (Merge)/Import (Replace) buttons to open the file picker.
-function triggerImport(mode) {
-  pendingImportMode = mode;
+// Called by the Import button to open the file picker.
+function triggerImport() {
   const input = document.getElementById('importFileInput');
   if (input) input.click();
 }
@@ -900,7 +898,7 @@ function handleImportFileChange(event) {
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      importDataFromText(reader.result, pendingImportMode);
+      importDataFromText(reader.result);
     } catch (e) {
       alert('Import failed: ' + (e && e.message ? e.message : 'invalid file'));
     }
@@ -919,7 +917,7 @@ function upgradeExportData(data) {
 }
 
 // Parses exported JSON text and applies it. Exposed separately for testing.
-function importDataFromText(text, mode) {
+function importDataFromText(text) {
   let data;
   try {
     data = JSON.parse(text);
@@ -927,27 +925,37 @@ function importDataFromText(text, mode) {
     throw new Error('file is not valid JSON');
   }
   const items = upgradeExportData(data);
-  applyImportedItems(items, mode);
+  applyImportedItems(items);
   return items;
 }
 
-// Replace or merge imported items into local storage.
-function applyImportedItems(items, mode) {
-  if (mode === 'replace') {
-    if (typeof confirm === 'function' &&
-        !confirm('Replace ALL current data with the imported file? This cannot be undone.')) {
-      return;
+// Note "content" today lives in the title field (see ensureClozeData/renderNoteCard).
+// Trim + exact match, case-sensitive.
+function noteContentKey(item) {
+  return (item.title || '').trim();
+}
+
+// Always append imported items. Todos are appended unconditionally.
+// Notes whose content exactly matches an existing note are skipped, so the
+// existing local note (and its review metadata) wins.
+function applyImportedItems(items) {
+  const existing = loadItems();
+  const existingNoteContents = new Set(
+    existing.filter(i => i.item_type === 'note').map(noteContentKey)
+  );
+  let nextIdCounter = getNextId(existing);
+  const toAppend = [];
+  for (const item of items) {
+    if (item.item_type === 'note' && existingNoteContents.has(noteContentKey(item))) {
+      continue; // duplicate note content: existing local note wins
     }
-    saveItems(items);
-  } else {
-    const existing = loadItems();
-    const existingIds = new Set(existing.map(i => i.id));
-    const merged = existing.concat(items.filter(i => !existingIds.has(i.id)));
-    saveItems(merged);
+    toAppend.push({ ...item, id: nextIdCounter++ });
   }
+  saveItems(existing.concat(toAppend));
   refreshCurrent();
   updateTabCounts();
 }
+
 
 function updateClozeButtonLabel() {
   const btn = document.getElementById('clozeToggleBtn');
