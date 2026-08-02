@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Remember Everything</title>
-  <link rel="stylesheet" href="/static/style.css?v=30">
-  <link rel="manifest" href="/static/manifest.json?v=30">
+  <link rel="stylesheet" href="/static/style.css?v=31">
+  <link rel="manifest" href="/static/manifest.json?v=31">
   <meta name="theme-color" content="#4361ee">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -87,7 +87,7 @@
           <input type="file" id="importFileInput" accept="application/json,.json" style="display:none" onchange="handleImportFileChange(event)">
         </div>
         <p style="font-size:.85rem;color:var(--text2);">
-          Import always adds to your existing data — it never deletes or overwrites anything. Imported todos are always added, even if similar ones exist. Imported notes are skipped if their content exactly matches a note you already have, so your existing review progress on that note is kept.
+          Import always adds to your existing data — it never deletes or overwrites anything. A todo or note is skipped if its type and title exactly match one you already have, so your existing progress on that item is kept; anything new is added.
         </p>
       </div>
     </section>
@@ -166,12 +166,12 @@
     </div>
   </div>
 
-  <footer class="app-version">v30</footer>
+  <footer class="app-version">v31</footer>
 
-  <script src="/static/script.js?v=30"></script>
+  <script src="/static/script.js?v=31"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js?v=30').catch(() => {});
+      navigator.serviceWorker.register('/sw.js?v=31').catch(() => {});
     }
   </script>
 </body>

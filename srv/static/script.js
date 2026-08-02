@@ -929,25 +929,25 @@ function importDataFromText(text) {
   return items;
 }
 
-// Note "content" today lives in the title field (see ensureClozeData/renderNoteCard).
-// Trim + exact match, case-sensitive.
-function noteContentKey(item) {
-  return (item.title || '').trim();
+// An item's "content" is its type plus title (including cloze markup).
+// Everything else (done/archived, priority, tags, due date, spaced-repetition
+// fields, timestamps) is metadata, not content. Trim + exact match, case-sensitive.
+function itemContentKey(item) {
+  return `${item.item_type}::${(item.title || '').trim()}`;
 }
 
-// Always append imported items. Todos are appended unconditionally.
-// Notes whose content exactly matches an existing note are skipped, so the
-// existing local note (and its review metadata) wins.
+// Always append imported items that don't already exist locally.
+// An imported item (todo or note) is skipped if its type+title matches an
+// existing local item's; the existing local item (and all its metadata)
+// wins and is left untouched.
 function applyImportedItems(items) {
   const existing = loadItems();
-  const existingNoteContents = new Set(
-    existing.filter(i => i.item_type === 'note').map(noteContentKey)
-  );
+  const existingContentKeys = new Set(existing.map(itemContentKey));
   let nextIdCounter = getNextId(existing);
   const toAppend = [];
   for (const item of items) {
-    if (item.item_type === 'note' && existingNoteContents.has(noteContentKey(item))) {
-      continue; // duplicate note content: existing local note wins
+    if (existingContentKeys.has(itemContentKey(item))) {
+      continue; // duplicate content: existing local item wins
     }
     toAppend.push({ ...item, id: nextIdCounter++ });
   }

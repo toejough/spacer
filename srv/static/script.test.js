@@ -341,19 +341,51 @@ test('exportData works when there are no items', () => {
   assert.deepStrictEqual(payload.items, [], 'payload items should be an empty array');
 });
 
-test('importDataFromText always appends todos, even with a matching title', () => {
+test('importDataFromText skips a todo that duplicates an existing todo title, keeping local metadata', () => {
+  const { context, store } = runScriptWithItems([
+    baseItem({
+      id: 1, item_type: 'todo', title: 'Buy milk', done: 1, priority: 3,
+    }),
+  ]);
+  const importJson = JSON.stringify({
+    schema_version: 1,
+    exported_at: new Date().toISOString(),
+    items: [baseItem({ id: 9, item_type: 'todo', title: 'Buy milk', done: 0, priority: 0 })],
+  });
+  context.importDataFromText(importJson);
+  const items = JSON.parse(store['remember_everything_items']);
+  assert.strictEqual(items.length, 1, 'duplicate-title todo should not be added');
+  assert.strictEqual(items[0].done, 1, 'existing local todo metadata should win');
+  assert.strictEqual(items[0].priority, 3, 'existing local todo priority should win');
+});
+
+test('importDataFromText adds a todo whose title is new', () => {
   const { context, store } = runScriptWithItems([
     baseItem({ id: 1, item_type: 'todo', title: 'Buy milk' }),
   ]);
   const importJson = JSON.stringify({
     schema_version: 1,
     exported_at: new Date().toISOString(),
-    items: [baseItem({ id: 1, item_type: 'todo', title: 'Buy milk' })],
+    items: [baseItem({ id: 9, item_type: 'todo', title: 'Walk the dog' })],
   });
   context.importDataFromText(importJson);
   const items = JSON.parse(store['remember_everything_items']);
-  assert.strictEqual(items.length, 2, 'todos are never deduped, both should be present');
-  assert.strictEqual(items.filter(i => i.title === 'Buy milk').length, 2, 'duplicate-title todo should still be appended');
+  assert.strictEqual(items.length, 2, 'new-title todo should be appended');
+  assert(items.find(i => i.title === 'Walk the dog'), 'new todo should be present');
+});
+
+test('importDataFromText does not treat a todo and a note with the same title as duplicates', () => {
+  const { context, store } = runScriptWithItems([
+    baseItem({ id: 1, item_type: 'todo', title: 'Same title' }),
+  ]);
+  const importJson = JSON.stringify({
+    schema_version: 1,
+    exported_at: new Date().toISOString(),
+    items: [baseItem({ id: 9, item_type: 'note', title: 'Same title' })],
+  });
+  context.importDataFromText(importJson);
+  const items = JSON.parse(store['remember_everything_items']);
+  assert.strictEqual(items.length, 2, 'same title but different type should not be deduped');
 });
 
 test('importDataFromText assigns fresh ids to imported items so they never collide', () => {
@@ -371,6 +403,7 @@ test('importDataFromText assigns fresh ids to imported items so they never colli
   const ids = items.map(i => i.id);
   assert.strictEqual(new Set(ids).size, 2, 'imported item should get a new, non-colliding id');
 });
+
 
 test('importDataFromText skips a note whose content duplicates an existing note, keeping local metadata', () => {
   const { context, store } = runScriptWithItems([
