@@ -7,11 +7,22 @@ const scriptPath = path.join(__dirname, 'script.js');
 const scriptSource = fs.readFileSync(scriptPath, 'utf8');
 
 function makeStubElement() {
+  const classes = new Set();
   return {
     innerHTML: '',
     style: {},
     textContent: '',
     value: '',
+    classList: {
+      add: (c) => classes.add(c),
+      remove: (c) => classes.delete(c),
+      toggle: (c, force) => {
+        const on = force === undefined ? !classes.has(c) : !!force;
+        if (on) classes.add(c); else classes.delete(c);
+        return on;
+      },
+      contains: (c) => classes.has(c),
+    },
     querySelector: () => null,
     querySelectorAll: () => [],
     addEventListener: () => {},
@@ -101,6 +112,11 @@ function runScriptWithItemsAndDOM(items) {
       classList: {
         add: (c) => classes.add(c),
         remove: (c) => classes.delete(c),
+        toggle: (c, force) => {
+          const on = force === undefined ? !classes.has(c) : !!force;
+          if (on) classes.add(c); else classes.delete(c);
+          return on;
+        },
         contains: (c) => classes.has(c),
       },
       querySelector: () => null,
@@ -307,3 +323,89 @@ test('reopenFromModal reopens done todo', () => {
   assert.strictEqual(items.find(i => i.id === 1).done, 0, 'done todo should be reopened from modal');
   assert.strictEqual(items.find(i => i.id === 1).archived, 0, 'done todo should be unarchived from modal');
 });
+
+test('exportData builds a payload with schema_version and current items', () => {
+  const { context } = runScriptWithItems([
+    baseItem({ id: 1 }),
+    baseItem({ id: 2, item_type: 'note' }),
+  ]);
+  const payload = context.buildExportPayload();
+  assert.strictEqual(payload.schema_version, 1, 'payload should carry a schema version');
+  assert(typeof payload.exported_at === 'string' && payload.exported_at.length > 0, 'payload should have an export timestamp');
+  assert.strictEqual(payload.items.length, 2, 'payload should include all current items');
+});
+
+test('exportData works when there are no items', () => {
+  const { context } = runScriptWithItems([]);
+  const payload = context.buildExportPayload();
+  assert.deepStrictEqual(payload.items, [], 'payload items should be an empty array');
+});
+
+test('importDataFromText replace mode discards existing data', () => {
+  const { context, store } = runScriptWithItems([
+    baseItem({ id: 1, title: 'old' }),
+  ]);
+  const importJson = JSON.stringify({
+    schema_version: 1,
+    exported_at: new Date().toISOString(),
+    items: [baseItem({ id: 5, title: 'imported' })],
+  });
+  context.importDataFromText(importJson, 'replace');
+  const items = JSON.parse(store['remember_everything_items']);
+  assert.strictEqual(items.length, 1, 'replace should leave only imported items');
+  assert.strictEqual(items[0].id, 5, 'replace should keep imported item');
+});
+
+test('importDataFromText replace mode is skipped if user cancels confirmation', () => {
+  const { context, store } = runScriptWithItems([
+    baseItem({ id: 1, title: 'old' }),
+  ]);
+  context.confirm = () => false;
+  const importJson = JSON.stringify({
+    schema_version: 1,
+    exported_at: new Date().toISOString(),
+    items: [baseItem({ id: 5, title: 'imported' })],
+  });
+  context.importDataFromText(importJson, 'replace');
+  const items = JSON.parse(store['remember_everything_items']);
+  assert.strictEqual(items.length, 1, 'declined replace should leave data untouched');
+  assert.strictEqual(items[0].id, 1, 'declined replace should keep original item');
+});
+
+test('importDataFromText merge mode adds new items and keeps existing ones on id collision', () => {
+  const { context, store } = runScriptWithItems([
+    baseItem({ id: 1, title: 'existing' }),
+  ]);
+  const importJson = JSON.stringify({
+    schema_version: 1,
+    exported_at: new Date().toISOString(),
+    items: [
+      baseItem({ id: 1, title: 'colliding-imported' }),
+      baseItem({ id: 2, title: 'new-imported' }),
+    ],
+  });
+  context.importDataFromText(importJson, 'merge');
+  const items = JSON.parse(store['remember_everything_items']);
+  assert.strictEqual(items.length, 2, 'merge should add only the non-colliding item');
+  assert.strictEqual(items.find(i => i.id === 1).title, 'existing', 'existing item should win on id collision');
+  assert(items.find(i => i.id === 2), 'new item should be added by merge');
+});
+
+test('importDataFromText rejects invalid JSON without modifying data', () => {
+  const { context, store } = runScriptWithItems([
+    baseItem({ id: 1 }),
+  ]);
+  assert.throws(() => context.importDataFromText('not json', 'merge'), /not valid JSON/);
+  const items = JSON.parse(store['remember_everything_items']);
+  assert.strictEqual(items.length, 1, 'invalid JSON import should not modify existing data');
+});
+
+test('importDataFromText rejects a file missing an items array', () => {
+  const { context, store } = runScriptWithItems([
+    baseItem({ id: 1 }),
+  ]);
+  assert.throws(() => context.importDataFromText(JSON.stringify({ schema_version: 1 }), 'merge'), /does not look like/);
+  const items = JSON.parse(store['remember_everything_items']);
+  assert.strictEqual(items.length, 1, 'invalid shape import should not modify existing data');
+});
+

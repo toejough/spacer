@@ -856,6 +856,99 @@ function handleClozeKeydown(e) {
 }
 document.addEventListener('keydown', handleClozeKeydown);
 
+// ===== Backup & Restore (export/import) =====
+const EXPORT_SCHEMA_VERSION = 1;
+let pendingImportMode = 'merge';
+
+// Build the exportable payload from current local data.
+function buildExportPayload() {
+  return {
+    schema_version: EXPORT_SCHEMA_VERSION,
+    exported_at: new Date().toISOString(),
+    items: loadItems(),
+  };
+}
+
+// Trigger a browser download of all local data as a JSON file.
+function exportData() {
+  const payload = buildExportPayload();
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `remember-everything-export-${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// Called by the Import (Merge)/Import (Replace) buttons to open the file picker.
+function triggerImport(mode) {
+  pendingImportMode = mode;
+  const input = document.getElementById('importFileInput');
+  if (input) input.click();
+}
+
+// Handles the hidden file input's change event.
+function handleImportFileChange(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      importDataFromText(reader.result, pendingImportMode);
+    } catch (e) {
+      alert('Import failed: ' + (e && e.message ? e.message : 'invalid file'));
+    }
+  };
+  reader.onerror = () => alert('Import failed: could not read file');
+  reader.readAsText(file);
+}
+
+// Validate & normalize an export payload into a current-shape items array.
+// Throws on invalid input. Future schema_version migrations go here.
+function upgradeExportData(data) {
+  if (!data || typeof data !== 'object' || !Array.isArray(data.items)) {
+    throw new Error('file does not look like a Remember Everything export');
+  }
+  return data.items;
+}
+
+// Parses exported JSON text and applies it. Exposed separately for testing.
+function importDataFromText(text, mode) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error('file is not valid JSON');
+  }
+  const items = upgradeExportData(data);
+  applyImportedItems(items, mode);
+  return items;
+}
+
+// Replace or merge imported items into local storage.
+function applyImportedItems(items, mode) {
+  if (mode === 'replace') {
+    if (typeof confirm === 'function' &&
+        !confirm('Replace ALL current data with the imported file? This cannot be undone.')) {
+      return;
+    }
+    saveItems(items);
+  } else {
+    const existing = loadItems();
+    const existingIds = new Set(existing.map(i => i.id));
+    const merged = existing.concat(items.filter(i => !existingIds.has(i.id)));
+    saveItems(merged);
+  }
+  refreshCurrent();
+  updateTabCounts();
+}
+
 function updateClozeButtonLabel() {
   const btn = document.getElementById('clozeToggleBtn');
   const ta = document.getElementById('editTitle');

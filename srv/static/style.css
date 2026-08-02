@@ -221,6 +221,8 @@ header h1{font-size:1.5rem;font-weight:700}
 .help-content ul li:nth-child(5) strong{color:#2e7d32}
 .help-content ul li:nth-child(6) strong{color:#2e7d32}
 .help-content ol li::marker{color:var(--accent);font-weight:600}
+.backup-restore-actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.backup-restore-actions button{flex:1 1 auto;white-space:nowrap}
 
 /* ===== Version Footer ===== */
 .app-version{text-align:center;padding:24px 0 12px;font-size:.7rem;color:var(--text2);opacity:.5}
