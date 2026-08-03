@@ -394,7 +394,7 @@ function updateTabCounts() {
 // ===== Todos =====
 function loadTodos() {
   const container = document.getElementById('todoList');
-  const items = loadItems().filter(i => i.item_type === 'todo')
+  const items = loadItems().filter(i => i.item_type === 'todo' && !isPendingDelete(i.id))
     .sort(compareByRelevance);
   if (items.length === 0) {
     container.innerHTML = '<div class="empty-state">No todos yet. Add one above!</div>';
@@ -433,7 +433,7 @@ function renderTodoCard(item) {
     leftActions = `<button class="btn-icon btn-complete" onclick="toggleTodo(${item.id})" aria-label="Complete">${completeIcon}</button><button class="btn-icon btn-abandon" onclick="archiveItem(${item.id})" aria-label="Abandon">${abandonIcon}</button>`;
   }
 
-  return `<div class="item-card${done ? ' done' : ''}${archived ? ' abandoned' : ''}">
+  const card = `<div class="item-card${done ? ' done' : ''}${archived ? ' abandoned' : ''}" data-id="${item.id}">
     <div class="item-icon-actions">
       ${leftActions}
     </div>
@@ -445,6 +445,7 @@ function renderTodoCard(item) {
       <button class="btn-icon btn-edit" onclick="openEdit(${item.id})" aria-label="Edit">${editIcon}</button>
     </div>
   </div>`;
+  return wrapWithSwipeReveal(card, done || archived);
 }
 
 function toggleTodo(id) {
@@ -457,10 +458,151 @@ function toggleTodo(id) {
   loadTodos();
 }
 
+// ===== Permanent delete (swipe/modal, with undo) =====
+const PENDING_DELETE_MS = 5000;
+const pendingDeletes = new Map(); // id -> timeoutId
+
+function isPendingDelete(id) {
+  return pendingDeletes.has(id);
+}
+
+// Removes the item from view immediately and arms a timer; the item stays
+// untouched in localStorage until the timer fires, so undo is just "cancel
+// the timer" — no snapshot/restore logic needed.
+function deleteItemPending(id) {
+  if (pendingDeletes.has(id)) return;
+  const timeoutId = setTimeout(() => commitDelete(id), PENDING_DELETE_MS);
+  pendingDeletes.set(id, timeoutId);
+  refreshCurrent();
+  renderUndoToasts();
+}
+
+function commitDelete(id) {
+  pendingDeletes.delete(id);
+  const items = loadItems().filter(i => i.id !== id);
+  saveItems(items);
+  refreshCurrent();
+  renderUndoToasts();
+}
+
+function undoDelete(id) {
+  const timeoutId = pendingDeletes.get(id);
+  if (timeoutId) clearTimeout(timeoutId);
+  pendingDeletes.delete(id);
+  refreshCurrent();
+  renderUndoToasts();
+}
+
+// Wraps a rendered card with a reveal panel behind it, shown in the space
+// the card vacates as it slides during a swipe — a red background with a
+// trash icon, the standard "sliding drawer" swipe-to-delete treatment.
+// Only cards eligible for delete get the wrapper; others render unwrapped.
+function wrapWithSwipeReveal(cardHtml, deletable) {
+  if (!deletable) return cardHtml;
+  const trashIcon = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
+  return `<div class="item-card-wrapper">
+    <div class="swipe-reveal" aria-hidden="true"><div class="swipe-reveal-icon">${trashIcon}</div></div>
+    ${cardHtml}
+  </div>`;
+}
+
+function itemAllowsDelete(item) {
+  if (!item) return false;
+  if (item.item_type === 'todo') return item.done === 1 || item.archived === 1;
+  return item.archived === 1;
+}
+
+// Delegated pointer-gesture handling: cards are rebuilt on every refresh, so
+// listeners live on the list container, not on individual cards.
+const SWIPE_THRESHOLD_PX = 96;
+const SWIPE_DEADZONE_PX = 8;
+const SWIPE_DIRECTION_RATIO = 1.5;
+
+function attachSwipeHandlers(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  let gesture = null;
+
+  container.addEventListener('pointerdown', (e) => {
+    const card = e.target.closest ? e.target.closest('.item-card') : null;
+    if (!card || !card.dataset) return;
+    const id = parseInt(card.dataset.id, 10);
+    const item = loadItems().find(i => i.id === id);
+    if (!itemAllowsDelete(item)) return;
+    gesture = { id, card, startX: e.clientX, startY: e.clientY, dx: 0, dy: 0, engaged: null };
+  });
+
+  container.addEventListener('pointermove', (e) => {
+    if (!gesture) return;
+    gesture.dx = e.clientX - gesture.startX;
+    gesture.dy = e.clientY - gesture.startY;
+    if (gesture.engaged === null) {
+      if (Math.abs(gesture.dx) < SWIPE_DEADZONE_PX && Math.abs(gesture.dy) < SWIPE_DEADZONE_PX) return;
+      // Only swipe-left engages delete (reveals the action on the right),
+      // the standard convention — a rightward drag is treated like a
+      // vertical one and left alone (no transform, no reveal).
+      gesture.engaged = gesture.dx < 0 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * SWIPE_DIRECTION_RATIO;
+      if (!gesture.engaged) { gesture = null; return; }
+      gesture.card.classList.add('swiping');
+      const wrapper = gesture.card.parentElement;
+      if (wrapper && wrapper.classList.contains('item-card-wrapper')) {
+        gesture.wrapper = wrapper;
+        wrapper.classList.add('swipe-active');
+      }
+    }
+    const dx = Math.min(gesture.dx, 0);
+    gesture.card.style.transform = `translateX(${dx}px)`;
+    gesture.card.classList.toggle('swipe-armed', -dx >= SWIPE_THRESHOLD_PX);
+  });
+
+  function snapBack() {
+    gesture.card.style.transform = '';
+    gesture.card.classList.remove('swiping', 'swipe-armed');
+    if (gesture.wrapper) gesture.wrapper.classList.remove('swipe-active');
+  }
+
+  // A deliberate release: commit the delete if past threshold, else snap back.
+  function releaseGesture() {
+    if (!gesture) return;
+    if (gesture.engaged && -gesture.dx >= SWIPE_THRESHOLD_PX) {
+      deleteItemPending(gesture.id);
+    } else if (gesture.engaged) {
+      snapBack();
+    }
+    gesture = null;
+  }
+
+  // An interrupted gesture — e.g. the browser handing off to native scroll —
+  // must never commit, regardless of how far the drag had already gone.
+  function abortGesture() {
+    if (!gesture) return;
+    if (gesture.engaged) snapBack();
+    gesture = null;
+  }
+
+  container.addEventListener('pointerup', releaseGesture);
+  container.addEventListener('pointercancel', abortGesture);
+  container.addEventListener('pointerleave', abortGesture);
+}
+
+function renderUndoToasts() {
+  const container = document.getElementById('undoToastContainer');
+  if (!container) return;
+  const items = loadItems();
+  container.innerHTML = [...pendingDeletes.keys()].map(id => {
+    const item = items.find(i => i.id === id);
+    const title = item ? escHtml(item.title) : 'Item';
+    return `<div class="undo-toast" data-id="${id}" role="status">
+      <span class="undo-toast-text">Deleted "${title}"</span>
+      <button class="undo-toast-btn" onclick="undoDelete(${id})">Undo</button>
+    </div>`;
+  }).join('');
+}
+
 // ===== Notes =====
 function loadNotes() {
   const container = document.getElementById('noteList');
-  const items = loadItems().filter(i => i.item_type === 'note')
+  const items = loadItems().filter(i => i.item_type === 'note' && !isPendingDelete(i.id))
     .sort(compareByRelevance);
   if (items.length === 0) {
     container.innerHTML = '<div class="empty-state">No notes yet. Type \'/note your text\' above!</div>';
@@ -489,7 +631,7 @@ function renderNoteCard(item) {
     ? `<button class="btn-icon btn-reopen" onclick="reopenItem(${item.id})" aria-label="Reopen">${reopenIcon}</button>`
     : `<button class="btn-icon" onclick="archiveItem(${item.id})" title="Abandon">\ud83c\udff3\ufe0f</button>`;
 
-  return `<div class="item-card${archived ? ' abandoned' : ''}">
+  const card = `<div class="item-card${archived ? ' abandoned' : ''}" data-id="${item.id}">
     <div class="item-body">
       <div class="item-title">${renderTitleWithClozeHints(item.title)}</div>
       <div class="item-meta">${reviewInfo}</div>
@@ -499,6 +641,7 @@ function renderNoteCard(item) {
       ${abandonOrReopenAction}
     </div>
   </div>`;
+  return wrapWithSwipeReveal(card, archived);
 }
 
 // ===== Search =====
@@ -506,7 +649,7 @@ function doSearch() {
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
   const container = document.getElementById('searchResults');
   if (!q) { container.innerHTML = ''; return; }
-  const items = loadItems().filter(i => !i.archived &&
+  const items = loadItems().filter(i => !i.archived && !isPendingDelete(i.id) &&
     (i.title.toLowerCase().includes(q) || i.content.toLowerCase().includes(q)));
   if (items.length === 0) {
     container.innerHTML = '<div class="empty-state">No results found.</div>';
@@ -595,6 +738,25 @@ function updateModalAbandonButton() {
   }
 }
 
+// Show/hide the Delete Forever button inside the edit modal — only visible
+// when the item is Done/Abandoned (todos) or Abandoned (notes), giving
+// keyboard/screen-reader users the same access the swipe gesture gives touch.
+function updateModalDeleteButton() {
+  const btn = document.getElementById('deleteForeverModalBtn');
+  if (!btn) return;
+  const id = parseInt(document.getElementById('editId').value || '0', 10);
+  const item = id ? loadItems().find(i => i.id === id) : null;
+  btn.style.display = itemAllowsDelete(item) ? '' : 'none';
+}
+
+function deleteForeverFromModal() {
+  const id = parseInt(document.getElementById('editId').value, 10);
+  if (!id) { alert('Item not found'); return false; }
+  deleteItemPending(id);
+  closeModal();
+  return true;
+}
+
 function abandonFromModal() {
   const id = parseInt(document.getElementById('editId').value, 10);
   if (!id) { alert('Item not found'); return false; }
@@ -631,6 +793,7 @@ function openEdit(id) {
   document.getElementById('modalTitle').textContent = `Edit ${item.item_type === 'todo' ? 'Todo' : 'Note'}`;
   onEditTypeChange();
   updateModalAbandonButton();
+  updateModalDeleteButton();
   document.getElementById('editModal').style.display = 'flex';
 }
 
@@ -640,6 +803,7 @@ function onEditTypeChange() {
   const typeLabel = isTodo ? 'Todo' : 'Note';
   document.getElementById('modalTitle').textContent = `Edit ${typeLabel}`;
   updateModalAbandonButton();
+  updateModalDeleteButton();
 }
 
 function closeModal() {
@@ -1035,3 +1199,8 @@ document.addEventListener('selectionchange', updateClozeButtonLabel);
 // ===== Init =====
 loadReview();
 updateTabCounts();
+if (document.documentElement && document.documentElement.style.setProperty) {
+  document.documentElement.style.setProperty('--swipe-threshold-px', SWIPE_THRESHOLD_PX + 'px');
+}
+attachSwipeHandlers('todoList');
+attachSwipeHandlers('noteList');

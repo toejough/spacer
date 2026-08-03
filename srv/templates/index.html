@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Remember Everything</title>
-  <link rel="stylesheet" href="/static/style.css?v=33">
-  <link rel="manifest" href="/static/manifest.json?v=33">
+  <link rel="stylesheet" href="/static/style.css?v=37">
+  <link rel="manifest" href="/static/manifest.json?v=37">
   <meta name="theme-color" content="#4361ee">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -160,18 +160,21 @@
         <div class="modal-actions">
           <button onclick="closeModal()" class="btn-secondary">Cancel</button>
           <button type="button" id="abandonModalBtn" class="btn-secondary" style="margin-left:8px">Abandon</button>
+          <button type="button" id="deleteForeverModalBtn" class="btn-secondary" style="display:none;margin-left:8px" onclick="deleteForeverFromModal()">Delete Forever</button>
           <button onclick="saveEdit()" class="btn-primary">Save</button>
         </div>
       </div>
     </div>
   </div>
 
-  <footer class="app-version">v33</footer>
+  <div id="undoToastContainer" class="undo-toast-container"></div>
 
-  <script src="/static/script.js?v=33"></script>
+  <footer class="app-version">v37</footer>
+
+  <script src="/static/script.js?v=37"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js?v=33').catch(() => {});
+      navigator.serviceWorker.register('/sw.js?v=37').catch(() => {});
     }
   </script>
 </body>
