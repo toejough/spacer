@@ -1,49 +1,28 @@
-# Go Shelley Template
+# Todo
 
-This is a starter template for building Go web applications on exe.dev. It demonstrates end-to-end usage including HTTP handlers, authentication, database integration, and deployment.
-
-Use this as a foundation to build your own service.
+A personal todo/notes app ("Remember Everything"), running on the
+[phone-llm](https://github.com/toejough/phone-llm) platform at
+`todo.toejough.dev`.
 
 ## Building and Running
 
-Build with `make build`, then run `./srv`. The server listens on port 8000 by default.
+Build with `make build`, then run `./todo-srv`. The server listens on port
+8000 by default (`-listen` flag to override).
 
-## Running as a systemd service
+## Deployment
 
-To run the server as a systemd service:
-
-```bash
-# Install the service file
-sudo cp srv.service /etc/systemd/system/srv.service
-
-# Reload systemd and enable the service
-sudo systemctl daemon-reload
-sudo systemctl enable srv.service
-
-# Start the service
-sudo systemctl start srv
-
-# Check status
-systemctl status srv
-
-# View logs
-journalctl -u srv -f
-```
+This app runs as the `todo` app machine on phone-llm. `app.service` on that
+machine runs `/app/run`, which builds and execs the server bound to `:8080`
+(what the platform's Cloudflare tunnel talks to), and restarts it if it dies.
 
 To restart after code changes:
 
 ```bash
-make build
-sudo systemctl restart srv
+systemctl restart app
 ```
 
-## Authorization
-
-exe.dev provides authorization headers and login/logout links
-that this template uses.
-
-When proxied through exed, requests will include `X-ExeDev-UserID` and
-`X-ExeDev-Email` if the user is authenticated via exe.dev.
+Access is gated by Cloudflare Access at the platform level (owner-only) —
+the app itself does not implement authorization.
 
 ## Database
 

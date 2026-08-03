@@ -14,4 +14,5 @@ context: |
   - Frontend: vanilla JS in srv/static/script.js, CSS in srv/static/style.css.
   - Tests: Go tests in *_test.go files, mutation testing helpers under dev/.
   - Build: `make build` produces `todo-srv`; `make test` runs Go tests.
-  - Deployment: run as systemd service via srv.service.
+  - Deployment: runs on the phone-llm platform as the `todo` app machine;
+    `app.service` runs `/app/run`, which builds and execs the server on :8080.

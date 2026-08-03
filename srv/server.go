@@ -46,10 +46,10 @@ func (s *Server) Serve(addr string) error {
 	mux.HandleFunc("GET /{$}", s.handleIndex)
 	mux.HandleFunc("/api/todos", s.handleTodos)
 	mux.HandleFunc("/api/todos/", s.handleTodo)
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir(s.StaticDir))))
+	mux.Handle("/static/", http.StripPrefix("/static/", noStoreHeader(http.FileServer(http.Dir(s.StaticDir)))))
 	// Serve sw.js from root so it can control the whole origin
 	mux.HandleFunc("GET /sw.js", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Cache-Control", "no-store")
 		http.ServeFile(w, r, filepath.Join(s.StaticDir, "sw.js"))
 	})
 	slog.Info("starting server", "addr", addr)
@@ -57,9 +57,18 @@ func (s *Server) Serve(addr string) error {
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Cache-Control", "no-store")
 	path := filepath.Join(s.TemplatesDir, "index.html")
 	http.ServeFile(w, r, path)
+}
+
+// noStoreHeader wraps a handler to disable caching, so Cloudflare's edge
+// cache doesn't hide deploys behind stale static assets.
+func noStoreHeader(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		h.ServeHTTP(w, r)
+	})
 }
 
 // handleTodos supports GET /api/todos
