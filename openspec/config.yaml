@@ -6,7 +6,6 @@ context: |
   The app is a personal todo/notes app with spaced repetition (SM-2 algorithm),
   code-named "Remember Everything". Items are stored in browser localStorage,
   but the server opens a SQLite database for the template.
-  A separate Quasar/Vue PWA prototype lives under web-app/ but is not currently active.
 
   Coding conventions:
   - Go: standard formatting, explicit error handling, use slog for logging.

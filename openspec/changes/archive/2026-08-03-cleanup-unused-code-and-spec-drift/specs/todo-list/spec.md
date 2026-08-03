@@ -1,27 +1,4 @@
-# todo-list Specification
-
-## Purpose
-
-Manage todo items in the Remember Everything app.
-## Requirements
-### Requirement: Add a todo
-The system SHALL allow the user to add a todo from the Todos tab.
-
-#### Scenario: Add a todo by pressing Enter
-- **WHEN** the user types text into the todo input and presses Enter
-- **THEN** a new todo item is created with the given title
-- **AND** the input is cleared
-- **AND** the todo list is refreshed
-
-#### Scenario: Add a todo by clicking the Add button
-- **WHEN** the user types text into the todo input and clicks the Add button
-- **THEN** a new todo item is created with the given title
-- **AND** the input is cleared
-- **AND** the todo list is refreshed
-
-#### Scenario: Empty input is rejected
-- **WHEN** the user attempts to add a todo with no text
-- **THEN** no item is created
+## MODIFIED Requirements
 
 ### Requirement: Complete a todo
 The system SHALL allow the user to mark a todo as complete.
@@ -31,19 +8,6 @@ The system SHALL allow the user to mark a todo as complete.
 - **THEN** the todo's done state toggles between complete and incomplete
 - **AND** the todo list is refreshed
 - **AND** finished todos are removed from the review list
-
-### Requirement: Edit a todo
-The system SHALL allow the user to edit a todo's title.
-
-#### Scenario: Open edit modal
-- **WHEN** the user clicks a todo in the list
-- **THEN** an edit modal opens populated with the todo's current fields
-
-#### Scenario: Save changes
-- **WHEN** the user edits the title and saves the modal
-- **THEN** the todo is updated
-- **AND** the modal closes
-- **AND** the todo list is refreshed
 
 ### Requirement: Delete a todo
 The system SHALL allow the user to abandon a todo (archive it from view).
@@ -59,6 +23,14 @@ The system SHALL allow the user to abandon a todo (archive it from view).
 - **THEN** the edit modal shows an Abandon control (button)
 - **AND** the Abandon control is hidden or disabled when the todo is marked as Done
 - **AND** confirming Abandon marks the todo archived, closes the modal, and refreshes lists
+
+## REMOVED Requirements
+
+### Requirement: Mobile parity for Done and Abandon (IMPLEMENTED)
+**Reason**: Not a mobile-specific surface — this is core behavior of the one production todo list. Replaced by "Done and Abandoned are mutually exclusive end-of-life states," which drops the mobile/swipe-gesture framing and consolidates the mutual-exclusion scenario that was duplicated with "Delete a todo."
+**Migration**: No behavior change; see the replacement requirement below.
+
+## ADDED Requirements
 
 ### Requirement: Done and Abandoned are mutually exclusive end-of-life states
 The system SHALL treat Done and Abandoned as mutually exclusive end-of-life states: an item in one closed state cannot move directly to the other — it MUST be Reopened first. Both Done and Abandon SHALL be equally accessible actions, and Reopen SHALL be available from either closed state.
@@ -78,4 +50,3 @@ The system SHALL treat Done and Abandoned as mutually exclusive end-of-life stat
 - **WHEN** a user interacts with Done, Abandon, or Reopen controls
 - **THEN** the controls are keyboard-focusable
 - **AND** state changes are announced via ARIA live regions
-
