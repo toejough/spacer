@@ -14,6 +14,25 @@ function saveItems(items) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
+// ===== Relevance sort =====
+// state (open < done < archived) > review urgency (soonest due first) > recency
+function getReviewUrgencyRank(item) {
+  if (item.review_enabled === false) return Infinity;
+  if (hasClozes(item.title)) {
+    ensureClozeData(item);
+    if (!item.cloze_data.length) return Infinity;
+    return Math.min(...item.cloze_data.map(cd => new Date(cd.next_review).getTime()));
+  }
+  return item.next_review ? new Date(item.next_review).getTime() : Infinity;
+}
+
+function compareByRelevance(a, b) {
+  const stateRank = i => (i.archived ? 2 : (i.done ? 1 : 0));
+  return stateRank(a) - stateRank(b)
+    || getReviewUrgencyRank(a) - getReviewUrgencyRank(b)
+    || new Date(b.updated_at) - new Date(a.updated_at);
+}
+
 function getNextId(items) {
   if (items.length === 0) return 1;
   return Math.max(...items.map(i => i.id)) + 1;
@@ -366,7 +385,7 @@ function updateTabCounts() {
 function loadTodos() {
   const container = document.getElementById('todoList');
   const items = loadItems().filter(i => i.item_type === 'todo')
-    .sort((a, b) => a.archived - b.archived || a.done - b.done || b.priority - a.priority || new Date(b.created_at) - new Date(a.created_at));
+    .sort(compareByRelevance);
   if (items.length === 0) {
     container.innerHTML = '<div class="empty-state">No todos yet. Add one above!</div>';
     return;
@@ -429,8 +448,8 @@ function toggleTodo(id) {
 // ===== Notes =====
 function loadNotes() {
   const container = document.getElementById('noteList');
-  const items = loadItems().filter(i => i.item_type === 'note' && !i.archived)
-    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+  const items = loadItems().filter(i => i.item_type === 'note')
+    .sort(compareByRelevance);
   if (items.length === 0) {
     container.innerHTML = '<div class="empty-state">No notes yet. Type \'/note your text\' above!</div>';
     return;
@@ -439,6 +458,7 @@ function loadNotes() {
 }
 
 function renderNoteCard(item) {
+  const archived = item.archived === 1;
   let reviewInfo;
   if (item.review_enabled === false) {
     reviewInfo = `<span class="item-sr">Reviews off</span>`;
@@ -450,14 +470,19 @@ function renderNoteCard(item) {
     reviewInfo = `<span class="item-sr clickable" onclick="event.stopPropagation();showHistory(${item.id})">Next review: ${formatDate(item.next_review)}</span>`;
   }
 
-  return `<div class="item-card">
+  const reopenIcon = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>`;
+  const abandonOrReopenAction = archived
+    ? `<button class="btn-icon btn-reopen" onclick="reopenItem(${item.id})" aria-label="Reopen">${reopenIcon}</button>`
+    : `<button class="btn-icon" onclick="archiveItem(${item.id})" title="Abandon">\ud83c\udff3\ufe0f</button>`;
+
+  return `<div class="item-card${archived ? ' abandoned' : ''}">
     <div class="item-body">
       <div class="item-title">${renderTitleWithClozeHints(item.title)}</div>
       <div class="item-meta">${reviewInfo}</div>
     </div>
     <div class="item-actions">
       <button class="btn-icon" onclick="openEdit(${item.id})" title="Edit">\u270f\ufe0f</button>
-      <button class="btn-icon" onclick="archiveItem(${item.id})" title="Abandon">\ud83c\udff3\ufe0f</button>
+      ${abandonOrReopenAction}
     </div>
   </div>`;
 }
