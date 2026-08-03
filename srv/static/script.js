@@ -15,8 +15,11 @@ function saveItems(items) {
 }
 
 // ===== Relevance sort =====
-// state (open < done < archived) > review urgency (soonest due first) > recency
+// state (open < done < archived) > review urgency (soonest due first, open items only) > recency
 function getReviewUrgencyRank(item) {
+  // Done/archived items are excluded from review, so next_review is stale —
+  // neutralize this tier so recency governs ordering within those states.
+  if (item.done || item.archived) return 0;
   if (item.review_enabled === false) return Infinity;
   if (hasClozes(item.title)) {
     ensureClozeData(item);
@@ -24,6 +27,13 @@ function getReviewUrgencyRank(item) {
     return Math.min(...item.cloze_data.map(cd => new Date(cd.next_review).getTime()));
   }
   return item.next_review ? new Date(item.next_review).getTime() : Infinity;
+}
+
+// Badge text for a done/archived item: relative time since the state change,
+// not review info (which no longer applies once an item is closed).
+function getClosedStateInfo(item) {
+  const label = item.archived ? 'Abandoned' : 'Completed';
+  return `<span class="item-sr">${label} ${formatDate(item.updated_at)}</span>`;
 }
 
 function compareByRelevance(a, b) {
@@ -397,7 +407,9 @@ function renderTodoCard(item) {
   const done = item.done === 1;
   const archived = item.archived === 1;
   let reviewInfo;
-  if (item.review_enabled === false) {
+  if (done || archived) {
+    reviewInfo = getClosedStateInfo(item);
+  } else if (item.review_enabled === false) {
     reviewInfo = `<span class="item-sr">Reviews off</span>`;
   } else if (hasClozes(item.title)) {
     ensureClozeData(item);
@@ -460,7 +472,9 @@ function loadNotes() {
 function renderNoteCard(item) {
   const archived = item.archived === 1;
   let reviewInfo;
-  if (item.review_enabled === false) {
+  if (archived) {
+    reviewInfo = getClosedStateInfo(item);
+  } else if (item.review_enabled === false) {
     reviewInfo = `<span class="item-sr">Reviews off</span>`;
   } else if (hasClozes(item.title)) {
     ensureClozeData(item);
@@ -527,6 +541,19 @@ function reopenItem(id) {
   item.archived = 0;
   item.done = 0;
   item.updated_at = new Date().toISOString();
+  // Any prior review schedule is stale after the item was closed — reset to
+  // fresh defaults so it becomes due for review immediately.
+  const now = item.updated_at;
+  item.ease_factor = 2.5;
+  item.interval_days = 0;
+  item.repetitions = 0;
+  item.next_review = now;
+  if (item.cloze_data) {
+    item.cloze_data = item.cloze_data.map(() => ({
+      ease_factor: 2.5, interval_days: 0, repetitions: 0,
+      next_review: now, last_reviewed: null, review_history: [],
+    }));
+  }
   saveItems(items);
   refreshCurrent();
   updateTabCounts();
