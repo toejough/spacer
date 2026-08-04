@@ -208,7 +208,7 @@ function buildDisplayList(rankItems, memberPool) {
     seen.add(stackId);
     const stack = stacks.find(s => s.id === stackId);
     if (!stack) { entries.push({ type: 'item', item }); continue; }
-    const members = memberPool.filter(i => i.stack_id === stackId);
+    const members = memberPool.filter(i => i.stack_id === stackId).sort(compareByRelevance);
     entries.push({ type: 'stack', stack, members });
   }
   return entries;
