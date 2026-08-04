@@ -462,4 +462,100 @@ test('importDataFromText rejects a file missing an items array', () => {
   assert.strictEqual(items.length, 1, 'invalid shape import should not modify existing data');
 });
 
+// ===== Stacks =====
+
+test('createStack requires a non-empty name', () => {
+  const { context, store } = runScriptWithItems([]);
+  const id = context.createStack('   ');
+  assert.strictEqual(id, null, 'blank name should not create a stack');
+  assert.strictEqual(store['remember_everything_stacks'], undefined, 'no stack should be persisted');
+});
+
+test('createStack persists a named stack', () => {
+  const { context, store } = runScriptWithItems([]);
+  const id = context.createStack('Errands');
+  assert.strictEqual(typeof id, 'number');
+  const stacks = JSON.parse(store['remember_everything_stacks']);
+  assert.strictEqual(stacks.length, 1);
+  assert.strictEqual(stacks[0].name, 'Errands');
+});
+
+test('setItemStack assigns stack_id and getStackMembers reflects it', () => {
+  const { context, store } = runScriptWithItems([
+    baseItem({ id: 1 }),
+    baseItem({ id: 2 }),
+  ]);
+  const stackId = context.createStack('Errands');
+  context.setItemStack(1, stackId);
+  context.setItemStack(2, stackId);
+  const items = JSON.parse(store['remember_everything_items']);
+  const members = context.getStackMembers(stackId, items);
+  assert.strictEqual(members.length, 2, 'both items should be members of the stack');
+});
+
+test('gcStacks removes a stack once its last member leaves', () => {
+  const { context, store } = runScriptWithItems([
+    baseItem({ id: 1 }),
+  ]);
+  const stackId = context.createStack('Errands');
+  context.setItemStack(1, stackId);
+  let stacks = JSON.parse(store['remember_everything_stacks']);
+  assert.strictEqual(stacks.length, 1, 'stack should exist while it has a member');
+
+  context.setItemStack(1, null);
+  stacks = JSON.parse(store['remember_everything_stacks']);
+  assert.strictEqual(stacks.length, 0, 'empty stack should be garbage collected');
+});
+
+test('renameStack requires a non-empty name and updates existing stacks', () => {
+  const { context, store } = runScriptWithItems([]);
+  const stackId = context.createStack('Errands');
+  const ok = context.renameStack(stackId, 'Weekend Errands');
+  assert.strictEqual(ok, true);
+  let stacks = JSON.parse(store['remember_everything_stacks']);
+  assert.strictEqual(stacks[0].name, 'Weekend Errands');
+
+  const rejected = context.renameStack(stackId, '  ');
+  assert.strictEqual(rejected, false, 'blank rename should be rejected');
+  stacks = JSON.parse(store['remember_everything_stacks']);
+  assert.strictEqual(stacks[0].name, 'Weekend Errands', 'name should be unchanged after rejected rename');
+});
+
+test('buildDisplayList collapses stacked items to a single entry at the most urgent member\'s position', () => {
+  const now = new Date();
+  const soon = new Date(now.getTime() + 1000).toISOString();
+  const later = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000).toISOString();
+  const { context, store } = runScriptWithItems([
+    baseItem({ id: 1, next_review: later }),
+    baseItem({ id: 2, next_review: soon }),
+    baseItem({ id: 3, next_review: later }),
+  ]);
+  const stackId = context.createStack('Errands');
+  context.setItemStack(1, stackId);
+  context.setItemStack(2, stackId); // most urgent member of the stack
+
+  const items = JSON.parse(store['remember_everything_items']);
+  const entries = context.buildDisplayList(items, items);
+
+  assert.strictEqual(entries.length, 2, 'stack should collapse to one entry, plus the unstacked item');
+  assert.strictEqual(entries[0].type, 'stack', 'stack should occupy the position of its most urgent member');
+  assert.strictEqual(entries[0].members.length, 2, 'stack entry should include both members');
+  assert.strictEqual(entries[1].type, 'item');
+  assert.strictEqual(entries[1].item.id, 3);
+});
+
+test('buildDisplayList omits a stack with no members in the given pool', () => {
+  const { context, store } = runScriptWithItems([
+    baseItem({ id: 1, item_type: 'note' }),
+  ]);
+  const stackId = context.createStack('Notes only');
+  context.setItemStack(1, stackId);
+
+  const items = JSON.parse(store['remember_everything_items']);
+  // Simulate the Todos tab: only todo-type items are in the ranking/member pool.
+  const todosOnly = items.filter(i => i.item_type === 'todo');
+  const entries = context.buildDisplayList(todosOnly, todosOnly);
+  assert.strictEqual(entries.length, 0, 'stack with no todo members should not appear on the Todos tab');
+});
+
 

@@ -157,12 +157,32 @@
             <button type="button" onclick="resetReviews()" class="btn-secondary" style="width:100%">Reset Reviews</button>
           </label>
         </div>
+        <div class="modal-row">
+          <label>Stack
+            <select id="editStack"></select>
+          </label>
+          <label>&nbsp;
+            <button type="button" onclick="renameStackFromModal()" class="btn-secondary" style="width:100%">Rename Stack</button>
+          </label>
+        </div>
         <div class="modal-actions">
           <button onclick="closeModal()" class="btn-secondary">Cancel</button>
           <button type="button" id="abandonModalBtn" class="btn-secondary" style="margin-left:8px">Abandon</button>
           <button type="button" id="deleteForeverModalBtn" class="btn-secondary" style="display:none;margin-left:8px" onclick="deleteForeverFromModal()">Delete Forever</button>
           <button onclick="saveEdit()" class="btn-primary">Save</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stack Name Modal -->
+  <div class="modal-overlay" id="stackNameModal" style="display:none" onclick="if(event.target===this)cancelCreateStack()">
+    <div class="modal">
+      <h2>Name this stack</h2>
+      <input type="text" id="stackNameInput" placeholder="Stack name..." onkeydown="if(event.key==='Enter'){event.preventDefault();confirmCreateStack()}else if(event.key==='Escape'){event.preventDefault();cancelCreateStack()}">
+      <div class="modal-actions">
+        <button onclick="cancelCreateStack()" class="btn-secondary">Cancel</button>
+        <button onclick="confirmCreateStack()" class="btn-primary">Create Stack</button>
       </div>
     </div>
   </div>

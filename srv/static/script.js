@@ -1,5 +1,6 @@
 // ===== Local Storage =====
 const STORAGE_KEY = 'remember_everything_items';
+const STACKS_STORAGE_KEY = 'remember_everything_stacks';
 let nextId = 1;
 
 function loadItems() {
@@ -12,6 +13,76 @@ function loadItems() {
 
 function saveItems(items) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+}
+
+// ===== Stacks =====
+function loadStacks() {
+  try {
+    const raw = localStorage.getItem(STACKS_STORAGE_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch { return []; }
+}
+
+function saveStacks(stacks) {
+  localStorage.setItem(STACKS_STORAGE_KEY, JSON.stringify(stacks));
+}
+
+function getNextStackId(stacks) {
+  if (stacks.length === 0) return 1;
+  return Math.max(...stacks.map(s => s.id)) + 1;
+}
+
+// Creates a stack and returns its id. Name must be non-empty — a stack must
+// never exist without a name.
+function createStack(name) {
+  const trimmed = (name || '').trim();
+  if (!trimmed) return null;
+  const stacks = loadStacks();
+  const now = new Date().toISOString();
+  const stack = { id: getNextStackId(stacks), name: trimmed, created_at: now, updated_at: now };
+  stacks.push(stack);
+  saveStacks(stacks);
+  return stack.id;
+}
+
+function renameStack(id, name) {
+  const trimmed = (name || '').trim();
+  if (!trimmed) return false;
+  const stacks = loadStacks();
+  const stack = stacks.find(s => s.id === id);
+  if (!stack) return false;
+  stack.name = trimmed;
+  stack.updated_at = new Date().toISOString();
+  saveStacks(stacks);
+  return true;
+}
+
+// Membership is derived from item.stack_id, not stored on the stack, so a
+// deleted/unstacked item can never leave a dangling reference behind.
+function getStackMembers(stackId, items) {
+  return items.filter(i => i.stack_id === stackId);
+}
+
+// Removes any stack with zero members. Called whenever membership changes
+// (item removed from a stack, or an item is deleted) so stacks never linger
+// as empty, orphaned records.
+function gcStacks(items) {
+  const stacks = loadStacks();
+  const withMembers = stacks.filter(s => getStackMembers(s.id, items).length > 0);
+  if (withMembers.length !== stacks.length) saveStacks(withMembers);
+}
+
+// Sets an item's stack_id, running stack GC afterward (covers both the
+// "leaving a stack" and "joining a stack" cases uniformly).
+function setItemStack(itemId, stackId) {
+  const items = loadItems();
+  const item = items.find(i => i.id === itemId);
+  if (!item) return;
+  item.stack_id = stackId || null;
+  item.updated_at = new Date().toISOString();
+  saveItems(items);
+  gcStacks(loadItems());
 }
 
 // ===== Relevance sort =====
@@ -115,6 +186,93 @@ function ensureClozeData(item) {
 
 // ===== State =====
 let currentTab = 'review';
+const expandedStacks = new Set();
+let renamingStackId = null;
+
+// ===== Stack display grouping =====
+// Ranks `rankItems` by the existing relevance comparator, then walks the
+// ranked list once: the first time any member of a stack is seen, it is
+// replaced with a single stack entry (so the stack occupies its most
+// urgent visible member's position); the stack's remaining members are
+// skipped thereafter. `memberPool` supplies the (possibly wider) set of
+// items used to compute the stack's full member list for rendering.
+function buildDisplayList(rankItems, memberPool) {
+  const stacks = loadStacks();
+  const sorted = rankItems.slice().sort(compareByRelevance);
+  const seen = new Set();
+  const entries = [];
+  for (const item of sorted) {
+    const stackId = item.stack_id || null;
+    if (!stackId) { entries.push({ type: 'item', item }); continue; }
+    if (seen.has(stackId)) continue;
+    seen.add(stackId);
+    const stack = stacks.find(s => s.id === stackId);
+    if (!stack) { entries.push({ type: 'item', item }); continue; }
+    const members = memberPool.filter(i => i.stack_id === stackId);
+    entries.push({ type: 'stack', stack, members });
+  }
+  return entries;
+}
+
+function renderCardForItem(item) {
+  return item.item_type === 'todo' ? renderTodoCard(item) : renderNoteCard(item);
+}
+
+function renderEntries(entries) {
+  return entries.map(e => e.type === 'item' ? renderCardForItem(e.item) : renderStackTile(e.stack, e.members)).join('');
+}
+
+function renderStackTile(stack, members) {
+  const expanded = expandedStacks.has(stack.id);
+  const renaming = renamingStackId === stack.id;
+  const nameHtml = renaming
+    ? `<input type="text" class="stack-rename-input" id="stackRenameInput-${stack.id}" value="${escHtml(stack.name)}"
+        onclick="event.stopPropagation()"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();confirmStackRename(${stack.id})}else if(event.key==='Escape'){event.preventDefault();cancelStackRename()}"
+        onblur="confirmStackRename(${stack.id})">`
+    : `<span class="stack-name">${escHtml(stack.name)}</span>`;
+  const renameBtn = renaming ? '' : `<button type="button" class="btn-icon stack-rename-btn" onclick="event.stopPropagation();startStackRename(${stack.id})" aria-label="Rename stack">✏️</button>`;
+
+  const header = `<div class="stack-header" onclick="toggleStackExpand(${stack.id})">
+    <span class="stack-expand-icon">${expanded ? '▾' : '▸'}</span>
+    ${nameHtml}
+    ${renameBtn}
+    <span class="stack-count">${members.length}</span>
+  </div>`;
+
+  const membersHtml = expanded
+    ? `<div class="stack-members" data-stack-id="${stack.id}">${members.map(renderCardForItem).join('')}</div>`
+    : '';
+
+  return `<div class="stack-tile${expanded ? ' expanded' : ''}" data-stack-id="${stack.id}">${header}${membersHtml}</div>`;
+}
+
+function toggleStackExpand(stackId) {
+  if (expandedStacks.has(stackId)) expandedStacks.delete(stackId);
+  else expandedStacks.add(stackId);
+  refreshCurrent();
+}
+
+function startStackRename(stackId) {
+  renamingStackId = stackId;
+  refreshCurrent();
+  const input = document.getElementById(`stackRenameInput-${stackId}`);
+  if (input && input.focus) { input.focus(); if (input.select) input.select(); }
+}
+
+function cancelStackRename() {
+  renamingStackId = null;
+  refreshCurrent();
+}
+
+function confirmStackRename(stackId) {
+  if (renamingStackId !== stackId) return; // already resolved (e.g. Escape then blur)
+  const input = document.getElementById(`stackRenameInput-${stackId}`);
+  const name = input ? input.value : '';
+  renamingStackId = null;
+  if ((name || '').trim()) renameStack(stackId, name);
+  refreshCurrent();
+}
 
 // ===== Tab switching =====
 function switchTab(tab) {
@@ -170,6 +328,7 @@ function quickAdd(itemType) {
     created_at: now,
     updated_at: now,
     archived: 0,
+    stack_id: null,
   });
   saveItems(items);
   input.value = '';
@@ -372,7 +531,9 @@ function updateTabCounts() {
   if (currentTab === 'search') {
     const searchResults = document.getElementById('searchResults');
     if (searchResults) {
-      searchCount = searchResults.querySelectorAll('.item-card').length;
+      // Count top-level result entries (loose cards or collapsed stack
+      // tiles), not nested member cards inside an expanded stack.
+      searchCount = searchResults.children ? searchResults.children.length : 0;
     }
   }
 
@@ -394,13 +555,12 @@ function updateTabCounts() {
 // ===== Todos =====
 function loadTodos() {
   const container = document.getElementById('todoList');
-  const items = loadItems().filter(i => i.item_type === 'todo' && !isPendingDelete(i.id))
-    .sort(compareByRelevance);
+  const items = loadItems().filter(i => i.item_type === 'todo' && !isPendingDelete(i.id));
   if (items.length === 0) {
     container.innerHTML = '<div class="empty-state">No todos yet. Add one above!</div>';
     return;
   }
-  container.innerHTML = items.map(renderTodoCard).join('');
+  container.innerHTML = renderEntries(buildDisplayList(items, items));
 }
 
 function renderTodoCard(item) {
@@ -434,6 +594,7 @@ function renderTodoCard(item) {
   }
 
   const card = `<div class="item-card${done ? ' done' : ''}${archived ? ' abandoned' : ''}" data-id="${item.id}">
+    ${dragHandleHtml(item.id)}
     <div class="item-icon-actions">
       ${leftActions}
     </div>
@@ -481,6 +642,7 @@ function commitDelete(id) {
   pendingDeletes.delete(id);
   const items = loadItems().filter(i => i.id !== id);
   saveItems(items);
+  gcStacks(items);
   refreshCurrent();
   renderUndoToasts();
 }
@@ -491,6 +653,12 @@ function undoDelete(id) {
   pendingDeletes.delete(id);
   refreshCurrent();
   renderUndoToasts();
+}
+
+// A dedicated grip icon, separate from the swipe-to-delete hit area (the
+// card body), so drag and swipe never compete for the same gesture.
+function dragHandleHtml(itemId) {
+  return `<span class="drag-handle" data-drag-id="${itemId}" aria-label="Drag to stack">⠿</span>`;
 }
 
 // Wraps a rendered card with a reveal panel behind it, shown in the space
@@ -524,6 +692,9 @@ function attachSwipeHandlers(containerId) {
   let gesture = null;
 
   container.addEventListener('pointerdown', (e) => {
+    // The drag handle owns its own gesture — never let a handle press also
+    // arm swipe-to-delete on the same pointerdown.
+    if (e.target.closest && e.target.closest('.drag-handle')) return;
     const card = e.target.closest ? e.target.closest('.item-card') : null;
     if (!card || !card.dataset) return;
     const id = parseInt(card.dataset.id, 10);
@@ -585,6 +756,158 @@ function attachSwipeHandlers(containerId) {
   container.addEventListener('pointerleave', abortGesture);
 }
 
+// ===== Drag-and-drop (stacking) =====
+// Pointer-event-based, starting only from a card's drag handle — a distinct
+// hit-target from the swipe-to-delete zone (the card body) — so the two
+// gestures never compete. Works uniformly for mouse and touch pointers,
+// mirroring the swipe gesture's own pointer-event approach.
+let dragState = null;
+
+function attachDragHandlers(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  container.addEventListener('pointerdown', (e) => {
+    const handle = e.target.closest ? e.target.closest('.drag-handle') : null;
+    if (!handle || !handle.dataset) return;
+    const id = parseInt(handle.dataset.dragId, 10);
+    e.preventDefault();
+    dragState = { id, startX: e.clientX, startY: e.clientY, moved: false, ghost: null };
+    if (handle.setPointerCapture) { try { handle.setPointerCapture(e.pointerId); } catch {} }
+  });
+
+  container.addEventListener('pointermove', (e) => {
+    if (!dragState) return;
+    const dx = e.clientX - dragState.startX;
+    const dy = e.clientY - dragState.startY;
+    if (!dragState.moved && Math.abs(dx) < SWIPE_DEADZONE_PX && Math.abs(dy) < SWIPE_DEADZONE_PX) return;
+    dragState.moved = true;
+    if (!dragState.ghost && document.body && document.body.appendChild) {
+      const card = document.querySelector(`.item-card[data-id="${dragState.id}"]`);
+      const ghost = document.createElement('div');
+      ghost.className = 'drag-ghost';
+      ghost.textContent = card && card.querySelector ? (card.querySelector('.item-title')?.textContent || '') : '';
+      document.body.appendChild(ghost);
+      dragState.ghost = ghost;
+    }
+    if (dragState.ghost && dragState.ghost.style) {
+      dragState.ghost.style.left = `${e.clientX}px`;
+      dragState.ghost.style.top = `${e.clientY}px`;
+    }
+    updateDropTargetHighlight(e.clientX, e.clientY, dragState.id);
+  });
+
+  function endDrag(e) {
+    if (!dragState) return;
+    const { id, moved, ghost } = dragState;
+    if (ghost && ghost.remove) ghost.remove();
+    clearDropTargetHighlight();
+    if (moved && e) resolveDrop(id, e.clientX, e.clientY);
+    dragState = null;
+  }
+
+  container.addEventListener('pointerup', endDrag);
+  container.addEventListener('pointercancel', () => endDrag(null));
+}
+
+// Resolves the element under the pointer to a drop target, ignoring the
+// dragged card itself.
+function findDropTarget(clientX, clientY, draggedId) {
+  if (!document.elementFromPoint) return null;
+  const el = document.elementFromPoint(clientX, clientY);
+  if (!el || !el.closest) return null;
+  const cardEl = el.closest('.item-card');
+  if (cardEl && cardEl.dataset && parseInt(cardEl.dataset.id, 10) !== draggedId) {
+    return { kind: 'card', id: parseInt(cardEl.dataset.id, 10) };
+  }
+  const stackEl = el.closest('[data-stack-id]');
+  if (stackEl && stackEl.dataset) {
+    return { kind: 'stack', id: parseInt(stackEl.dataset.stackId, 10) };
+  }
+  return null;
+}
+
+function updateDropTargetHighlight(clientX, clientY, draggedId) {
+  clearDropTargetHighlight();
+  const target = findDropTarget(clientX, clientY, draggedId);
+  if (!target) return;
+  const el = target.kind === 'card'
+    ? document.querySelector(`.item-card[data-id="${target.id}"]`)
+    : document.querySelector(`[data-stack-id="${target.id}"]`);
+  if (el && el.classList) el.classList.add('drop-target-active');
+}
+
+function clearDropTargetHighlight() {
+  document.querySelectorAll('.drop-target-active').forEach(el => el.classList.remove('drop-target-active'));
+}
+
+function resolveDrop(draggedId, clientX, clientY) {
+  const target = findDropTarget(clientX, clientY, draggedId);
+  if (!target) {
+    // Dropped outside any card or stack: un-stack the dragged card, if it
+    // was in one.
+    const dragged = loadItems().find(i => i.id === draggedId);
+    if (dragged && dragged.stack_id) {
+      setItemStack(draggedId, null);
+      refreshCurrent();
+    }
+    return;
+  }
+  if (target.kind === 'stack') {
+    setItemStack(draggedId, target.id);
+    refreshCurrent();
+    return;
+  }
+  // target.kind === 'card'
+  const items = loadItems();
+  const dragged = items.find(i => i.id === draggedId);
+  const targetItem = items.find(i => i.id === target.id);
+  if (!dragged || !targetItem) return;
+
+  if (targetItem.stack_id) {
+    setItemStack(draggedId, targetItem.stack_id);
+    refreshCurrent();
+  } else if (dragged.stack_id) {
+    setItemStack(target.id, dragged.stack_id);
+    refreshCurrent();
+  } else {
+    promptCreateStackAndMerge(draggedId, target.id);
+  }
+}
+
+// Prompts for a stack name to create a new stack from two unstacked cards.
+// Canceling leaves both cards untouched — a stack is never created without
+// a name.
+let pendingMergeIds = null;
+
+function promptCreateStackAndMerge(draggedId, targetId) {
+  pendingMergeIds = { draggedId, targetId };
+  const input = document.getElementById('stackNameInput');
+  if (input) input.value = '';
+  const modal = document.getElementById('stackNameModal');
+  if (modal && modal.style) modal.style.display = 'flex';
+  if (input && input.focus) input.focus();
+}
+
+function confirmCreateStack() {
+  if (!pendingMergeIds) return;
+  const input = document.getElementById('stackNameInput');
+  const name = input ? input.value : '';
+  const stackId = createStack(name);
+  if (!stackId) return; // empty name: no-op, modal stays open for correction
+  const { draggedId, targetId } = pendingMergeIds;
+  setItemStack(draggedId, stackId);
+  setItemStack(targetId, stackId);
+  cancelCreateStack();
+  refreshCurrent();
+}
+
+function cancelCreateStack() {
+  pendingMergeIds = null;
+  const modal = document.getElementById('stackNameModal');
+  if (modal && modal.style) modal.style.display = 'none';
+}
+
 function renderUndoToasts() {
   const container = document.getElementById('undoToastContainer');
   if (!container) return;
@@ -602,13 +925,12 @@ function renderUndoToasts() {
 // ===== Notes =====
 function loadNotes() {
   const container = document.getElementById('noteList');
-  const items = loadItems().filter(i => i.item_type === 'note' && !isPendingDelete(i.id))
-    .sort(compareByRelevance);
+  const items = loadItems().filter(i => i.item_type === 'note' && !isPendingDelete(i.id));
   if (items.length === 0) {
     container.innerHTML = '<div class="empty-state">No notes yet. Type \'/note your text\' above!</div>';
     return;
   }
-  container.innerHTML = items.map(renderNoteCard).join('');
+  container.innerHTML = renderEntries(buildDisplayList(items, items));
 }
 
 function renderNoteCard(item) {
@@ -632,6 +954,7 @@ function renderNoteCard(item) {
     : `<button class="btn-icon" onclick="archiveItem(${item.id})" title="Abandon">\ud83c\udff3\ufe0f</button>`;
 
   const card = `<div class="item-card${archived ? ' abandoned' : ''}" data-id="${item.id}">
+    ${dragHandleHtml(item.id)}
     <div class="item-body">
       <div class="item-title">${renderTitleWithClozeHints(item.title)}</div>
       <div class="item-meta">${reviewInfo}</div>
@@ -649,16 +972,16 @@ function doSearch() {
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
   const container = document.getElementById('searchResults');
   if (!q) { container.innerHTML = ''; return; }
-  const items = loadItems().filter(i => !i.archived && !isPendingDelete(i.id) &&
-    (i.title.toLowerCase().includes(q) || i.content.toLowerCase().includes(q)));
-  if (items.length === 0) {
+  const allActive = loadItems().filter(i => !i.archived && !isPendingDelete(i.id));
+  const matching = allActive.filter(i =>
+    i.title.toLowerCase().includes(q) || i.content.toLowerCase().includes(q));
+  if (matching.length === 0) {
     container.innerHTML = '<div class="empty-state">No results found.</div>';
     return;
   }
-  container.innerHTML = items.map(item => {
-    if (item.item_type === 'todo') return renderTodoCard(item);
-    return renderNoteCard(item);
-  }).join('');
+  // A stack appears if any member matches; expanding it shows all of the
+  // stack's active members (any type), not just the ones that matched.
+  container.innerHTML = renderEntries(buildDisplayList(matching, allActive));
   updateTabCounts();
 }
 
@@ -791,10 +1114,23 @@ function openEdit(id) {
   document.getElementById('editTitle').value = item.title;
   document.getElementById('editReviewEnabled').value = item.review_enabled === false ? '0' : '1';
   document.getElementById('modalTitle').textContent = `Edit ${item.item_type === 'todo' ? 'Todo' : 'Note'}`;
+  populateStackSelect(item.stack_id || null);
   onEditTypeChange();
   updateModalAbandonButton();
   updateModalDeleteButton();
   document.getElementById('editModal').style.display = 'flex';
+}
+
+// Fills the edit modal's stack <select> with "No stack" plus every existing
+// stack, selecting the item's current one (if any).
+function populateStackSelect(currentStackId) {
+  const select = document.getElementById('editStack');
+  if (!select) return;
+  const stacks = loadStacks();
+  const options = ['<option value="">No stack</option>']
+    .concat(stacks.map(s => `<option value="${s.id}"${s.id === currentStackId ? ' selected' : ''}>${escHtml(s.name)}</option>`));
+  select.innerHTML = options.join('');
+  select.value = currentStackId ? String(currentStackId) : '';
 }
 
 function onEditTypeChange() {
@@ -826,15 +1162,34 @@ function saveEdit() {
   item.review_enabled = document.getElementById('editReviewEnabled').value === '1';
   item.updated_at = new Date().toISOString();
 
+  const stackSelect = document.getElementById('editStack');
+  const newStackId = stackSelect && stackSelect.value ? parseInt(stackSelect.value, 10) : null;
+  item.stack_id = newStackId;
+
   // Reset SM-2 if title was edited
   if (titleChanged) {
     resetSM2(item);
   }
 
   saveItems(items);
+  gcStacks(items);
   closeModal();
   refreshCurrent();
   updateTabCounts();
+}
+
+// Renames the item's current stack from within the edit modal.
+function renameStackFromModal() {
+  const id = parseInt(document.getElementById('editId').value, 10);
+  const item = id ? loadItems().find(i => i.id === id) : null;
+  if (!item || !item.stack_id) { alert('This item is not in a stack'); return; }
+  const stacks = loadStacks();
+  const stack = stacks.find(s => s.id === item.stack_id);
+  const name = prompt('Rename stack', stack ? stack.name : '');
+  if (name === null) return; // cancelled
+  if (renameStack(item.stack_id, name)) {
+    populateStackSelect(item.stack_id);
+  }
 }
 
 function resetSM2(item) {
@@ -1204,3 +1559,6 @@ if (document.documentElement && document.documentElement.style.setProperty) {
 }
 attachSwipeHandlers('todoList');
 attachSwipeHandlers('noteList');
+attachDragHandlers('todoList');
+attachDragHandlers('noteList');
+attachDragHandlers('searchResults');
