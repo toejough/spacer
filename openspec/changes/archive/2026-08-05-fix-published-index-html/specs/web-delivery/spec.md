@@ -1,10 +1,4 @@
-# web-delivery Specification
-
-## Purpose
-
-Delivers the Remember Everything app's frontend assets and templates to users, ensuring only published content is reachable and the binary works regardless of where the repository is located.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: The app publishes named assets, not a directory
 
@@ -33,15 +27,3 @@ The app SHALL serve only assets it has explicitly published, from a designated p
 #### Scenario: The entry page is never served from an intermediate cache
 - **WHEN** the entry page is requested
 - **THEN** the response carries `Cache-Control: no-store`, the same guarantee already made for assets under `/static/`, so a deploy is never hidden behind a cached HTML document
-
-### Requirement: The server does not depend on where it was compiled
-
-The app SHALL locate its templates and assets by a path known at run time, or carry them inside the binary. It SHALL NOT derive them from the location the source occupied at compile time.
-
-#### Scenario: The repository moves and the app still serves
-- **WHEN** the built binary is run with the repository at a different path from the one it was compiled at
-- **THEN** pages render normally, rather than failing in a way that looks like a routing fault
-
-#### Scenario: A rebuild under the service manager actually rebuilds
-- **WHEN** the app is started by the service manager, whose environment does not include the variables a toolchain needs
-- **THEN** the build either succeeds or fails loudly — it does not fall through to a previously built binary while reporting the app as started
