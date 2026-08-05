@@ -72,7 +72,10 @@ which is exactly how the path problem above stayed hidden.
   there". Worth it, but it is a real change to how the binary is produced.
 - **Publishing an asset becomes a second step** → the friction is the guarantee.
 
-## Open Questions
+## Decisions
 
-- Whether `/static/` should remain the URL prefix once content comes from `/app/public`. Keeping it
-  avoids touching templates; dropping it makes the URL match the directory.
+### 4. Keep `/static/` as the URL prefix
+Content is served from `/app/public`, but the URL prefix remains `/static/` to avoid modifying
+the templates. The URL will match the directory until this is revisited. This is a pragmatic
+choice: changing the URL would require template modifications, while keeping it defers that
+work to when it becomes necessary.

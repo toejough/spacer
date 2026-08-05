@@ -38,4 +38,5 @@ to whatever binary already existed. The fix is in `/app/run` and belongs in this
 - `srv/server.go` — `StaticDir`, `TemplatesDir`, listing behaviour.
 - `/app/run` — already carries the `HOME` fix; record it here so it survives a rebuild of the env.
 - `/app/public/` — currently empty; becomes the published set.
+- `/static/` — URL prefix remains `/static/` for now to avoid template changes.
 - No platform-side change. The platform starts `/app/run`; this app keeps its own server.
