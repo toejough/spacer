@@ -6,6 +6,8 @@
   <title>Remember Everything</title>
   <link rel="stylesheet" href="/static/style.css?v=39">
   <link rel="manifest" href="/static/manifest.json?v=39">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234361ee' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 18V5'/><path d='M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4'/><path d='M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5'/><path d='M17.997 5.125a4 4 0 0 1 2.526 5.77'/><path d='M18 18a4 4 0 0 0 2-7.464'/><path d='M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517'/><path d='M6 18a4 4 0 0 1-2-7.464'/><path d='M6.003 5.125a4 4 0 0 0-2.526 5.77'/></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234361ee' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 18V5'/><path d='M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4'/><path d='M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5'/><path d='M17.997 5.125a4 4 0 0 1 2.526 5.77'/><path d='M18 18a4 4 0 0 0 2-7.464'/><path d='M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517'/><path d='M6 18a4 4 0 0 1-2-7.464'/><path d='M6.003 5.125a4 4 0 0 0-2.526 5.77'/></svg>">
   <meta name="theme-color" content="#4361ee">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13,23 +15,23 @@
 <body>
   <div id="app">
     <header>
-      <h1>🧠 Remember Everything</h1>
+      <h1><svg class="inline-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></svg>Remember Everything</h1>
       <div class="header-actions">
-        <button id="helpBtn" class="help-btn" onclick="switchTab('help')" aria-label="Help" aria-pressed="false" title="Help">❓</button>
+        <button id="helpBtn" class="help-btn" onclick="switchTab('help')" aria-label="Help" aria-pressed="false" title="Help"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></button>
       </div>
     </header>
 
     <nav class="tabs">
-      <button class="tab active" data-tab="review" onclick="switchTab('review')">📋 Review <span class="tab-badge" id="tabBadgeReview">0</span></button>
-      <button class="tab" data-tab="todos" onclick="switchTab('todos')">✅ Todos <span class="tab-badge" id="tabBadgeTodos">0</span></button>
-      <button class="tab" data-tab="notes" onclick="switchTab('notes')">📝 Notes <span class="tab-badge" id="tabBadgeNotes">0</span></button>
-      <button class="tab" data-tab="search" onclick="switchTab('search')">🔍 Search <span class="tab-badge" id="tabBadgeSearch">0</span></button>
+      <button class="tab active" data-tab="review" onclick="switchTab('review')"><svg class="inline-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>Review <span class="tab-badge" id="tabBadgeReview">0</span></button>
+      <button class="tab" data-tab="todos" onclick="switchTab('todos')"><svg class="inline-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>Todos <span class="tab-badge" id="tabBadgeTodos">0</span></button>
+      <button class="tab" data-tab="notes" onclick="switchTab('notes')"><svg class="inline-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg>Notes <span class="tab-badge" id="tabBadgeNotes">0</span></button>
+      <button class="tab" data-tab="search" onclick="switchTab('search')"><svg class="inline-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>Search <span class="tab-badge" id="tabBadgeSearch">0</span></button>
     </nav>
 
     <!-- Review Tab -->
     <section id="tab-review" class="tab-content active">
       <div id="reviewCards" class="review-area">
-        <div class="empty-state">🎉 All caught up! Nothing to review.</div>
+        <div class="empty-state"><svg class="inline-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/></svg>All caught up! Nothing to review.</div>
       </div>
     </section>
 
@@ -39,7 +41,7 @@
         <h2>Welcome to Remember Everything</h2>
         <p>A todo and notes app with spaced repetition. Here’s how it works.</p>
 
-        <h3>📋 Review</h3>
+        <h3><svg class="inline-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>Review</h3>
         <p>The Review tab shows items that are due for spaced repetition using the <strong>SM-2 algorithm</strong>:</p>
         <p>You answer with two options on each card:</p>
         <ul>
@@ -48,16 +50,16 @@
         </ul>
         <p>Answer "Remembered" to keep the item in your long-term memory — its interval grows. Answer "Didn't remember" to reset it to the beginning. The more consistently you say "Remembered", the longer your review intervals become.</p>
 
-        <h3>✅ Todos</h3>
+        <h3><svg class="inline-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>Todos</h3>
         <p>Quickly add todos. Check them off when done. Todos are also eligible for spaced repetition — making sure you <em>remember</em> to do things, not just list them.</p>
 
-        <h3>📝 Notes</h3>
+        <h3><svg class="inline-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/></svg>Notes</h3>
         <p>Jot down knowledge you want to retain. Add <strong>cloze deletions</strong> (fill-in-the-blank prompts) to turn a note into multiple review cards.</p>
 
-        <h3>🔍 Search</h3>
+        <h3><svg class="inline-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>Search</h3>
         <p>Find any item instantly. Searches both titles and content.</p>
 
-        <h3>✂️ Cloze Deletions</h3>
+        <h3><svg class="inline-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg>Cloze Deletions</h3>
         <p>A cloze deletion hides part of a note so you can test yourself on it. To make one:</p>
         <ol>
           <li>Open a note for editing.</li>
@@ -67,7 +69,7 @@
         <p>For example, a note titled <code>The capital of France is {{Paris}}</code> becomes a review card that asks: <em>“The capital of France is […]”</em></p>
         <p>You can have multiple clozes in one note — each is reviewed independently. Only one cloze per note is shown per day so you don’t see the answer on the next card.</p>
 
-        <h3>💡 Tips</h3>
+        <h3><svg class="inline-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>Tips</h3>
         <ul>
           <li>Items with clozes automatically use cloze-based spaced repetition instead of whole-item review.</li>
           <li>You can disable reviews for any item in the edit modal.</li>
@@ -75,11 +77,11 @@
           <li>Works offline thanks to the service worker.</li>
         </ul>
 
-        <h3>💾 Backup &amp; Restore</h3>
+        <h3><svg class="inline-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg>Backup &amp; Restore</h3>
         <p>All your data lives in this browser only. Export it to a file so you never lose it — including when moving to a new device, browser, or hosting URL. No login required.</p>
         <div class="backup-restore-actions">
-          <button type="button" onclick="exportData()" class="btn-primary">⬇️ Export data</button>
-          <button type="button" onclick="triggerImport()" class="btn-secondary">⬆️ Import data</button>
+          <button type="button" onclick="exportData()" class="btn-primary"><svg class="inline-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>Export data</button>
+          <button type="button" onclick="triggerImport()" class="btn-secondary"><svg class="inline-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg>Import data</button>
           <input type="file" id="importFileInput" accept="application/json,.json" style="display:none" onchange="handleImportFileChange(event)">
         </div>
         <p style="font-size:.85rem;color:var(--text2);">

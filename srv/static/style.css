@@ -67,6 +67,11 @@ header h1{font-size:1.5rem;font-weight:700}
 .btn-abandon{color:#64748b}
 .btn-reopen{color:var(--accent)}
 .btn-edit{color:var(--text2)}
+.help-btn svg{width:20px;height:20px;pointer-events:none}
+
+/* Inline icons placed next to text (headings, tabs, buttons): scale with the
+   surrounding font-size and take on the text color via currentColor. */
+.inline-icon{width:1em;height:1em;vertical-align:-.15em;margin-right:.35em;flex-shrink:0;pointer-events:none}
 
 /* ===== Item Cards ===== */
 .item-list{display:flex;flex-direction:column;gap:8px}

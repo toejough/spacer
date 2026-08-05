@@ -1,3 +1,19 @@
+// ===== Icons =====
+// Feather/Lucide-style inline SVGs (MIT-licensed: https://lucide.dev), shared
+// across render functions so every part of the app draws the same glyph for
+// the same concept instead of independently-authored copies.
+const ICONS = {
+  complete: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>`,
+  abandon: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+  reopen: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>`,
+  edit: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`,
+  trash: `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+  chevronDown: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`,
+  chevronRight: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>`,
+  gripVertical: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>`,
+  partyPopper: `<svg class="inline-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/></svg>`,
+};
+
 // ===== Local Storage =====
 const STORAGE_KEY = 'remember_everything_items';
 const STACKS_STORAGE_KEY = 'remember_everything_stacks';
@@ -231,10 +247,10 @@ function renderStackTile(stack, members) {
         onkeydown="if(event.key==='Enter'){event.preventDefault();confirmStackRename(${stack.id})}else if(event.key==='Escape'){event.preventDefault();cancelStackRename()}"
         onblur="confirmStackRename(${stack.id})">`
     : `<span class="stack-name">${escHtml(stack.name)}</span>`;
-  const renameBtn = renaming ? '' : `<button type="button" class="btn-icon stack-rename-btn" onclick="event.stopPropagation();startStackRename(${stack.id})" aria-label="Rename stack">✏️</button>`;
+  const renameBtn = renaming ? '' : `<button type="button" class="btn-icon stack-rename-btn" onclick="event.stopPropagation();startStackRename(${stack.id})" aria-label="Rename stack">${ICONS.edit}</button>`;
 
   const header = `<div class="stack-header" onclick="toggleStackExpand(${stack.id})">
-    <span class="stack-expand-icon">${expanded ? '▾' : '▸'}</span>
+    <span class="stack-expand-icon">${expanded ? ICONS.chevronDown : ICONS.chevronRight}</span>
     ${nameHtml}
     ${renameBtn}
     <span class="stack-count">${members.length}</span>
@@ -375,7 +391,7 @@ function loadReview() {
   const container = document.getElementById('reviewCards');
   const entries = getDueReviewEntries();
   if (entries.length === 0) {
-    container.innerHTML = '<div class="empty-state">\ud83c\udf89 All caught up! Nothing to review.</div>';
+    container.innerHTML = `<div class="empty-state">${ICONS.partyPopper}All caught up! Nothing to review.</div>`;
     return;
   }
   container.innerHTML = entries.map(renderReviewEntry).join('');
@@ -571,18 +587,12 @@ function renderTodoCard(item) {
     reviewInfo = `<span class="item-sr clickable" onclick="event.stopPropagation();showHistory(${item.id})">Next review: ${formatDate(item.next_review)}</span>`;
   }
 
-  // SVG icons (feather-style)
-  const completeIcon = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>`;
-  const abandonIcon = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
-  const reopenIcon = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>`;
-  const editIcon = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`;
-
   // Left-side action icons: Complete first, then Abandon for open; Reopen for done/abandoned
   let leftActions = '';
   if (archived || done) {
-    leftActions = `<button class="btn-icon btn-reopen" onclick="reopenItem(${item.id})" aria-label="Reopen">${reopenIcon}</button>`;
+    leftActions = `<button class="btn-icon btn-reopen" onclick="reopenItem(${item.id})" aria-label="Reopen">${ICONS.reopen}</button>`;
   } else {
-    leftActions = `<button class="btn-icon btn-complete" onclick="toggleTodo(${item.id})" aria-label="Complete">${completeIcon}</button><button class="btn-icon btn-abandon" onclick="archiveItem(${item.id})" aria-label="Abandon">${abandonIcon}</button>`;
+    leftActions = `<button class="btn-icon btn-complete" onclick="toggleTodo(${item.id})" aria-label="Complete">${ICONS.complete}</button><button class="btn-icon btn-abandon" onclick="archiveItem(${item.id})" aria-label="Abandon">${ICONS.abandon}</button>`;
   }
 
   const card = `<div class="item-card${done ? ' done' : ''}${archived ? ' abandoned' : ''}" data-id="${item.id}">
@@ -595,7 +605,7 @@ function renderTodoCard(item) {
       <div class="item-meta">${reviewInfo}</div>
     </div>
     <div class="item-actions">
-      <button class="btn-icon btn-edit" onclick="openEdit(${item.id})" aria-label="Edit">${editIcon}</button>
+      <button class="btn-icon btn-edit" onclick="openEdit(${item.id})" aria-label="Edit">${ICONS.edit}</button>
     </div>
   </div>`;
   return wrapWithSwipeReveal(card, done || archived);
@@ -650,7 +660,7 @@ function undoDelete(id) {
 // A dedicated grip icon, separate from the swipe-to-delete hit area (the
 // card body), so drag and swipe never compete for the same gesture.
 function dragHandleHtml(itemId) {
-  return `<span class="drag-handle" data-drag-id="${itemId}" aria-label="Drag to stack">⠿</span>`;
+  return `<span class="drag-handle" data-drag-id="${itemId}" aria-label="Drag to stack">${ICONS.gripVertical}</span>`;
 }
 
 // Wraps a rendered card with a reveal panel behind it, shown in the space
@@ -659,9 +669,8 @@ function dragHandleHtml(itemId) {
 // Only cards eligible for delete get the wrapper; others render unwrapped.
 function wrapWithSwipeReveal(cardHtml, deletable) {
   if (!deletable) return cardHtml;
-  const trashIcon = `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
   return `<div class="item-card-wrapper">
-    <div class="swipe-reveal" aria-hidden="true"><div class="swipe-reveal-icon">${trashIcon}</div></div>
+    <div class="swipe-reveal" aria-hidden="true"><div class="swipe-reveal-icon">${ICONS.trash}</div></div>
     ${cardHtml}
   </div>`;
 }
@@ -940,10 +949,9 @@ function renderNoteCard(item) {
     reviewInfo = `<span class="item-sr clickable" onclick="event.stopPropagation();showHistory(${item.id})">Next review: ${formatDate(item.next_review)}</span>`;
   }
 
-  const reopenIcon = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>`;
   const abandonOrReopenAction = archived
-    ? `<button class="btn-icon btn-reopen" onclick="reopenItem(${item.id})" aria-label="Reopen">${reopenIcon}</button>`
-    : `<button class="btn-icon" onclick="archiveItem(${item.id})" title="Abandon">\ud83c\udff3\ufe0f</button>`;
+    ? `<button class="btn-icon btn-reopen" onclick="reopenItem(${item.id})" aria-label="Reopen">${ICONS.reopen}</button>`
+    : `<button class="btn-icon btn-abandon" onclick="archiveItem(${item.id})" aria-label="Abandon">${ICONS.abandon}</button>`;
 
   const card = `<div class="item-card${archived ? ' abandoned' : ''}" data-id="${item.id}">
     ${dragHandleHtml(item.id)}
@@ -952,7 +960,7 @@ function renderNoteCard(item) {
       <div class="item-meta">${reviewInfo}</div>
     </div>
     <div class="item-actions">
-      <button class="btn-icon" onclick="openEdit(${item.id})" title="Edit">\u270f\ufe0f</button>
+      <button class="btn-icon btn-edit" onclick="openEdit(${item.id})" aria-label="Edit">${ICONS.edit}</button>
       ${abandonOrReopenAction}
     </div>
   </div>`;
