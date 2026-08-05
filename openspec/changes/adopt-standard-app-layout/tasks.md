@@ -1,5 +1,12 @@
 # Tasks
 
+**Two things move under your feet while you run this**, so read them first:
+
+- Your shell already lands in `/app/repo` — that is where this repository lives now, and where
+  `openspec` finds its root.
+- The platform starts `/app/server/bin/serve` with no arguments. `/app/run` still works today but is
+  being retired; task 3.3 moves this app's build-and-start script to the new path.
+
 This app has a database and is the one the platform's fleet migration deliberately did not rewrite.
 Change the serving, not the app.
 
@@ -29,9 +36,26 @@ Change the serving, not the app.
 - [ ] 3.2 Prove it: build the binary, move the repository to a different directory, run it from
   there, and confirm pages still render. This exact failure already happened once — the repository
   moved from `/app` to `/app/repo` and the running binary 404'd everything until it was rebuilt
-- [ ] 3.3 `/app/run` exports `HOME` before `make build`, and the repo carries that so it survives a
-  rebuilt environment. Without it, systemd's empty environment leaves `go build` unable to resolve
-  `GOPATH`, the build fails, and the unit silently starts whatever stale binary exists
+- [ ] 3.3 **The build+start script moves to `/app/server/bin/serve`.** The platform starts that path
+  with no arguments and is retiring `/app/run`; a script there is a first-class answer, not a
+  workaround. The four lines move unchanged:
+
+  ```sh
+  #!/bin/sh
+  export HOME=/root      # systemd provides none, and `go build` needs it for GOPATH
+  cd /app/repo
+  make build
+  exec ./todo-srv -listen 0.0.0.0:8080
+  ```
+
+  `HOME` is the load-bearing line: without it the build fails, `make` reports the error, and the unit
+  silently starts whatever stale binary already exists — which is how a binary compiled at the old
+  repository path kept 404ing after the move. **Leave `/app/run` in place** pointing at
+  `exec /app/server/bin/serve`, so both work until the platform's `bin-serve-is-the-entry-point`
+  change lands. That change is blocked on this task
+- [ ] 3.4 Replacing `bin/serve` means the host's `fleet/check-baseline` will report this app's copy as
+  **locally modified** from now on, and `fleet/offer` will refuse to overwrite it. Correct and
+  expected: the fleet is recording that this app runs its own server
 
 ## 4. Verify
 

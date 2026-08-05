@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Remember Everything</title>
-  <link rel="stylesheet" href="/static/style.css?v=37">
-  <link rel="manifest" href="/static/manifest.json?v=37">
+  <link rel="stylesheet" href="/static/style.css?v=39">
+  <link rel="manifest" href="/static/manifest.json?v=39">
   <meta name="theme-color" content="#4361ee">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -41,16 +41,12 @@
 
         <h3>📋 Review</h3>
         <p>The Review tab shows items that are due for spaced repetition using the <strong>SM-2 algorithm</strong>:</p>
-        <p>You rate yourself 0–5 on each card:</p>
+        <p>You answer with two options on each card:</p>
         <ul>
-          <li><strong>0 – Forgot</strong>: complete blackout</li>
-          <li><strong>1 – Hard</strong>: incorrect, but remembered</li>
-          <li><strong>2 – Struggled</strong>: incorrect, seemed easy</li>
-          <li><strong>3 – OK</strong>: correct with difficulty</li>
-          <li><strong>4 – Good</strong>: correct with hesitation</li>
-          <li><strong>5 – Easy</strong>: perfect recall</li>
+          <li><strong>Didn't remember</strong>: you couldn't recall the answer</li>
+          <li><strong>Remembered</strong>: you successfully recalled the answer</li>
         </ul>
-        <p>A rating of 3 or higher means you remembered — the interval grows. Below 3 resets the item to the beginning. Higher ratings increase the ease factor, making future intervals grow faster.</p>
+        <p>Answer "Remembered" to keep the item in your long-term memory — its interval grows. Answer "Didn't remember" to reset it to the beginning. The more consistently you say "Remembered", the longer your review intervals become.</p>
 
         <h3>✅ Todos</h3>
         <p>Quickly add todos. Check them off when done. Todos are also eligible for spaced repetition — making sure you <em>remember</em> to do things, not just list them.</p>
@@ -189,12 +185,12 @@
 
   <div id="undoToastContainer" class="undo-toast-container"></div>
 
-  <footer class="app-version">v38</footer>
+  <footer class="app-version">v39</footer>
 
-  <script src="/static/script.js?v=38"></script>
+  <script src="/static/script.js?v=39"></script>
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js?v=37').catch(() => {});
+      navigator.serviceWorker.register('/sw.js?v=39').catch(() => {});
     }
   </script>
 </body>

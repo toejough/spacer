@@ -3,6 +3,19 @@
 This is a Go web application, running on the phone-llm platform.
 See README.md for details on the structure and components.
 
+## Queued work
+
+`openspec list` shows what is waiting. **`adopt-standard-app-layout` is the current one** — it moves
+this app to the platform's standard layout: only deliberately published assets are reachable, and
+the build-and-start script moves to `/app/server/bin/serve`, which is the one path the platform
+starts.
+
+Read its `proposal.md` and `design.md` before the tasks. Two findings in there are worth knowing
+before touching anything: the binary resolves its templates from the path it was **compiled** at, so
+moving the repo 404s everything until a rebuild; and `make build` fails silently under systemd
+because there is no `HOME`, so the unit falls through to whatever stale binary exists.
+
+
 ## OpenSpec workflow
 
 This project uses OpenSpec (https://openspec.dev) for spec-driven development.

@@ -134,9 +134,6 @@ header h1{font-size:1.5rem;font-weight:700}
 .history-date{color:var(--text2);min-width:80px}
 .history-rating{font-weight:700;padding:2px 8px;border-radius:4px;font-size:.75rem}
 .history-rating.r0,.history-rating.r1{background:#fde8e8;color:var(--danger)}
-.history-rating.r2{background:#fff3cd;color:#856404}
-.history-rating.r3{background:#e3f2fd;color:#1565c0}
-.history-rating.r4{background:#e8f5e9;color:#2e7d32}
 .history-rating.r5{background:#e8f5e9;color:#1b5e20}
 .history-detail{font-size:.75rem;color:var(--text2);width:100%}
 .history-empty{font-size:.85rem;color:var(--text2);font-style:italic}
@@ -174,17 +171,9 @@ header h1{font-size:1.5rem;font-weight:700}
 .review-btn{padding:10px 16px;border:2px solid;border-radius:var(--radius);
   cursor:pointer;font-weight:600;font-size:.85rem;transition:.2s;background:var(--surface)}
 .review-btn.r0{border-color:var(--danger);color:var(--danger)}
-.review-btn.r1{border-color:#e57373;color:#e57373}
-.review-btn.r2{border-color:var(--warning);color:#b36b00}
-.review-btn.r3{border-color:#90caf9;color:#1565c0}
-.review-btn.r4{border-color:var(--success);color:#1a8a7f}
 .review-btn.r5{border-color:#2e7d32;color:#2e7d32}
 .review-btn.hovered{color:#fff}
 .review-btn.r0.hovered{background:var(--danger)}
-.review-btn.r1.hovered{background:#e57373}
-.review-btn.r2.hovered{background:var(--warning)}
-.review-btn.r3.hovered{background:#90caf9}
-.review-btn.r4.hovered{background:var(--success)}
 .review-btn.r5.hovered{background:#2e7d32}
 
 .review-type-badge{display:inline-block;font-size:.7rem;font-weight:700;text-transform:uppercase;

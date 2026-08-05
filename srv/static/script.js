@@ -419,12 +419,8 @@ function renderReviewEntry(entry) {
     <div class="item-title">${escHtml(item.title)}</div>
     <div class="item-meta">${srInfo}</div>
     <div class="review-buttons">
-      <button class="review-btn r0" onclick="submitReview(${item.id},-1,0)" title="Complete blackout">0 - Forgot</button>
-      <button class="review-btn r1" onclick="submitReview(${item.id},-1,1)" title="Incorrect, but remembered">1 - Hard</button>
-      <button class="review-btn r2" onclick="submitReview(${item.id},-1,2)" title="Incorrect, seemed easy">2 - Struggled</button>
-      <button class="review-btn r3" onclick="submitReview(${item.id},-1,3)" title="Correct with difficulty">3 - OK</button>
-      <button class="review-btn r4" onclick="submitReview(${item.id},-1,4)" title="Correct with hesitation">4 - Good</button>
-      <button class="review-btn r5" onclick="submitReview(${item.id},-1,5)" title="Perfect recall">5 - Easy</button>
+      <button class="review-btn r0" onclick="submitReview(${item.id},-1,0)" title="Didn't remember">Didn't remember</button>
+      <button class="review-btn r5" onclick="submitReview(${item.id},-1,5)" title="Remembered">Remembered</button>
     </div>
   </div>`;
 }
@@ -442,12 +438,8 @@ function revealCloze(itemId, clozeIndex) {
 
   const btns = card.querySelector('.review-buttons');
   btns.innerHTML = `
-    <button class="review-btn r0" onclick="submitReview(${itemId},${clozeIndex},0)">0 - Forgot</button>
-    <button class="review-btn r1" onclick="submitReview(${itemId},${clozeIndex},1)">1 - Hard</button>
-    <button class="review-btn r2" onclick="submitReview(${itemId},${clozeIndex},2)">2 - Struggled</button>
-    <button class="review-btn r3" onclick="submitReview(${itemId},${clozeIndex},3)">3 - OK</button>
-    <button class="review-btn r4" onclick="submitReview(${itemId},${clozeIndex},4)">4 - Good</button>
-    <button class="review-btn r5" onclick="submitReview(${itemId},${clozeIndex},5)">5 - Easy</button>`;
+    <button class="review-btn r0" onclick="submitReview(${itemId},${clozeIndex},0)">Didn't remember</button>
+    <button class="review-btn r5" onclick="submitReview(${itemId},${clozeIndex},5)">Remembered</button>`;
   attachReviewButtonHover(card);
 }
 
@@ -1242,7 +1234,7 @@ function showClozeHistory(id, clozeIndex) {
     ? matches[clozeIndex].replace(/^\{\{|\}\}$/g, '') : '?';
 
   const h = cd.review_history || [];
-  const ratingLabels = ['Forgot','Hard','Struggled','OK','Good','Easy'];
+  const ratingLabels = ['Didn\'t remember', 'Remembered'];
 
   let html = `<div class="history-popup-overlay" onclick="if(event.target===this)this.remove()">
     <div class="history-popup">
@@ -1303,7 +1295,7 @@ function showHistory(id) {
     });
     html += `</div>
         <h3>How SM-2 Works</h3>
-        <p class="history-explainer">Each review adjusts two things: the <strong>ease factor</strong> (how quickly intervals grow) and the <strong>interval</strong> (days until next review). Rating 3+ means you remembered \u2014 intervals grow. Below 3 resets to the beginning. Higher ratings increase the ease factor, making future intervals grow faster.</p>
+        <p class="history-explainer">Each review adjusts two things: the <strong>ease factor</strong> (how quickly intervals grow) and the <strong>interval</strong> (days until next review). Answer "Remembered" to keep the item in your long-term memory \u2014 its interval grows. Answer "Didn't remember" to reset it to the beginning. The more consistently you say "Remembered", the longer your review intervals become.</p>
         <button class="btn-primary" onclick="this.closest('.history-popup-overlay').remove()" style="margin-top:16px;width:100%">Close</button>
       </div></div>`;
     document.body.insertAdjacentHTML('beforeend', html);
@@ -1312,7 +1304,7 @@ function showHistory(id) {
 
   // Normal item history
   const h = item.review_history || [];
-  const ratingLabels = ['Forgot','Hard','Struggled','OK','Good','Easy'];
+  const ratingLabels = ['Didn\'t remember', 'Remembered'];
 
   let html = `<div class="history-popup-overlay" onclick="if(event.target===this)this.remove()">
     <div class="history-popup">
