@@ -32,7 +32,7 @@ func (q *Queries) CountDueForReview(ctx context.Context) (int64, error) {
 const createItem = `-- name: CreateItem :one
 INSERT INTO items (item_type, title, content, done, priority, due_date, tags, next_review, created_at, updated_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), datetime('now'))
-RETURNING id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived
+RETURNING id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived, completed_at, archived_at
 `
 
 type CreateItemParams struct {
@@ -73,12 +73,14 @@ func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (Item, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Archived,
+		&i.CompletedAt,
+		&i.ArchivedAt,
 	)
 	return i, err
 }
 
 const getItem = `-- name: GetItem :one
-SELECT id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived FROM items WHERE id = ? AND archived = 0
+SELECT id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived, completed_at, archived_at FROM items WHERE id = ? AND archived = 0
 `
 
 func (q *Queries) GetItem(ctx context.Context, id int64) (Item, error) {
@@ -101,12 +103,14 @@ func (q *Queries) GetItem(ctx context.Context, id int64) (Item, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Archived,
+		&i.CompletedAt,
+		&i.ArchivedAt,
 	)
 	return i, err
 }
 
 const listDueForReview = `-- name: ListDueForReview :many
-SELECT id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived FROM items WHERE archived = 0 AND next_review <= datetime('now') ORDER BY next_review ASC
+SELECT id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived, completed_at, archived_at FROM items WHERE archived = 0 AND next_review <= datetime('now') ORDER BY next_review ASC
 `
 
 func (q *Queries) ListDueForReview(ctx context.Context) ([]Item, error) {
@@ -135,6 +139,8 @@ func (q *Queries) ListDueForReview(ctx context.Context) ([]Item, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Archived,
+			&i.CompletedAt,
+			&i.ArchivedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -150,7 +156,7 @@ func (q *Queries) ListDueForReview(ctx context.Context) ([]Item, error) {
 }
 
 const listNotes = `-- name: ListNotes :many
-SELECT id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived FROM items WHERE item_type = 'note' AND archived = 0 ORDER BY updated_at DESC
+SELECT id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived, completed_at, archived_at FROM items WHERE item_type = 'note' AND archived = 0 ORDER BY updated_at DESC
 `
 
 func (q *Queries) ListNotes(ctx context.Context) ([]Item, error) {
@@ -179,6 +185,8 @@ func (q *Queries) ListNotes(ctx context.Context) ([]Item, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Archived,
+			&i.CompletedAt,
+			&i.ArchivedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -194,7 +202,7 @@ func (q *Queries) ListNotes(ctx context.Context) ([]Item, error) {
 }
 
 const listTodos = `-- name: ListTodos :many
-SELECT id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived FROM items WHERE item_type = 'todo' AND archived = 0 ORDER BY done ASC, priority DESC, created_at DESC
+SELECT id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived, completed_at, archived_at FROM items WHERE item_type = 'todo' AND archived = 0 ORDER BY done ASC, priority DESC, created_at DESC
 `
 
 func (q *Queries) ListTodos(ctx context.Context) ([]Item, error) {
@@ -223,6 +231,8 @@ func (q *Queries) ListTodos(ctx context.Context) ([]Item, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Archived,
+			&i.CompletedAt,
+			&i.ArchivedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -240,7 +250,7 @@ func (q *Queries) ListTodos(ctx context.Context) ([]Item, error) {
 const reviewItem = `-- name: ReviewItem :one
 UPDATE items SET ease_factor = ?, interval_days = ?, repetitions = ?, next_review = ?, last_reviewed = datetime('now'), updated_at = datetime('now')
 WHERE id = ? AND archived = 0
-RETURNING id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived
+RETURNING id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived, completed_at, archived_at
 `
 
 type ReviewItemParams struct {
@@ -277,12 +287,14 @@ func (q *Queries) ReviewItem(ctx context.Context, arg ReviewItemParams) (Item, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Archived,
+		&i.CompletedAt,
+		&i.ArchivedAt,
 	)
 	return i, err
 }
 
 const searchItems = `-- name: SearchItems :many
-SELECT id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived FROM items WHERE archived = 0 AND (title LIKE '%' || ? || '%' OR content LIKE '%' || ? || '%') ORDER BY updated_at DESC
+SELECT id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived, completed_at, archived_at FROM items WHERE archived = 0 AND (title LIKE '%' || ? || '%' OR content LIKE '%' || ? || '%') ORDER BY updated_at DESC
 `
 
 type SearchItemsParams struct {
@@ -316,6 +328,8 @@ func (q *Queries) SearchItems(ctx context.Context, arg SearchItemsParams) ([]Ite
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Archived,
+			&i.CompletedAt,
+			&i.ArchivedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -333,7 +347,7 @@ func (q *Queries) SearchItems(ctx context.Context, arg SearchItemsParams) ([]Ite
 const toggleTodoDone = `-- name: ToggleTodoDone :one
 UPDATE items SET done = CASE WHEN done = 0 THEN 1 ELSE 0 END, updated_at = datetime('now')
 WHERE id = ? AND item_type = 'todo' AND archived = 0
-RETURNING id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived
+RETURNING id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived, completed_at, archived_at
 `
 
 func (q *Queries) ToggleTodoDone(ctx context.Context, id int64) (Item, error) {
@@ -356,6 +370,8 @@ func (q *Queries) ToggleTodoDone(ctx context.Context, id int64) (Item, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Archived,
+		&i.CompletedAt,
+		&i.ArchivedAt,
 	)
 	return i, err
 }
@@ -363,7 +379,7 @@ func (q *Queries) ToggleTodoDone(ctx context.Context, id int64) (Item, error) {
 const updateItem = `-- name: UpdateItem :one
 UPDATE items SET title = ?, content = ?, priority = ?, due_date = ?, tags = ?, updated_at = datetime('now')
 WHERE id = ? AND archived = 0
-RETURNING id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived
+RETURNING id, item_type, title, content, done, priority, due_date, tags, ease_factor, interval_days, repetitions, next_review, last_reviewed, created_at, updated_at, archived, completed_at, archived_at
 `
 
 type UpdateItemParams struct {
@@ -402,6 +418,8 @@ func (q *Queries) UpdateItem(ctx context.Context, arg UpdateItemParams) (Item, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Archived,
+		&i.CompletedAt,
+		&i.ArchivedAt,
 	)
 	return i, err
 }

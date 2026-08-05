@@ -25,17 +25,12 @@ type Item struct {
 	CreatedAt    string  `json:"created_at"`
 	UpdatedAt    string  `json:"updated_at"`
 	Archived     int64   `json:"archived"`
+	CompletedAt  *string `json:"completed_at"`
+	ArchivedAt   *string `json:"archived_at"`
 }
 
 type Migration struct {
 	MigrationNumber int64     `json:"migration_number"`
 	MigrationName   string    `json:"migration_name"`
 	ExecutedAt      time.Time `json:"executed_at"`
-}
-
-type Visitor struct {
-	ID        string    `json:"id"`
-	ViewCount int64     `json:"view_count"`
-	CreatedAt time.Time `json:"created_at"`
-	LastSeen  time.Time `json:"last_seen"`
 }
