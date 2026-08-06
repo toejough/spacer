@@ -1,5 +1,0 @@
-#!/bin/sh
-# todo runs its Go server. Bind 0.0.0.0:8080 — thats what the tunnel talks to.
-cd "$(dirname "$0")"
-make build
-exec ./todo-srv -listen 0.0.0.0:8080

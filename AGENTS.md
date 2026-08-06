@@ -5,25 +5,13 @@ See README.md for details on the structure and components.
 
 ## Queued work
 
-`openspec list` shows what is waiting. **`adopt-standard-app-layout` is the current one** — it moves
-this app to the platform's standard layout: only deliberately published assets are reachable, and
-the build-and-start script moves to `/app/server/bin/serve`, which is the one path the platform
-starts.
-
-Read its `proposal.md` and `design.md` before the tasks. Two findings in there are worth knowing
-before touching anything: the binary resolves its templates from the path it was **compiled** at, so
-moving the repo 404s everything until a rebuild; and `make build` fails silently under systemd
-because there is no `HOME`, so the unit falls through to whatever stale binary exists.
-
+Run `openspec list` to see what's queued, and `openspec status --change <name>` for details on a
+specific one.
 
 ## OpenSpec workflow
 
 This project uses OpenSpec (https://openspec.dev) for spec-driven development.
 Specs are stored in `openspec/specs/` and change proposals in `openspec/changes/`.
-
-A Shelley slash hook is installed at `~/.config/shelley/hooks/slash/opsx` (source in `shelley-hooks/slash/opsx`).
-The user can run commands like `/opsx specs`, `/opsx validate`, and `/opsx propose <name>` directly in the chat.
-If the hook is missing, install it with `./shelley-hooks/install.sh`.
 
 When the user asks for a new feature or change:
 
