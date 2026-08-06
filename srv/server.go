@@ -1,11 +1,8 @@
 package srv
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
-
-	"srv.exe.dev/db"
 )
 
 const (
@@ -15,25 +12,10 @@ const (
 
 type Server struct {
 	Hostname string
-	DBPath   string
 }
 
-func New(dbPath, hostname string) (*Server, error) {
-	srv := &Server{
-		Hostname: hostname,
-		DBPath:   dbPath,
-	}
-	// Still open DB so migrations table exists (template requirement),
-	// but we don't use it for items anymore.
-	if wdb, err := db.Open(dbPath); err != nil {
-		return nil, fmt.Errorf("failed to open db: %w", err)
-	} else {
-		if err := db.RunMigrations(wdb); err != nil {
-			return nil, fmt.Errorf("failed to run migrations: %w", err)
-		}
-		wdb.Close()
-	}
-	return srv, nil
+func New(hostname string) (*Server, error) {
+	return &Server{Hostname: hostname}, nil
 }
 
 func (s *Server) Serve(addr string) error {

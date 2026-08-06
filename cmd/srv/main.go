@@ -22,7 +22,7 @@ func run() error {
 	if err != nil {
 		hostname = "unknown"
 	}
-	server, err := srv.New("db.sqlite3", hostname)
+	server, err := srv.New(hostname)
 	if err != nil {
 		return fmt.Errorf("create server: %w", err)
 	}

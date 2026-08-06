@@ -24,13 +24,8 @@ systemctl restart app
 Access is gated by Cloudflare Access at the platform level (owner-only) —
 the app itself does not implement authorization.
 
-## Database
-
-This template uses sqlite (`db.sqlite3`). SQL queries are managed with sqlc.
-
 ## Code layout
 
 - `cmd/srv`: main package (binary entrypoint)
 - `srv`: HTTP server logic (handlers)
 - `srv/templates`: Go HTML templates
-- `db`: SQLite open + migrations (001-base.sql)

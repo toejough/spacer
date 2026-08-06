@@ -2,9 +2,5 @@
 todo-srv
 *.exe
 
-# Database
-db.sqlite3
-*.db
-
 # Environment
 .env
