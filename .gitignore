@@ -4,3 +4,6 @@ todo-srv
 
 # Environment
 .env
+
+# Node
+node_modules/
