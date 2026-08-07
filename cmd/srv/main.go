@@ -8,7 +8,7 @@ import (
 	"srv.exe.dev/srv"
 )
 
-var flagListenAddr = flag.String("listen", ":8000", "address to listen on")
+var flagListenAddr = flag.String("listen", "127.0.0.1:8000", "address to listen on")
 
 func main() {
 	if err := run(); err != nil {
