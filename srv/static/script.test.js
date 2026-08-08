@@ -330,7 +330,7 @@ test('exportData builds a payload with schema_version and current items', () => 
     baseItem({ id: 2, item_type: 'note' }),
   ]);
   const payload = context.buildExportPayload();
-  assert.strictEqual(payload.schema_version, 1, 'payload should carry a schema version');
+  assert.strictEqual(payload.schema_version, 2, 'payload should carry a schema version');
   assert(typeof payload.exported_at === 'string' && payload.exported_at.length > 0, 'payload should have an export timestamp');
   assert.strictEqual(payload.items.length, 2, 'payload should include all current items');
 });
@@ -339,6 +339,20 @@ test('exportData works when there are no items', () => {
   const { context } = runScriptWithItems([]);
   const payload = context.buildExportPayload();
   assert.deepStrictEqual(payload.items, [], 'payload items should be an empty array');
+});
+
+test('buildExportPayload includes a stacks array reflecting current local stacks', () => {
+  const { context } = runScriptWithItems([baseItem({ id: 1 })]);
+  context.createStack('Errands');
+  const payload = context.buildExportPayload();
+  assert.strictEqual(payload.stacks.length, 1, 'payload should include current stacks');
+  assert.strictEqual(payload.stacks[0].name, 'Errands');
+});
+
+test('buildExportPayload includes an empty stacks array when no stacks exist', () => {
+  const { context } = runScriptWithItems([]);
+  const payload = context.buildExportPayload();
+  assert.strictEqual(payload.stacks.length, 0, 'payload stacks should be an empty array');
 });
 
 test('importDataFromText skips a todo that duplicates an existing todo title, keeping local metadata', () => {
@@ -460,6 +474,116 @@ test('importDataFromText rejects a file missing an items array', () => {
   assert.throws(() => context.importDataFromText(JSON.stringify({ schema_version: 1 })), /does not look like/);
   const items = JSON.parse(store['remember_everything_items']);
   assert.strictEqual(items.length, 1, 'invalid shape import should not modify existing data');
+});
+
+// ===== Import + Stacks =====
+
+test('importDataFromText restores a stack that has no local counterpart', () => {
+  const { context, store } = runScriptWithItems([]);
+  const importJson = JSON.stringify({
+    schema_version: 2,
+    exported_at: new Date().toISOString(),
+    items: [
+      baseItem({ id: 9, item_type: 'todo', title: 'Buy milk', stack_id: 5 }),
+      baseItem({ id: 10, item_type: 'todo', title: 'Buy eggs', stack_id: 5 }),
+    ],
+    stacks: [{ id: 5, name: 'Errands', created_at: '2020-01-01T00:00:00.000Z', updated_at: '2020-01-01T00:00:00.000Z' }],
+  });
+  context.importDataFromText(importJson);
+
+  const stacks = JSON.parse(store['remember_everything_stacks']);
+  assert.strictEqual(stacks.length, 1, 'imported stack should be created locally');
+  assert.strictEqual(stacks[0].name, 'Errands');
+  const newStackId = stacks[0].id;
+  const items = JSON.parse(store['remember_everything_items']);
+  assert.strictEqual(items.length, 2, 'both imported items should be added');
+  assert(items.every(i => i.stack_id === newStackId), 'both imported items should link to the new local stack');
+});
+
+test('importDataFromText merges an imported stack into an existing local stack with the same name', () => {
+  const { context, store } = runScriptWithItems([
+    baseItem({ id: 1, item_type: 'todo', title: 'Existing local item' }),
+  ]);
+  const localStackId = context.createStack('Errands');
+  context.setItemStack(1, localStackId);
+
+  const importJson = JSON.stringify({
+    schema_version: 2,
+    exported_at: new Date().toISOString(),
+    items: [baseItem({ id: 9, item_type: 'todo', title: 'Buy milk', stack_id: 5 })],
+    stacks: [{ id: 5, name: 'Errands', created_at: '2020-01-01T00:00:00.000Z', updated_at: '2020-01-01T00:00:00.000Z' }],
+  });
+  context.importDataFromText(importJson);
+
+  const stacks = JSON.parse(store['remember_everything_stacks']);
+  assert.strictEqual(stacks.length, 1, 'no duplicate stack should be created');
+  assert.strictEqual(stacks[0].id, localStackId, 'existing local stack id should be preserved');
+  assert.strictEqual(stacks[0].name, 'Errands', 'existing local stack name should be unchanged');
+
+  const items = JSON.parse(store['remember_everything_items']);
+  const imported = items.find(i => i.title === 'Buy milk');
+  assert.strictEqual(imported.stack_id, localStackId, 'imported item should link to the existing local stack');
+});
+
+test('importDataFromText does not change stack_id of an existing item skipped as a duplicate', () => {
+  const { context, store } = runScriptWithItems([
+    baseItem({ id: 1, item_type: 'todo', title: 'Buy milk' }),
+  ]);
+  const localStackId = context.createStack('Errands');
+  context.setItemStack(1, localStackId);
+
+  const importJson = JSON.stringify({
+    schema_version: 2,
+    exported_at: new Date().toISOString(),
+    items: [baseItem({ id: 9, item_type: 'todo', title: 'Buy milk', stack_id: null })],
+    stacks: [],
+  });
+  context.importDataFromText(importJson);
+
+  const items = JSON.parse(store['remember_everything_items']);
+  assert.strictEqual(items.length, 1, 'duplicate should not be added');
+  assert.strictEqual(items[0].stack_id, localStackId, 'existing item stack membership should be untouched by the import');
+});
+
+test('importDataFromText imports a pre-stacks (v1) export file with no stacks field', () => {
+  const { context, store } = runScriptWithItems([]);
+  const importJson = JSON.stringify({
+    schema_version: 1,
+    exported_at: new Date().toISOString(),
+    items: [baseItem({ id: 9, item_type: 'todo', title: 'Buy milk' })],
+  });
+  context.importDataFromText(importJson);
+
+  const items = JSON.parse(store['remember_everything_items']);
+  assert.strictEqual(items.length, 1, 'item should import normally');
+  assert.strictEqual(store['remember_everything_stacks'], undefined, 'no stacks should be created from a file with no stacks field');
+});
+
+test('importDataFromText returns a summary with correct counts in a mixed scenario', () => {
+  const { context } = runScriptWithItems([
+    baseItem({ id: 1, item_type: 'todo', title: 'Existing todo' }),
+  ]);
+  context.createStack('Errands');
+
+  const importJson = JSON.stringify({
+    schema_version: 2,
+    exported_at: new Date().toISOString(),
+    items: [
+      baseItem({ id: 9, item_type: 'todo', title: 'Existing todo' }), // duplicate -> skipped
+      baseItem({ id: 10, item_type: 'todo', title: 'New todo', stack_id: 5 }), // new, merges into existing stack
+      baseItem({ id: 11, item_type: 'note', title: 'New note', stack_id: 6 }), // new, new stack
+    ],
+    stacks: [
+      { id: 5, name: 'Errands', created_at: '2020-01-01T00:00:00.000Z', updated_at: '2020-01-01T00:00:00.000Z' },
+      { id: 6, name: 'Reading', created_at: '2020-01-01T00:00:00.000Z', updated_at: '2020-01-01T00:00:00.000Z' },
+    ],
+  });
+  const summary = context.importDataFromText(importJson);
+
+  assert.strictEqual(summary.itemsAdded, 2, 'two new items should be added');
+  assert.strictEqual(summary.itemsSkipped, 1, 'one duplicate item should be skipped');
+  assert.strictEqual(summary.stacksAdded, 1, 'one new stack should be added');
+  assert.strictEqual(summary.stacksMerged, 1, 'one stack should be merged into existing');
 });
 
 // ===== Stacks =====

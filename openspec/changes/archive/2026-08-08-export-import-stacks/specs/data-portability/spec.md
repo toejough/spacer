@@ -1,8 +1,5 @@
-# data-portability Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change data-export-import. Update Purpose after archive.
-## Requirements
 ### Requirement: Export all data as a file
 The system SHALL allow the user to export all their local todo/note data as a downloadable JSON file, without requiring login. Exported data SHALL include stacks (id, name, and timestamps) alongside items, so a backup captures the complete local dataset, not items alone.
 
@@ -76,6 +73,8 @@ The exported file SHALL be self-describing so it can be safely re-imported on a 
 - **WHEN** the user imports a file exported before stacks were included in the export format (no `stacks` field present)
 - **THEN** the import succeeds, treating the file as containing zero stacks
 - **AND** all items in the file are imported per the normal item-import rules
+
+## ADDED Requirements
 
 ### Requirement: Import reports a result summary
 The system SHALL report a summary of what happened immediately after an import completes, so the user can tell whether the restore was complete without inspecting the file or local storage directly.

@@ -1428,7 +1428,7 @@ function handleClozeKeydown(e) {
 document.addEventListener('keydown', handleClozeKeydown);
 
 // ===== Backup & Restore (export/import) =====
-const EXPORT_SCHEMA_VERSION = 1;
+const EXPORT_SCHEMA_VERSION = 2;
 
 // Build the exportable payload from current local data.
 function buildExportPayload() {
@@ -1436,6 +1436,7 @@ function buildExportPayload() {
     schema_version: EXPORT_SCHEMA_VERSION,
     exported_at: new Date().toISOString(),
     items: loadItems(),
+    stacks: loadStacks(),
   };
 }
 
@@ -1469,7 +1470,9 @@ function handleImportFileChange(event) {
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      importDataFromText(reader.result);
+      const summary = importDataFromText(reader.result);
+      alert(`Imported: ${summary.itemsAdded} items added, ${summary.itemsSkipped} skipped as duplicates, `
+        + `${summary.stacksAdded} stacks added, ${summary.stacksMerged} stacks merged.`);
     } catch (e) {
       alert('Import failed: ' + (e && e.message ? e.message : 'invalid file'));
     }
@@ -1478,16 +1481,19 @@ function handleImportFileChange(event) {
   reader.readAsText(file);
 }
 
-// Validate & normalize an export payload into a current-shape items array.
+// Validate & normalize an export payload into current-shape items/stacks.
 // Throws on invalid input. Future schema_version migrations go here.
+// `stacks` defaults to [] so a pre-v2 export file (no stacks field) still
+// imports cleanly.
 function upgradeExportData(data) {
   if (!data || typeof data !== 'object' || !Array.isArray(data.items)) {
     throw new Error('file does not look like a Remember Everything export');
   }
-  return data.items;
+  return { items: data.items, stacks: Array.isArray(data.stacks) ? data.stacks : [] };
 }
 
-// Parses exported JSON text and applies it. Exposed separately for testing.
+// Parses exported JSON text and applies it. Returns the import summary.
+// Exposed separately for testing.
 function importDataFromText(text) {
   let data;
   try {
@@ -1495,9 +1501,8 @@ function importDataFromText(text) {
   } catch {
     throw new Error('file is not valid JSON');
   }
-  const items = upgradeExportData(data);
-  applyImportedItems(items);
-  return items;
+  const { items, stacks } = upgradeExportData(data);
+  return applyImportedItems(items, stacks);
 }
 
 // An item's "content" is its type plus title (including cloze markup).
@@ -1507,24 +1512,71 @@ function itemContentKey(item) {
   return `${item.item_type}::${(item.title || '').trim()}`;
 }
 
+// Matches imported stacks to local stacks by exact (trimmed) name: a match
+// reuses the existing stack's id (merge), otherwise a new local stack is
+// created. Returns { stackIdMap, newStacks, stacksAdded, stacksMerged } —
+// stackIdMap carries every imported stack's old id to its resulting local id.
+function mapImportedStacks(stacks, existingStacks) {
+  let nextStackIdCounter = getNextStackId(existingStacks);
+  const stackIdMap = new Map();
+  const newStacks = [];
+  let stacksAdded = 0;
+  let stacksMerged = 0;
+  for (const stack of stacks) {
+    const trimmedName = (stack.name || '').trim();
+    if (!trimmedName) continue;
+    const match = existingStacks.find(s => s.name === trimmedName)
+      || newStacks.find(s => s.name === trimmedName);
+    if (match) {
+      stackIdMap.set(stack.id, match.id);
+      stacksMerged++;
+    } else {
+      const now = new Date().toISOString();
+      const newStack = { id: nextStackIdCounter++, name: trimmedName, created_at: now, updated_at: now };
+      newStacks.push(newStack);
+      stackIdMap.set(stack.id, newStack.id);
+      stacksAdded++;
+    }
+  }
+  return { stackIdMap, newStacks, stacksAdded, stacksMerged };
+}
+
 // Always append imported items that don't already exist locally.
 // An imported item (todo or note) is skipped if its type+title matches an
-// existing local item's; the existing local item (and all its metadata)
-// wins and is left untouched.
-function applyImportedItems(items) {
-  const existing = loadItems();
-  const existingContentKeys = new Set(existing.map(itemContentKey));
-  let nextIdCounter = getNextId(existing);
+// existing local item's; the existing local item (and all its metadata,
+// including stack membership) wins and is left untouched.
+// Imported stacks are merged into local stacks by exact name match (see
+// mapImportedStacks); every appended item's stack_id is rewritten through
+// the resulting map so it never points at a stale id from the import file.
+// Returns a summary: { itemsAdded, itemsSkipped, stacksAdded, stacksMerged }.
+function applyImportedItems(items, stacks) {
+  const existingItems = loadItems();
+  const existingContentKeys = new Set(existingItems.map(itemContentKey));
+  let nextIdCounter = getNextId(existingItems);
+
+  const existingStacks = loadStacks();
+  const { stackIdMap, newStacks, stacksAdded, stacksMerged } = mapImportedStacks(stacks || [], existingStacks);
+
   const toAppend = [];
+  let itemsSkipped = 0;
   for (const item of items) {
     if (existingContentKeys.has(itemContentKey(item))) {
+      itemsSkipped++;
       continue; // duplicate content: existing local item wins
     }
-    toAppend.push({ ...item, id: nextIdCounter++ });
+    const newItem = { ...item, id: nextIdCounter++ };
+    newItem.stack_id = stackIdMap.get(item.stack_id) || null;
+    toAppend.push(newItem);
   }
-  saveItems(existing.concat(toAppend));
+
+  const allItems = existingItems.concat(toAppend);
+  saveItems(allItems);
+  if (newStacks.length) saveStacks(existingStacks.concat(newStacks));
+  gcStacks(allItems); // drop any newly-added stack that ended up with no members (e.g. all its items were skipped as duplicates)
   refreshCurrent();
   updateTabCounts();
+
+  return { itemsAdded: toAppend.length, itemsSkipped, stacksAdded, stacksMerged };
 }
 
 
