@@ -58,7 +58,7 @@ The system SHALL allow the user to abandon a todo (archive it from view).
 - **WHEN** the user opens a todo's edit modal
 - **THEN** the edit modal shows an Abandon control (button)
 - **AND** the Abandon control is hidden or disabled when the todo is marked as Done
-- **AND** confirming Abandon marks the todo archived, closes the modal, and refreshes lists
+- **AND** clicking Abandon marks the todo archived, closes the modal, and refreshes lists — with no confirmation step, since an abandoned todo remains visible and can always be reopened
 
 ### Requirement: Permanently delete a todo
 The system SHALL allow the user to permanently delete a Done or Abandoned todo. Deletion SHALL NOT be available for an Open todo. A deleted todo is removed entirely and is not recoverable except via a prior manual export.

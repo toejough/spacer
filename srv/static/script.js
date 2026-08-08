@@ -985,7 +985,6 @@ function archiveItem(id) {
   const items = loadItems();
   const item = items.find(i => i.id === id);
   if (!item) return false;
-  if (!confirm('Abandon this item?')) return false;
   item.archived = 1;
   item.done = 0; // clear done flag when abandoning
   item.updated_at = new Date().toISOString();

@@ -262,7 +262,7 @@ test('archiveItem allows abandoning completed todo', () => {
   const items = JSON.parse(store['remember_everything_items']);
   assert.strictEqual(items.find(i => i.id === 1).archived, 1, 'completed todo should be archived');
   assert.strictEqual(items.find(i => i.id === 1).done, 0, 'completed todo should be cleared from done');
-  assert.strictEqual(confirms.length, 1, 'should confirm abandonment');
+  assert.strictEqual(confirms.length, 0, 'abandoning should not prompt for confirmation');
 });
 
 test('reopenItem restores archived todo to open', () => {
@@ -305,7 +305,7 @@ test('abandonFromModal allows archiving done todo', () => {
   const items = JSON.parse(store['remember_everything_items']);
   assert.strictEqual(items.find(i => i.id === 1).archived, 1, 'done todo should be archived from modal');
   assert.strictEqual(items.find(i => i.id === 1).done, 0, 'done todo should be cleared from done');
-  assert.strictEqual(confirms.length, 1, 'should confirm abandonment');
+  assert.strictEqual(confirms.length, 0, 'abandoning should not prompt for confirmation');
 });
 
 test('reopenFromModal reopens done todo', () => {
