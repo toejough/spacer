@@ -11,11 +11,10 @@ const (
 )
 
 type Server struct {
-	Hostname string
 }
 
-func New(hostname string) (*Server, error) {
-	return &Server{Hostname: hostname}, nil
+func New() (*Server, error) {
+	return &Server{}, nil
 }
 
 func (s *Server) Serve(addr string) error {

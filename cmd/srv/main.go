@@ -18,11 +18,7 @@ func main() {
 
 func run() error {
 	flag.Parse()
-	hostname, err := os.Hostname()
-	if err != nil {
-		hostname = "unknown"
-	}
-	server, err := srv.New(hostname)
+	server, err := srv.New()
 	if err != nil {
 		return fmt.Errorf("create server: %w", err)
 	}
