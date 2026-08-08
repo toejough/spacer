@@ -5,15 +5,11 @@
 Find todos and notes by text.
 ## Requirements
 ### Requirement: Search items
-The system SHALL allow the user to search across todos and notes.
+The system SHALL allow the user to search across todos and notes by title.
 
 #### Scenario: Search by title
 - **WHEN** the user types text into the search field and submits
 - **THEN** items whose title contains the search text are displayed
-
-#### Scenario: Search by content
-- **WHEN** the user types text into the search field and submits
-- **THEN** items whose content contains the search text are displayed
 
 #### Scenario: Empty search
 - **WHEN** the search field is empty and the user submits
@@ -29,4 +25,3 @@ The system SHALL include a stack in search results, as a collapsed tile, when at
 #### Scenario: Expanding a search result stack shows all matching-view members
 - **WHEN** the user expands a stack shown in search results
 - **THEN** all of the stack's members (regardless of item type) are shown as individual cards
-

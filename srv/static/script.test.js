@@ -78,11 +78,7 @@ function baseItem(overrides = {}) {
     id: 1,
     item_type: 'todo',
     title: 'Test todo',
-    content: '',
     done: 0,
-    priority: 0,
-    due_date: null,
-    tags: '',
     ease_factor: 2.5,
     interval_days: 0,
     repetitions: 0,
@@ -358,19 +354,19 @@ test('buildExportPayload includes an empty stacks array when no stacks exist', (
 test('importDataFromText skips a todo that duplicates an existing todo title, keeping local metadata', () => {
   const { context, store } = runScriptWithItems([
     baseItem({
-      id: 1, item_type: 'todo', title: 'Buy milk', done: 1, priority: 3,
+      id: 1, item_type: 'todo', title: 'Buy milk', done: 1, ease_factor: 3.1,
     }),
   ]);
   const importJson = JSON.stringify({
     schema_version: 1,
     exported_at: new Date().toISOString(),
-    items: [baseItem({ id: 9, item_type: 'todo', title: 'Buy milk', done: 0, priority: 0 })],
+    items: [baseItem({ id: 9, item_type: 'todo', title: 'Buy milk', done: 0, ease_factor: 2.5 })],
   });
   context.importDataFromText(importJson);
   const items = JSON.parse(store['remember_everything_items']);
   assert.strictEqual(items.length, 1, 'duplicate-title todo should not be added');
   assert.strictEqual(items[0].done, 1, 'existing local todo metadata should win');
-  assert.strictEqual(items[0].priority, 3, 'existing local todo priority should win');
+  assert.strictEqual(items[0].ease_factor, 3.1, 'existing local todo ease factor should win');
 });
 
 test('importDataFromText adds a todo whose title is new', () => {

@@ -44,6 +44,26 @@ implemented yet" instead of "reload the page" — indistinguishable without chec
 This was missed once already (the `export-import-stacks` change, 2026-08-08) and had to be
 fixed after the fact.
 
+## Code review: check for dead data fields, not just dead functions
+
+When reviewing code (or auditing for dead code generally), explicitly check for unused *data
+fields* — struct/object properties that are written but never read — not just unused functions,
+classes, or CSS selectors. Grep-for-references catches an unused function trivially (its name
+stops appearing); it does nothing for a field that's set once at construction and then silently
+carried around forever. That requires tracing each field from where it's written to every place it
+might be read, not just counting name occurrences.
+
+This bit us twice in one sweep on 2026-08-08: the item schema in `srv/static/script.js` carried
+`content`, `priority`, `due_date`, and `tags` — set on every item in `quickAdd`, never read or
+exposed in any UI — and `srv/server.go`'s `Server.Hostname` was fetched via `os.Hostname()` in
+`cmd/srv/main.go`, threaded through the constructor, and never read anywhere after that. Both
+passed every prior dead-code sweep because those only checked identifiers, not data flow.
+
+When a field like this turns out to be referenced in a spec (e.g. `content` backed a documented
+"search by content" requirement that could never actually fire, since nothing ever wrote to it),
+that's not just cleanup — it's a spec/implementation mismatch worth surfacing as its own finding,
+not silently folded into "remove dead code."
+
 ## Cross-capability integration check
 
 Before scoping a change to a single capability, grep `openspec/specs/*/spec.md` for other

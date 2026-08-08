@@ -25,12 +25,12 @@ The system SHALL allow the user to export all their local todo/note data as a do
 - **AND** the exported stacks list includes that stack with its name
 
 ### Requirement: Import data from a file
-The system SHALL allow the user to import a previously exported JSON file, without requiring login. Import SHALL always append data — it SHALL NOT remove or overwrite any existing local item or stack. An item's content is defined as its type (todo or note) plus its title (including any cloze markup); everything else (done/archived state, priority, due date, tags, and all spaced-repetition metadata) is metadata, not content. A stack's identity for import purposes is its name (case-sensitive, exact match after trimming).
+The system SHALL allow the user to import a previously exported JSON file, without requiring login. Import SHALL always append data — it SHALL NOT remove or overwrite any existing local item or stack. An item's content is defined as its type (todo or note) plus its title (including any cloze markup); everything else (done/archived state, and all spaced-repetition metadata) is metadata, not content. A stack's identity for import purposes is its name (case-sensitive, exact match after trimming).
 
 #### Scenario: Import skips items that duplicate existing content
 - **WHEN** the user imports a file containing an item (todo or note) whose type and title exactly match an existing local item's type and title
 - **THEN** the imported item is not added
-- **AND** the existing local item is left completely unchanged, including all of its metadata (done/archived state, priority, tags, due date, next_review, ease_factor, interval_days, repetitions, cloze_data, last_reviewed, review_enabled, stack_id, timestamps) — its stack membership is not altered by anything in the imported file
+- **AND** the existing local item is left completely unchanged, including all of its metadata (done/archived state, next_review, ease_factor, interval_days, repetitions, cloze_data, last_reviewed, review_enabled, stack_id, timestamps) — its stack membership is not altered by anything in the imported file
 
 #### Scenario: Import adds items with new content
 - **WHEN** the user imports a file containing an item (todo or note) whose type+title does not match any existing local item

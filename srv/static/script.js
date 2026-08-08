@@ -331,11 +331,7 @@ function quickAdd(itemType) {
     id: getNextId(items),
     item_type: itemType,
     title: text,
-    content: '',
     done: 0,
-    priority: 0,
-    due_date: null,
-    tags: '',
     ease_factor: 2.5,
     interval_days: 0,
     repetitions: 0,
@@ -973,8 +969,7 @@ function doSearch() {
   const container = document.getElementById('searchResults');
   if (!q) { container.innerHTML = ''; return; }
   const allActive = loadItems().filter(i => !i.archived && !isPendingDelete(i.id));
-  const matching = allActive.filter(i =>
-    i.title.toLowerCase().includes(q) || i.content.toLowerCase().includes(q));
+  const matching = allActive.filter(i => i.title.toLowerCase().includes(q));
   if (matching.length === 0) {
     container.innerHTML = '<div class="empty-state">No results found.</div>';
     return;
@@ -1506,8 +1501,8 @@ function importDataFromText(text) {
 }
 
 // An item's "content" is its type plus title (including cloze markup).
-// Everything else (done/archived, priority, tags, due date, spaced-repetition
-// fields, timestamps) is metadata, not content. Trim + exact match, case-sensitive.
+// Everything else (done/archived, spaced-repetition fields, timestamps) is
+// metadata, not content. Trim + exact match, case-sensitive.
 function itemContentKey(item) {
   return `${item.item_type}::${(item.title || '').trim()}`;
 }
