@@ -1,8 +1,5 @@
-# navigation Specification
+## MODIFIED Requirements
 
-## Purpose
-Provide reachable tab and view navigation across all screen sizes, including the Help entry, so no primary navigation is hidden by horizontal overflow.
-## Requirements
 ### Requirement: Reachable navigation on small screens
 The system SHALL keep all primary navigation entries reachable without hidden horizontal overflow on mobile-width screens.
 
@@ -39,6 +36,8 @@ The system SHALL indicate when the Help view is active.
 - **THEN** the search button active state is cleared
 - **AND** the help button reflects an active state
 
+## ADDED Requirements
+
 ### Requirement: Search entry active state
 The system SHALL indicate when the Search view is active.
 
@@ -56,4 +55,3 @@ The system SHALL indicate when the Search view is active.
 - **WHEN** the user opens the Search view while Help is open
 - **THEN** the help button active state is cleared
 - **AND** the search button reflects an active state
-

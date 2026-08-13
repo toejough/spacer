@@ -291,13 +291,18 @@ function confirmStackRename(stackId) {
 }
 
 // ===== Tab switching =====
+// Header-action views (Help, Search) aren't part of the .tab row; each has
+// its own icon button in .header-actions that mirrors .tab's active state.
+const HEADER_ACTION_BTN_IDS = { help: 'helpBtn', search: 'searchBtn' };
+
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  const helpBtn = document.getElementById('helpBtn');
-  if (helpBtn) {
-    helpBtn.classList.toggle('active', tab === 'help');
-    helpBtn.setAttribute('aria-pressed', tab === 'help' ? 'true' : 'false');
+  for (const [action, btnId] of Object.entries(HEADER_ACTION_BTN_IDS)) {
+    const btn = document.getElementById(btnId);
+    if (!btn) continue;
+    btn.classList.toggle('active', tab === action);
+    btn.setAttribute('aria-pressed', tab === action ? 'true' : 'false');
   }
   document.querySelectorAll('.tab-content').forEach(s => s.style.display = 'none');
   document.getElementById('tab-' + tab).style.display = 'block';
@@ -531,21 +536,10 @@ function updateTabCounts() {
   const todoCount = getOpenTodoCount();
   const noteCount = getNoteCount();
 
-  let searchCount = 0;
-  if (currentTab === 'search') {
-    const searchResults = document.getElementById('searchResults');
-    if (searchResults) {
-      // Count top-level result entries (loose cards or collapsed stack
-      // tiles), not nested member cards inside an expanded stack.
-      searchCount = searchResults.children ? searchResults.children.length : 0;
-    }
-  }
-
   const badges = [
     { id: 'tabBadgeReview', count: reviewCount },
     { id: 'tabBadgeTodos', count: todoCount },
     { id: 'tabBadgeNotes', count: noteCount },
-    { id: 'tabBadgeSearch', count: searchCount },
   ];
 
   for (const { id, count } of badges) {
